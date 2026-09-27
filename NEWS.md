@@ -1,3 +1,24 @@
+# tflspec 0.0.4
+
+* **The ARD spec engine moved here from tflplanner**: an Excel definition of
+  the study's analyses (`study`, `datasets`, `populations`, `analyses`) ->
+  cards / cardx code -> the study ARD.  `ard_spec()`, `read_ard_spec()`,
+  `write_ard_spec()`, `ard_spec_code()`, `build_ard()`, `ard_for()`, and the
+  catalogs `ard_methods()` / `ard_statistics()`.  New: `ard_spec_template()`,
+  `ard_spec_hash()` (was internal), and `ard_spec_code(part = "setup" /
+  "body")` for a program layout of one's own.
+* The catalogs have built-in defaults here; a company's own are passed as
+  `statistics =` / `methods =` to the functions that use them (tflplanner
+  passes its company standards), or set with
+  `options(tflspec.ard_statistics =, tflspec.ard_methods =)`.
+* **Listing code** moved from tflplanner too: `listing_spec_code()` writes a
+  listing's program from its definition rows, and `read_data_code()` the
+  lines that read a dataset of the data catalog.  The layout itself stays
+  rtfreporter's (`listing_spec()`, `as_rtftables(listing = )`).
+* Verified: tflplanner's generated ARD programs, report programs, listing
+  code and ARD status for two studies are identical before and after the
+  move (104 / 104).
+
 # tflspec 0.0.3
 
 * **plotplanner is now tflspec.** The repository and package were renamed
