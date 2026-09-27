@@ -10,7 +10,7 @@
 plot_code <- function(spec, plot_id = NULL, adam = NULL) {
   spec <- pp_normalize_spec(spec)
   if (!is.null(adam)) adam <- read_adam(adam)
-  ids <- plot_id %||% spec$plots$plot_id
+  ids <- plot_id %or% spec$plots$plot_id
   miss <- setdiff(ids, spec$plots$plot_id)
   if (length(miss)) stop("Unknown plot_id: ", paste(miss, collapse = ", "), call. = FALSE)
   out <- vapply(ids, function(pid) pp_plot_code1(spec, pid, adam), character(1))
@@ -41,10 +41,10 @@ pp_plot_code1 <- function(spec, pid, adam) {
   )
   g <- gen(ctx)
 
-  units <- ctx$prow$units %||% "in"
-  width <- as.numeric(ctx$prow$width %||% if (units == "px") "2250" else "7.5")
-  height <- as.numeric(ctx$prow$height %||% if (units == "px") "1350" else "4.5")
-  dpi <- ctx$prow$dpi %||% "300"
+  units <- ctx$prow$units %or% "in"
+  width <- as.numeric(ctx$prow$width %or% if (units == "px") "2250" else "7.5")
+  height <- as.numeric(ctx$prow$height %or% if (units == "px") "1350" else "4.5")
+  dpi <- ctx$prow$dpi %or% "300"
   width_in <- switch(units, "in" = width, cm = width / 2.54, px = width / as.numeric(dpi))
 
   lg <- pp_legend_code(ctx, g$parts, width_in)

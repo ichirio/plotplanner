@@ -31,8 +31,8 @@ pp_gen_waterfall <- function(ctx) {
   y_min <- pp_opt_num(ctx, "y_min", -100)
   y_max <- pp_opt_num(ctx, "y_max", 100)
   y_by <- pp_opt_num(ctx, "y_by", 20)
-  y_lab <- ctx$prow$y_label %||% pp_var_label_of(ctx, ctx$ds, value) %||% value
-  x_lab <- ctx$prow$x_label %||% "Patients"
+  y_lab <- ctx$prow$y_label %or% pp_var_label_of(ctx, ctx$ds, value) %or% value
+  x_lab <- ctx$prow$x_label %or% "Patients"
 
   aes_fill <- if (!is.null(f_var)) sprintf(", fill = %s", f_var) else ""
   base_terms <- list(

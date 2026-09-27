@@ -1,4 +1,6 @@
-`%||%` <- function(a, b) if (is.null(a) || length(a) == 0 || (length(a) == 1 && is.na(a))) b else a
+# `a`, unless it is NULL, empty or a single NA (a blank spec cell); then `b`.
+# Not `%or%`: the ARD / plan code needs base R's NULL-only meaning of that.
+`%or%` <- function(a, b) if (is.null(a) || length(a) == 0 || (length(a) == 1 && is.na(a))) b else a
 
 # Quote a string as R code.
 q <- function(x) encodeString(as.character(x), quote = '"')
@@ -193,7 +195,7 @@ pp_var_label_of <- function(ctx, ds, var) {
 # Resolve colours for the values of `var`. Returns list(code, name, values,
 # colours, labels); `values` is NULL when only known at run time.
 pp_scale_values <- function(ctx, obj, var, data_values, df_name, default_palette, palette = NULL) {
-  pal_name <- palette %||% ctx$prow$palette %||% default_palette
+  pal_name <- palette %or% ctx$prow$palette %or% default_palette
   pals <- pp_palettes()
   if (!pal_name %in% names(pals)) stop("Unknown palette: ", pal_name, call. = FALSE)
   pal <- pals[[pal_name]]
@@ -252,7 +254,7 @@ pp_scale_manual <- function(aes, sv, extra = NULL) {
 # ---- theme -----------------------------------------------------------------------
 
 pp_theme_code <- function(ctx) {
-  th <- ctx$prow$theme %||% "boxed"
+  th <- ctx$prow$theme %or% "boxed"
   bs <- pp_opt(ctx, "base_size")
   switch(th,
     boxed = c(

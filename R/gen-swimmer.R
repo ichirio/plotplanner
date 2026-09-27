@@ -99,7 +99,7 @@ pp_gen_swimmer <- function(ctx) {
   # ---- plot ----
   bw <- pp_opt(ctx, "bar_width")
   ms <- pp_opt(ctx, "marker_size")
-  x_lab <- ctx$prow$x_label %||% pp_time_label(ctx)
+  x_lab <- ctx$prow$x_label %or% pp_time_label(ctx)
   y_lab <- ctx$prow$y_label
   base_terms <- list(
     "ggplot(bar_df, aes(y = Y_ID))",
@@ -174,7 +174,7 @@ pp_gen_swimmer <- function(ctx) {
       else 'tibble::tibble(label = names(pal_assess), glyph = "point", shape = 23, colour = NA, fill = unname(pal_assess), linetype = NA)'))
   }
   if (!is.null(sv_bar)) {
-    prefix <- pp_opt(ctx, "bar_legend_prefix") %||% ""
+    prefix <- pp_opt(ctx, "bar_legend_prefix") %or% ""
     parts <- c(parts, list(if (!is.null(sv_bar$values)) legend_part(paste0(prefix, sv_bar$labels), "rect", fill = sv_bar$colours)
       else sprintf('tibble::tibble(label = paste0(%s, names(pal_bar)), glyph = "rect", shape = NA, colour = NA, fill = unname(pal_bar), linetype = NA)', q(prefix))))
   }

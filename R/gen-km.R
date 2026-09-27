@@ -49,7 +49,7 @@ pp_gen_km <- function(ctx) {
   # colours: one per stratum (single arm: arm_label)
   if (is.null(s_var)) {
     arm <- pp_opt(ctx, "arm_label")
-    pal <- pp_palettes()[[ctx$prow$palette %||% "treatment"]]
+    pal <- pp_palettes()[[ctx$prow$palette %or% "treatment"]]
     sv <- list(code = sprintf("pal_strata <- %s", vec_code(stats::setNames(unname(pal[1]), arm))),
                name = "pal_strata", values = arm, colours = unname(pal[1]), labels = arm)
   } else {
@@ -58,12 +58,12 @@ pp_gen_km <- function(ctx) {
   }
 
   data <- c(pipe_code("km_df", steps))
-  fit <- sprintf("km_fit <- survfit2(Surv(%s, %s == 0) ~ %s, data = km_df)", time, cnsr, s_var %||% "1")
+  fit <- sprintf("km_fit <- survfit2(Surv(%s, %s == 0) ~ %s, data = km_df)", time, cnsr, s_var %or% "1")
 
   lw <- pp_opt(ctx, "line_width")
   cshape <- pp_shape_code(pp_opt(ctx, "censor_shape"), "x")
-  y_lab <- ctx$prow$y_label %||% "Survival Probability"
-  x_lab <- ctx$prow$x_label %||% pp_time_label(ctx)
+  y_lab <- ctx$prow$y_label %or% "Survival Probability"
+  x_lab <- ctx$prow$x_label %or% pp_time_label(ctx)
 
   base_terms <- list(
     if (is.null(s_var)) sprintf("ggsurvfit(km_fit, colour = pal_strata[[1]], linewidth = %s)", lw)

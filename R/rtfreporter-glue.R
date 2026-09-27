@@ -30,3 +30,7 @@ as_rtftables.rtf_plan <- function(x, ...) apply_plan(x, "pages")
   rounding <- .rounding_type(rounding)
   function(x, digits = 0) rtfreporter::round_num(x, digits, rounding = rounding)
 }
+
+# NULL-only, as in base R (>= 4.4) and rtfreporter: the ARD / plan code was
+# written against this meaning.  The plot code's blank-aware one is `%or%`.
+`%||%` <- function(a, b) if (is.null(a)) b else a

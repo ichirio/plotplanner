@@ -168,7 +168,7 @@ pp_km <- function(adam = NULL, param = "OS", group = "TRT01P",
   style <- match.arg(style)
   adam <- pp_prep_adam(adam)
   if (style == "single_arm") group <- NULL
-  legend <- legend %||% if (is.null(group)) "none" else "inside"
+  legend <- legend %or% if (is.null(group)) "none" else "inside"
   pp_finish(pp_quick_spec(
     pid = plot_id, type = "km", style = style, data = data, legend = legend, title = title,
     roles = pp_rows(
@@ -296,15 +296,15 @@ pp_quick_spec <- function(pid, type, style, data, legend, title, roles, filters,
   lg <- pp_legend_cols(legend)
   plot_dots <- dots[intersect(names(dots), pp_plot_args)]
   dots <- dots[setdiff(names(dots), pp_plot_args)]
-  dots$time_unit <- dots$time_unit %||% unname(pp_time_units[time_unit])
+  dots$time_unit <- dots$time_unit %or% unname(pp_time_units[time_unit])
   plots <- data.frame(
     plot_id = pid, plot_type = type, dataset = data,
-    layers = paste(layers %||% pp_style_layers[[type]][[style]], collapse = ", "),
-    title = title %||% NA, x_label = plot_dots$x_label %||% NA, y_label = plot_dots$y_label %||% NA,
-    theme = plot_dots$theme %||% theme, palette = plot_dots$palette %||% default_palette,
+    layers = paste(layers %or% pp_style_layers[[type]][[style]], collapse = ", "),
+    title = title %or% NA, x_label = plot_dots$x_label %or% NA, y_label = plot_dots$y_label %or% NA,
+    theme = plot_dots$theme %or% theme, palette = plot_dots$palette %or% default_palette,
     legend_type = lg[1], legend_pos = lg[2],
-    width = plot_dots$width %||% NA, height = plot_dots$height %||% NA,
-    units = plot_dots$units %||% NA, dpi = plot_dots$dpi %||% NA,
+    width = plot_dots$width %or% NA, height = plot_dots$height %or% NA,
+    units = plot_dots$units %or% NA, dpi = plot_dots$dpi %or% NA,
     stringsAsFactors = FALSE
   )
   plot_spec(plots = plots, roles = roles, filters = filters, options = pp_options_df(pid, dots))

@@ -21,7 +21,7 @@ pp_quick_fun <- list(km = "pp_km", waterfall = "pp_waterfall", swimmer = "pp_swi
 #' @export
 write_plot_list_template <- function(path, adam = NULL, rows = NULL, n_rows = 300) {
   adam <- pp_prep_adam(adam)
-  rows <- rows %||% data.frame(
+  rows <- rows %or% data.frame(
     plot_id = c("F-14.2.1", "F-14.2.2", "F-14.2.3"),
     type = c("km", "waterfall", "swimmer"),
     style = c("risk_table", "response", "full"),
@@ -73,7 +73,7 @@ write_plot_list_template <- function(path, adam = NULL, rows = NULL, n_rows = 30
   add_list("PP_LEGENDS", names(pp_quick_legends))
   if (!is.null(adam)) {
     params <- unique(unlist(lapply(adam, function(d) if ("PARAMCD" %in% names(d)) pp_values(d, "PARAMCD"))))
-    sl <- adam[["ADSL"]] %||% adam[[1]]
+    sl <- adam[["ADSL"]] %or% adam[[1]]
     groups <- names(sl)[vapply(sl, function(v) (is.character(v) || is.factor(v)) &&
                                  length(unique(v)) %in% 2:15, logical(1))]
     pops <- grep("FL$", names(sl), value = TRUE)
@@ -116,7 +116,7 @@ plot_list_code <- function(x, adam = NULL, dir = NULL) {
     r <- lapply(x[i, ], function(v) if (is.na(v) || trimws(v) == "") NULL else trimws(as.character(v)))
     fun <- pp_quick_fun[[r$type]]
     if (is.null(fun)) stop("Row ", i, ": unknown type '", r$type, "'.", call. = FALSE)
-    args <- list(adam = adam, plot_id = r$plot_id %||% paste0("plot", i))
+    args <- list(adam = adam, plot_id = r$plot_id %or% paste0("plot", i))
     for (a in c("style", "title", "param", "group", "legend")) {
       if (!is.null(r[[a]]) && a %in% names(formals(get(fun)))) args[[a]] <- r[[a]]
     }
@@ -129,7 +129,7 @@ plot_list_code <- function(x, adam = NULL, dir = NULL) {
     }
     paste(do.call(fun, args), collapse = "\n")
   }, character(1))
-  names(code) <- x$plot_id %||% paste0("plot", seq_len(nrow(x)))
+  names(code) <- x$plot_id %or% paste0("plot", seq_len(nrow(x)))
   if (!is.null(dir)) {
     dir.create(dir, showWarnings = FALSE, recursive = TRUE)
     for (i in seq_along(code)) writeLines(code[[i]], file.path(dir, paste0(make.names(names(code)[i]), ".R")), useBytes = TRUE)

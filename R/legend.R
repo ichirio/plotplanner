@@ -97,8 +97,8 @@ pp_inside_just <- list(
 #              pre = code lines before assembly, panel = list(name, pos, size)
 #              or NULL, inset = code or NULL).
 pp_legend_code <- function(ctx, auto_parts, fig_width_in) {
-  type <- ctx$prow$legend_type %||% "mapped"
-  pos <- ctx$prow$legend_pos %||% (if (type == "manual") "below" else "right")
+  type <- ctx$prow$legend_type %or% "mapped"
+  pos <- ctx$prow$legend_pos %or% (if (type == "manual") "below" else "right")
   if (!type %in% pp_legend_types) stop("Unknown legend_type: ", type, call. = FALSE)
   if (!pos %in% pp_legend_positions) stop("Unknown legend_pos: ", pos, call. = FALSE)
   title_blank <- is.na(pp_opt(ctx, "legend_title"))
