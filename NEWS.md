@@ -17,7 +17,6 @@
 * `pp_example_adam()` gains `ADAE`, `ADLB`, `ADPC`, tumour size over time in
   `ADTR`, and `SEX` / `AGEGR1` / `TRT01A` / start and end days in `ADSL`
   (drawn from a separate random stream: existing values are unchanged).
-
 * **Treatment-sequence figures moved here from ydisctools**: `plot_sankey()`
   (nodes laid out from the node table, baseline-aware ribbon stacking,
   shared / adaptive scales), `plot_sankey_subgroups_batch()` and
