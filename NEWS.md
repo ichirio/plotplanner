@@ -1,3 +1,14 @@
+# tflspec 0.0.5
+
+* **`library(tflspec)` is enough**: rtfreporter moved from `Imports` to
+  `Depends`, so attaching tflspec attaches rtfreporter too.  tflspec
+  extends rtfreporter (a plan is one of its table sources), which is the
+  case `Depends` is for.  Code written for the rtfreporter branch needs
+  `library(tflspec)` and nothing else, unless it calls the moved functions
+  as `rtfreporter::` (now `tflspec::`).
+* R CMD check (`--as-cran`) runs on GitHub Actions: ubuntu devel / release
+  / oldrel-1, macOS, Windows.
+
 # tflspec 0.0.4
 
 * **The ARD spec engine moved here from tflplanner**: an Excel definition of

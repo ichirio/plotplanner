@@ -5,6 +5,14 @@ decides *what* goes on the page; [rtfreporter](https://github.com/ichirio/rtfrep
 renders it to RTF, and [tflplanner](https://github.com/ichirio/tflplanner) is the
 GUI on top.
 
+```
+tflplanner   the GUI; installing it installs the other two
+    |
+tflspec      for programmers: library(tflspec) also attaches rtfreporter
+    |
+rtfreporter  the RTF renderer; usable on its own
+```
+
 | Part | What it does | Entry points |
 |---|---|---|
 | Tables (ARD) | a cards/cardx ARD -> a table data.frame -> rtfreporter pages, declared once as a plan or in an Excel table spec | `ard_normalize()`, `ard_spread()`, `rtf_plan()` + `plan_*()`, `table_spec()`, `read_report_spec()`, `rtf_report()` |
@@ -22,8 +30,7 @@ was tflspec. Discussion and sample code:
 ## Tables
 
 ```r
-library(rtfreporter)
-library(tflspec)
+library(tflspec)     # attaches rtfreporter too (Depends)
 
 tbl <- ard |>
   ard_normalize() |>
