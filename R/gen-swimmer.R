@@ -141,17 +141,27 @@ pp_gen_swimmer <- function(ctx) {
       })
   }
   if (!is.null(events)) {
-    plot <- c(plot, "# ---- layer: event_marker (one row per event variable) ----",
-      plus_code("p", list(
-        paste0("geom_point(\n",
-               "  data = event_df,\n",
-               "  aes(x = X, shape = EVENT,\n",
-               "      colour = I(event_colour[as.character(EVENT)]),\n",
-               "      fill   = I(event_colour[as.character(EVENT)])),\n",
-               "  size = ", ms, "\n)"),
+    ev_code <- plus_code("p", list(
+        paste0("geom_point(
+",
+               "  data = event_df,
+",
+               "  aes(x = X, shape = EVENT,
+",
+               "      colour = I(event_colour[as.character(EVENT)]),
+",
+               "      fill   = I(event_colour[as.character(EVENT)])),
+",
+               "  size = ", ms, "
+)"),
         "scale_shape_manual(values = event_shape, breaks = names(event_shape))",
         "guides(shape = guide_legend(override.aes = list(colour = unname(event_colour), fill = unname(event_colour))))"
-      ), append = TRUE))
+      ), append = TRUE)
+    plot <- c(plot, "# ---- layer: event_marker (one row per event variable; skipped when no event) ----",
+      paste0("if (nrow(event_df) > 0) {
+", paste(indent(ev_code), collapse = "
+"), "
+}"))
   }
   if (has_layer(ctx, "ongoing_arrow")) {
     o_flist <- pp_filters(ctx, "ongoing_arrow", ctx$ds)

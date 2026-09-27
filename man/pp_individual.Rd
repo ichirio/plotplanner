@@ -13,6 +13,7 @@ pp_individual(
   x = NULL,
   group = NULL,
   pop = NULL,
+  where = NULL,
   response = "BOR",
   time_unit = "weeks",
   legend = "right",
@@ -47,6 +48,9 @@ over time, coloured by best overall response, with +20\% / -30\% lines).}
 \item{group}{Treatment variable; its first value is the reference.}
 
 \item{pop}{Population flag (\verb{== "Y"}); \code{NULL} for none.}
+
+\item{where}{Extra record condition as R code, e.g.
+\code{'AVISIT != "Retrieval"'}; \code{NULL} for none.}
 
 \item{response}{PARAMCD of the best overall response in \code{ADRS} (spider).}
 

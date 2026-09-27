@@ -12,6 +12,7 @@ pp_bar(
   category = "AVALC",
   group = "TRT01P",
   pop = "FASFL",
+  where = NULL,
   responders = c("CR", "PR"),
   legend = NULL,
   palette = NULL,
@@ -43,6 +44,9 @@ pp_bar(
 \item{group}{Treatment variable; its first value is the reference.}
 
 \item{pop}{Population flag (\verb{== "Y"}); \code{NULL} for none.}
+
+\item{where}{Extra record condition as R code, e.g.
+\code{'AVISIT != "Retrieval"'}; \code{NULL} for none.}
 
 \item{responders}{Values of \code{AVALC} counted as responders (\code{or}).}
 

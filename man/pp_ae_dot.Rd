@@ -11,6 +11,7 @@ pp_ae_dot(
   term = "AEDECOD",
   group = "TRT01A",
   pop = "SAFFL",
+  where = NULL,
   tefl = "TRTEMFL",
   top = 20,
   min_pct = 5,
@@ -40,6 +41,9 @@ pp_ae_dot(
 \item{group}{Treatment variable; its first value is the reference.}
 
 \item{pop}{Population flag (\verb{== "Y"}); \code{NULL} for none.}
+
+\item{where}{Extra record condition as R code, e.g.
+\code{'AVISIT != "Retrieval"'}; \code{NULL} for none.}
 
 \item{tefl}{Treatment-emergent flag (\code{NULL} for all records).}
 

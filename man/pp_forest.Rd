@@ -11,6 +11,7 @@ pp_forest(
   group = "TRT01P",
   subgroups = c("SEX", "AGEGR1"),
   pop = "FASFL",
+  where = NULL,
   data = NULL,
   responders = c("CR", "PR"),
   key = "USUBJID",
@@ -40,6 +41,9 @@ optionally \code{n}).}
 \item{subgroups}{ADSL variables defining the subgroups.}
 
 \item{pop}{Population flag (\verb{== "Y"}); \code{NULL} for none.}
+
+\item{where}{Extra record condition as R code, e.g.
+\code{'AVISIT != "Retrieval"'}; \code{NULL} for none.}
 
 \item{data}{Dataset name.}
 

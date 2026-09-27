@@ -15,6 +15,7 @@ pp_box(
   at_visit = NULL,
   group = "TRT01A",
   pop = "SAFFL",
+  where = NULL,
   legend = "bottom",
   palette = "treatment",
   key = "USUBJID",
@@ -49,6 +50,9 @@ baseline by visit and group, with a zero line).}
 \item{group}{Treatment variable; its first value is the reference.}
 
 \item{pop}{Population flag (\verb{== "Y"}); \code{NULL} for none.}
+
+\item{where}{Extra record condition as R code, e.g.
+\code{'AVISIT != "Retrieval"'}; \code{NULL} for none.}
 
 \item{legend}{Legend preset (\code{none}, \code{right}, \code{bottom}, \code{top}, \code{inside}, ...).}
 

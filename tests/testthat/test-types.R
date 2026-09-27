@@ -76,3 +76,23 @@ test_that("new types work through the Excel plot list", {
   expect_match(code[["F2"]], "n = 5", fixed = TRUE)
   expect_match(code[["F3"]], 'PARAMCD == "AST"', fixed = TRUE)
 })
+
+test_that("where adds a record condition and groups follow the paired numeric code", {
+  adam <- pp_example_adam()
+  adam$ADSL$TRT01AN <- ifelse(adam$ADSL$TRT01A == "Drug B", 1, 2)   # Drug B first
+  code <- pp_mean(adam, where = 'AVISITN <= 8')
+  expect_match(code, "filter(AVISITN <= 8)", fixed = TRUE)
+  expect_match(code, 'pal_grp <- c("Drug B" = "#0072B2", "Drug A" = "#D55E00")', fixed = TRUE)
+  expect_match(code, "mutate(TRT01A = factor(TRT01A, levels = names(pal_grp)))", fixed = TRUE)
+  env <- run_code(code)
+  expect_equal(max(env$sum_df$AVISITN), 8)
+  expect_equal(levels(env$sum_df$TRT01A), c("Drug B", "Drug A"))
+})
+
+test_that("pharmaverseadam example files are shipped", {
+  d <- system.file("examples", "pharmaverseadam", package = "tflspec")
+  expect_true(all(file.exists(file.path(d, c("prepare_adam.R", "plot_list.xlsx", "run_all.R")))))
+  rows <- openxlsx::read.xlsx(file.path(d, "plot_list.xlsx"), sheet = "plots")
+  expect_true(all(rows$type %in% pp_catalog("implemented")$type))
+  expect_false(any(rows$type %in% c("sankey", "sunburst")))
+})

@@ -1,5 +1,18 @@
 # tflspec 0.0.6
 
+* **pharmaverseadam example** (`inst/examples/pharmaverseadam/`): a plot
+  list with 19 clinical figures (`plot_list.xlsx`), the data preparation
+  tflspec does not do (`prepare_adam.R`) and `run_all.R` (spec -> programs ->
+  figures). All 19 programs run without warnings.
+* Template figure types take `where =`, an extra record condition in R code
+  (e.g. only scheduled visits).
+* Groups follow the paired numeric code of ADSL when there is one (`TRT01AN`
+  for `TRT01A`) instead of alphabetical order.
+* Generated programs cope with real data: swimmer event markers are skipped
+  when no subject has an event; a forest model that does not converge is
+  shown as NE; eDISH drops records without a ULN.
+* `write_plot_code()` / `plot_list_code(dir =)` keep plot ids in file names
+  (`F-01.R`, not `F.01.R`).
 * **Catalogue of clinical figure types**: `pp_catalog()` classifies every type
   and style (subtype) by category (efficacy: time to event / tumour response /
   subgroups and rates, longitudinal, safety, PK / PD, distribution, treatment

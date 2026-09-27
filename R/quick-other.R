@@ -10,7 +10,7 @@
 #' @export
 pp_scatter <- function(adam = NULL, style = c("shift", "xy"), param = "ALT", data = "ADLB",
                        x = NULL, y = NULL, visit = "AVISITN", visit_label = "AVISIT", at_visit = NULL,
-                       group = "TRT01A", pop = "SAFFL", legend = "inside_tl", palette = "treatment",
+                       group = "TRT01A", pop = "SAFFL", where = NULL, legend = "inside_tl", palette = "treatment",
                        key = "USUBJID", theme = "boxed", title = NULL, width = 6, height = 5.5,
                        dpi = 300, units = "in", file = NULL, plot_id = "scatter") {
   style <- match.arg(style)
@@ -18,16 +18,16 @@ pp_scatter <- function(adam = NULL, style = c("shift", "xy"), param = "ALT", dat
   x <- x %or% "BASE"
   y <- y %or% if (style == "shift") "AVAL" else "CHG"
   pp_q_check_cols(adam, data, c(x, y, visit, visit_label))
-  df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop))
+  df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop), where = where)
   if (!is.null(pop) && !is.null(df)) df <- df[df[[pop]] %in% "Y", , drop = FALSE]
   plab <- pp_q_param_label(adam, data, param, param)
   steps <- c(list(pp_ds_name(data), pp_q_filter(list(PARAMCD = param), adam[[data]])),
              as.list(pp_q_adsl_join(c(group, pop), key)),
-             list(pp_q_pop(pop), sprintf("filter(%s > 0, !is.na(%s), !is.na(%s))", visit, x, y),
+             list(pp_q_pop(pop), pp_q_where(where), sprintf("filter(%s > 0, !is.na(%s), !is.na(%s))", visit, x, y),
                   if (!is.null(at_visit)) sprintf("filter(%s == %s)", visit_label, q(at_visit))
                   else sprintf("filter(%s == max(%s))", visit, visit)))
   data_lines <- c(pp_q_load(c(data, "ADSL")), pipe_code("sc_df", steps),
-                  pp_q_pal("pal_grp", df, group, "sc_df", palette))
+                  pp_q_group_pal("pal_grp", df, group, "sc_df", palette))
   if (style == "shift") {
     data_lines <- c(data_lines, sprintf("lims <- range(c(sc_df$%s, sc_df$%s), na.rm = TRUE)", x, y))
   }
@@ -59,13 +59,13 @@ pp_scatter <- function(adam = NULL, style = c("shift", "xy"), param = "ALT", dat
 #' @export
 pp_pk <- function(adam = NULL, style = c("mean", "mean_log", "individual"), param = NULL,
                   data = "ADPC", value = "AVAL", time = "NFRLT", time_label = "Nominal time (h)",
-                  group = "TRT01A", pop = "SAFFL", legend = "inside", palette = "treatment",
+                  group = "TRT01A", pop = "SAFFL", where = NULL, legend = "inside", palette = "treatment",
                   key = "USUBJID", theme = "boxed", title = NULL, width = 7.5, height = 4.5,
                   dpi = 300, units = "in", file = NULL, plot_id = "pk") {
   style <- match.arg(style)
   adam <- pp_prep_adam(adam)
   pp_q_check_cols(adam, data, c(value, time))
-  df <- pp_q_eval(adam, data, if (!is.null(param)) list(PARAMCD = param) else list(), c(group, pop))
+  df <- pp_q_eval(adam, data, if (!is.null(param)) list(PARAMCD = param) else list(), c(group, pop), where = where)
   if (!is.null(pop) && !is.null(df)) df <- df[df[[pop]] %in% "Y", , drop = FALSE]
   plab <- if (!is.null(param)) pp_q_param_label(adam, data, param, "Concentration") else {
     if (!is.null(adam) && "PARAM" %in% names(adam[[data]]) && length(unique(adam[[data]]$PARAM)) == 1) unique(adam[[data]]$PARAM) else "Concentration"
@@ -73,10 +73,10 @@ pp_pk <- function(adam = NULL, style = c("mean", "mean_log", "individual"), para
   log_y <- style != "mean"
   steps <- c(list(pp_ds_name(data), if (!is.null(param)) pp_q_filter(list(PARAMCD = param), adam[[data]])),
              as.list(pp_q_adsl_join(c(group, pop), key)),
-             list(pp_q_pop(pop), sprintf("filter(!is.na(%s))", value),
+             list(pp_q_pop(pop), pp_q_where(where), sprintf("filter(!is.na(%s))", value),
                   if (log_y) sprintf("filter(%s > 0)  # log axis: drop zero / BLQ values", value)))
   data_lines <- c(pp_q_load(c(data, "ADSL")), pipe_code("pk_df", steps),
-                  pp_q_pal("pal_grp", df, group, "pk_df", palette))
+                  pp_q_group_pal("pal_grp", df, group, "pk_df", palette))
   if (style != "individual") {
     data_lines <- c(data_lines, paste0(
       "sum_df <- pk_df %>%\n",

@@ -18,14 +18,14 @@ pp_q_visit_step <- function(visit, visit_label) {
 #' @export
 pp_mean <- function(adam = NULL, style = c("se", "sd", "ci", "se_n"), param = "ALT", data = "ADLB",
                     value = "AVAL", visit = "AVISITN", visit_label = "AVISIT", group = "TRT01A",
-                    pop = "SAFFL", flag = NULL, legend = "bottom", palette = "treatment", key = "USUBJID",
+                    pop = "SAFFL", where = NULL, flag = NULL, legend = "bottom", palette = "treatment", key = "USUBJID",
                     theme = "boxed", title = NULL, width = 7.5, height = 4.5, dpi = 300, units = "in",
                     file = NULL, plot_id = "mean") {
   style <- match.arg(style)
   adam <- pp_prep_adam(adam)
   pp_q_check_cols(adam, data, c(value, visit, visit_label))
   pp_q_check_cols(adam, "ADSL", c(group, pop))
-  df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop))
+  df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop), where = where)
   if (!is.null(pop) && !is.null(df)) df <- df[df[[pop]] %in% "Y", , drop = FALSE]
   bar <- switch(style,
     se = , se_n = c("se", "mean - se", "mean + se", "Mean (+/- SE)"),
@@ -37,9 +37,9 @@ pp_mean <- function(adam = NULL, style = c("se", "sd", "ci", "se_n"), param = "A
     pipe_code("mn_df", c(list(pp_ds_name(data),
                               pp_q_filter(c(list(PARAMCD = param), if (!is.null(flag)) stats::setNames(list("Y"), flag)), adam[[data]])),
                          as.list(pp_q_adsl_join(c(group, pop), key)),
-                         list(pp_q_pop(pop), sprintf("filter(!is.na(%s), !is.na(%s))", value, visit),
+                         list(pp_q_pop(pop), pp_q_where(where), sprintf("filter(!is.na(%s), !is.na(%s))", value, visit),
                               pp_q_visit_step(visit, visit_label)))),
-    pp_q_pal("pal_grp", df, group, "mn_df", palette),
+    pp_q_group_pal("pal_grp", df, group, "mn_df", palette),
     paste0("sum_df <- mn_df %>%\n",
            sprintf("  group_by(%s, %s, %s) %%>%%\n", group, visit, visit_label %or% visit),
            sprintf("  summarise(n = n(), mean = mean(%s), sd = sd(%s), .groups = \"drop\") %%>%%\n", value, value),
@@ -87,7 +87,7 @@ pp_mean <- function(adam = NULL, style = c("se", "sd", "ci", "se_n"), param = "A
 #' @param response PARAMCD of the best overall response in `ADRS` (spider).
 #' @export
 pp_individual <- function(adam = NULL, style = c("spaghetti", "spider"), param = NULL, data = NULL,
-                          value = NULL, x = NULL, group = NULL, pop = NULL,
+                          value = NULL, x = NULL, group = NULL, pop = NULL, where = NULL,
                           response = "BOR", time_unit = "weeks", legend = "right", palette = NULL,
                           key = "USUBJID", theme = "boxed", title = NULL, width = 7.5, height = 4.5,
                           dpi = 300, units = "in", file = NULL, plot_id = "individual") {
@@ -103,11 +103,11 @@ pp_individual <- function(adam = NULL, style = c("spaghetti", "spider"), param =
   palette <- palette %or% if (spider) "response" else "treatment"
   pp_q_check_cols(adam, data, c(value, x))
   div <- c(days = 1, weeks = 7, months = 30.4375)[[time_unit]]
-  df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop))
+  df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop), where = where)
   if (!is.null(pop) && !is.null(df)) df <- df[df[[pop]] %in% "Y", , drop = FALSE]
   steps <- c(list(pp_ds_name(data), pp_q_filter(list(PARAMCD = param), adam[[data]])),
              as.list(pp_q_adsl_join(c(group, pop), key)),
-             list(pp_q_pop(pop), sprintf("filter(!is.na(%s), !is.na(%s))", value, x)))
+             list(pp_q_pop(pop), pp_q_where(where), sprintf("filter(!is.na(%s), !is.na(%s))", value, x)))
   if (spider) {
     bor_df <- pp_q_eval(adam, "ADRS", list(PARAMCD = response))
     steps <- c(steps,
@@ -118,7 +118,7 @@ pp_individual <- function(adam = NULL, style = c("spaghetti", "spider"), param =
     if (is.null(bor_df)) pal <- sub("id_df\\$AVALC", paste0("id_df$", response), pal)
   } else {
     colour_var <- group
-    pal <- pp_q_pal("pal", df, group, "id_df", palette)
+    pal <- pp_q_group_pal("pal", df, group, "id_df", palette)
   }
   x_lab <- if (spider) sprintf("Time (%s)", tools::toTitleCase(time_unit)) else {
     lab <- if (!is.null(adam[[data]]) && x %in% names(adam[[data]])) pp_var_label(adam[[data]][[x]]) else ""
@@ -150,18 +150,18 @@ pp_individual <- function(adam = NULL, style = c("spaghetti", "spider"), param =
 #' @export
 pp_box <- function(adam = NULL, style = c("by_visit", "by_group", "change"), param = "ALT", data = "ADLB",
                    value = NULL, visit = "AVISITN", visit_label = "AVISIT", at_visit = NULL,
-                   group = "TRT01A", pop = "SAFFL", legend = "bottom", palette = "treatment",
+                   group = "TRT01A", pop = "SAFFL", where = NULL, legend = "bottom", palette = "treatment",
                    key = "USUBJID", theme = "boxed", title = NULL, width = 7.5, height = 4.5, dpi = 300,
                    units = "in", file = NULL, plot_id = "box") {
   style <- match.arg(style)
   adam <- pp_prep_adam(adam)
   value <- value %or% if (style == "change") "CHG" else "AVAL"
   pp_q_check_cols(adam, data, c(value, visit, visit_label))
-  df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop))
+  df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop), where = where)
   if (!is.null(pop) && !is.null(df)) df <- df[df[[pop]] %in% "Y", , drop = FALSE]
   steps <- c(list(pp_ds_name(data), pp_q_filter(list(PARAMCD = param), adam[[data]])),
              as.list(pp_q_adsl_join(c(group, pop), key)),
-             list(pp_q_pop(pop), sprintf("filter(!is.na(%s))", value)))
+             list(pp_q_pop(pop), pp_q_where(where), sprintf("filter(!is.na(%s))", value)))
   if (style == "change") steps <- c(steps, sprintf("filter(%s > 0)", visit))
   if (style == "by_group") {
     steps <- c(steps, if (!is.null(at_visit)) sprintf("filter(%s == %s)", visit_label, q(at_visit))
@@ -171,7 +171,7 @@ pp_box <- function(adam = NULL, style = c("by_visit", "by_group", "change"), par
   }
   plab <- pp_q_param_label(adam, data, param, param)
   data_lines <- c(pp_q_load(c(data, "ADSL")), pipe_code("bx_df", steps),
-                  pp_q_pal("pal_grp", df, group, "bx_df", palette))
+                  pp_q_group_pal("pal_grp", df, group, "bx_df", palette))
   y_lab <- if (value == "AVAL") plab else paste(value, "of", plab)
   plot <- if (style == "by_group") {
     plus_code("p", c(list(

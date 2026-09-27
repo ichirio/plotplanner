@@ -14,6 +14,7 @@ pp_mean(
   visit_label = "AVISIT",
   group = "TRT01A",
   pop = "SAFFL",
+  where = NULL,
   flag = NULL,
   legend = "bottom",
   palette = "treatment",
@@ -46,6 +47,9 @@ CI) or \code{se_n} (mean +/- SE with a table of n below).}
 \item{group}{Treatment variable; its first value is the reference.}
 
 \item{pop}{Population flag (\verb{== "Y"}); \code{NULL} for none.}
+
+\item{where}{Extra record condition as R code, e.g.
+\code{'AVISIT != "Retrieval"'}; \code{NULL} for none.}
 
 \item{flag}{Optional record flag (\verb{== "Y"}), e.g. \code{ANL01FL}.}
 

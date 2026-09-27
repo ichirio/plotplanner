@@ -2,7 +2,7 @@
 
 # Step1 shared by the AE figures: incidence per term and arm, with the
 # safety population as denominator.
-pp_q_ae_data <- function(adam, data, term, group, pop, tefl, key, top, min_pct, palette) {
+pp_q_ae_data <- function(adam, data, term, group, pop, tefl, key, top, min_pct, palette, where = NULL) {
   pp_q_check_cols(adam, "ADSL", c(group, pop))
   pp_q_check_cols(adam, data, c(term, tefl))
   sl <- if (!is.null(adam)) adam$ADSL else NULL
@@ -12,7 +12,7 @@ pp_q_ae_data <- function(adam, data, term, group, pop, tefl, key, top, min_pct, 
     pp_q_pal("pal_grp", sl, group, "pop_df", palette),
     sprintf("arms <- names(pal_grp)[1:2]  # reference first; only two arms are compared"),
     sprintf("N_df <- pop_df %%>%% count(%s, name = \"N\")", group),
-    pipe_code("ae_df", c(list(pp_ds_name(data), if (!is.null(tefl)) sprintf('filter(%s == "Y")', tefl),
+    pipe_code("ae_df", c(list(pp_ds_name(data), if (!is.null(tefl)) sprintf('filter(%s == "Y")', tefl), pp_q_where(where),
                               sprintf("select(-any_of(%s))", q(group)),
                               sprintf("inner_join(pop_df %%>%% select(%s, %s), by = %s)", key, group, q(key)),
                               sprintf("distinct(%s, %s, %s)", key, group, term)))),
@@ -47,13 +47,13 @@ pp_q_ae_data <- function(adam, data, term, group, pop, tefl, key, top, min_pct, 
 #'   `min_pct` percent in any arm.
 #' @export
 pp_ae_dot <- function(adam = NULL, style = c("risk_diff", "incidence"), data = "ADAE",
-                      term = "AEDECOD", group = "TRT01A", pop = "SAFFL", tefl = "TRTEMFL",
+                      term = "AEDECOD", group = "TRT01A", pop = "SAFFL", where = NULL, tefl = "TRTEMFL",
                       top = 20, min_pct = 5, legend = "bottom", palette = "treatment", key = "USUBJID",
                       theme = "boxed", title = NULL, width = 8, height = 5.5, dpi = 300, units = "in",
                       file = NULL, plot_id = "ae_dot") {
   style <- match.arg(style)
   adam <- pp_prep_adam(adam)
-  data_lines <- pp_q_ae_data(adam, data, term, group, pop, tefl, key, top, min_pct, palette)
+  data_lines <- pp_q_ae_data(adam, data, term, group, pop, tefl, key, top, min_pct, palette, where)
   inc_plot <- plus_code("p", c(list(
     sprintf("ggplot(inc_df, aes(x = pct, y = %s, colour = %s, shape = %s))", term, group, group),
     "geom_point(size = 2.5)",
@@ -100,14 +100,14 @@ pp_ae_dot <- function(adam = NULL, style = c("risk_diff", "incidence"), data = "
 #' @param style `soc` (system organ class) or `pt` (preferred term).
 #' @export
 pp_butterfly <- function(adam = NULL, style = c("soc", "pt"), data = "ADAE", term = NULL,
-                         group = "TRT01A", pop = "SAFFL", tefl = "TRTEMFL", top = 20, min_pct = 0,
+                         group = "TRT01A", pop = "SAFFL", where = NULL, tefl = "TRTEMFL", top = 20, min_pct = 0,
                          legend = "bottom", palette = "treatment", key = "USUBJID", theme = "boxed",
                          title = NULL, width = 8, height = 5, dpi = 300, units = "in",
                          file = NULL, plot_id = "butterfly") {
   style <- match.arg(style)
   adam <- pp_prep_adam(adam)
   term <- term %or% if (style == "soc") "AEBODSYS" else "AEDECOD"
-  data_lines <- c(pp_q_ae_data(adam, data, term, group, pop, tefl, key, top, min_pct, palette),
+  data_lines <- c(pp_q_ae_data(adam, data, term, group, pop, tefl, key, top, min_pct, palette, where),
                   sprintf("inc_df <- inc_df %%>%% mutate(x = ifelse(%s == arms[1], -pct, pct))", group),
                   "x_lim <- max(inc_df$pct) * 1.2")
   plot <- c(plus_code("p", c(list(
@@ -137,7 +137,7 @@ pp_butterfly <- function(adam = NULL, style = c("soc", "pt"), data = "ADAE", ter
 #' @export
 pp_edish <- function(adam = NULL, style = c("alt", "alt_ast"), data = "ADLB", alt = "ALT", ast = "AST",
                      bili = "BILI", uln = "ANRHI", post_baseline = "AVISITN > 0", group = "TRT01A",
-                     pop = "SAFFL", legend = "inside", palette = "treatment", key = "USUBJID",
+                     pop = "SAFFL", where = NULL, legend = "inside", palette = "treatment", key = "USUBJID",
                      theme = "boxed", title = NULL, width = 7, height = 6, dpi = 300, units = "in",
                      file = NULL, plot_id = "edish") {
   style <- match.arg(style)
@@ -151,8 +151,8 @@ pp_edish <- function(adam = NULL, style = c("alt", "alt_ast"), data = "ADLB", al
     pipe_code("lb_df", c(list(pp_ds_name(data), pp_q_filter(list(PARAMCD = c(x_params, bili)), adam[[data]]),
                               sprintf("filter(%s)", post_baseline)),
                          as.list(pp_q_adsl_join(c(group, pop), key)),
-                         list(pp_q_pop(pop), sprintf("mutate(XULN = AVAL / %s)", uln)))),
-    pp_q_pal("pal_grp", sl, group, "lb_df", palette),
+                         list(pp_q_pop(pop), pp_q_where(where), sprintf("mutate(XULN = AVAL / %s)", uln), "filter(!is.na(XULN))"))),
+    pp_q_group_pal("pal_grp", sl, group, "lb_df", palette),
     paste0("max_df <- lb_df %>%\n",
            sprintf("  group_by(%s, %s, PARAMCD) %%>%%\n", key, group),
            "  summarise(m = max(XULN, na.rm = TRUE), .groups = \"drop\")"),

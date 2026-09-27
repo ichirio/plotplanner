@@ -14,6 +14,7 @@ pp_pk(
   time_label = "Nominal time (h)",
   group = "TRT01A",
   pop = "SAFFL",
+  where = NULL,
   legend = "inside",
   palette = "treatment",
   key = "USUBJID",
@@ -48,6 +49,9 @@ subject, log axis, one panel per group).}
 \item{group}{Treatment variable; its first value is the reference.}
 
 \item{pop}{Population flag (\verb{== "Y"}); \code{NULL} for none.}
+
+\item{where}{Extra record condition as R code, e.g.
+\code{'AVISIT != "Retrieval"'}; \code{NULL} for none.}
 
 \item{legend}{Legend preset (\code{none}, \code{right}, \code{bottom}, \code{top}, \code{inside}, ...).}
 

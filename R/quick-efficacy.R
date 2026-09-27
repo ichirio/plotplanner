@@ -11,11 +11,13 @@
 #'   optionally `n`).
 #' @param subgroups ADSL variables defining the subgroups.
 #' @param group Treatment variable; its first value is the reference.
+#' @param where Extra record condition as R code, e.g.
+#'   `'AVISIT != "Retrieval"'`; `NULL` for none.
 #' @param responders Values of `AVALC` counted as responders (`or`).
 #' @param theme Theme preset.
 #' @export
 pp_forest <- function(adam = NULL, style = c("hr", "or", "estimates"), param = NULL,
-                      group = "TRT01P", subgroups = c("SEX", "AGEGR1"), pop = "FASFL",
+                      group = "TRT01P", subgroups = c("SEX", "AGEGR1"), pop = "FASFL", where = NULL,
                       data = NULL, responders = c("CR", "PR"), key = "USUBJID",
                       theme = "boxed", title = NULL, width = 8, height = 5, dpi = 300,
                       units = "in", file = NULL, plot_id = "forest") {
@@ -36,19 +38,23 @@ pp_forest <- function(adam = NULL, style = c("hr", "or", "estimates"), param = N
     libs <- c("dplyr", "ggplot2", "patchwork")
   } else {
     pp_q_check_cols(adam, "ADSL", c(group, subgroups, pop))
-    df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop))
+    df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop), where = where)
     if (!is.null(pop) && !is.null(df)) df <- df[df[[pop]] %in% "Y", , drop = FALSE]
     arms <- if (!is.null(df)) pp_values(df, group) else NULL
     fit <- if (style == "hr") {
       c("fit_est <- function(d) {",
         sprintf("  if (n_distinct(d$%s) < 2 || sum(d$CNSR == 0) < 2) return(data.frame(est = NA, lcl = NA, ucl = NA))", group),
-        sprintf("  s <- summary(coxph(Surv(AVAL, CNSR == 0) ~ %s, data = d))$conf.int", group),
+        "  # a model that does not converge (e.g. no events in one arm) is not estimable",
+        sprintf("  fit <- tryCatch(coxph(Surv(AVAL, CNSR == 0) ~ %s, data = d), warning = function(w) NULL)", group),
+        "  if (is.null(fit)) return(data.frame(est = NA, lcl = NA, ucl = NA))",
+        "  s <- summary(fit)$conf.int",
         "  data.frame(est = s[1, 1], lcl = s[1, 3], ucl = s[1, 4])",
         "}")
     } else {
       c("fit_est <- function(d) {",
         sprintf("  if (n_distinct(d$%s) < 2 || n_distinct(d$RESP) < 2) return(data.frame(est = NA, lcl = NA, ucl = NA))", group),
-        sprintf("  m <- glm(RESP ~ %s, family = binomial, data = d)", group),
+        sprintf("  m <- tryCatch(glm(RESP ~ %s, family = binomial, data = d), warning = function(w) NULL)", group),
+        "  if (is.null(m)) return(data.frame(est = NA, lcl = NA, ucl = NA))",
         "  ci <- exp(confint.default(m)[2, ])",
         "  data.frame(est = exp(coef(m)[[2]]), lcl = ci[[1]], ucl = ci[[2]])",
         "}")
@@ -58,10 +64,11 @@ pp_forest <- function(adam = NULL, style = c("hr", "or", "estimates"), param = N
       sprintf("subgroups <- %s", vec_code(subgroups)),
       pipe_code("fr_df", c(list(pp_ds_name(data), pp_q_filter(list(PARAMCD = param), adam[[data]])),
                            as.list(pp_q_adsl_join(c(group, pop, subgroups), key)),
-                           list(pp_q_pop(pop)),
+                           list(pp_q_pop(pop), pp_q_where(where)),
                            list(if (style == "or") sprintf("mutate(RESP = as.integer(AVALC %%in%% %s))", vec_code(responders))),
                            list(sprintf("mutate(%s = factor(%s, levels = %s))", group, group,
-                                        if (!is.null(arms)) vec_code(arms) else sprintf("sort(unique(%s))", group))))),
+                                        if (!is.null(arms)) vec_code(arms) else sprintf("sort(unique(%s))", group)),
+                                "droplevels()  # groups removed by the filters drop out of the model"))),
       sprintf("# %s: %s vs the reference (first level of %s)", if (style == "hr") "hazard ratio" else "odds ratio",
               "each other arm", group),
       paste(fit, collapse = "\n"),
@@ -124,7 +131,7 @@ pp_forest <- function(adam = NULL, style = c("hr", "or", "estimates"), param = N
 #'   category (`stacked`, default `response`).
 #' @export
 pp_bar <- function(adam = NULL, style = c("rate_ci", "stacked", "dodged"), param = "BOR",
-                   data = "ADRS", category = "AVALC", group = "TRT01P", pop = "FASFL",
+                   data = "ADRS", category = "AVALC", group = "TRT01P", pop = "FASFL", where = NULL,
                    responders = c("CR", "PR"), legend = NULL, palette = NULL, key = "USUBJID",
                    theme = "boxed", title = NULL, width = 7, height = 4.5, dpi = 300, units = "in",
                    file = NULL, plot_id = "bar") {
@@ -133,14 +140,14 @@ pp_bar <- function(adam = NULL, style = c("rate_ci", "stacked", "dodged"), param
   pp_q_check_cols(adam, "ADSL", c(group, pop))
   legend <- legend %or% if (style == "rate_ci") "none" else "right"
   palette <- palette %or% if (style == "stacked") "response" else "treatment"
-  df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop))
+  df <- pp_q_eval(adam, data, list(PARAMCD = param), c(group, pop), where = where)
   if (!is.null(pop) && !is.null(df)) df <- df[df[[pop]] %in% "Y", , drop = FALSE]
 
   prep <- pipe_code("bar_df", c(list(pp_ds_name(data), pp_q_filter(list(PARAMCD = param), adam[[data]])),
                                 as.list(pp_q_adsl_join(c(group, pop), key)),
-                                list(pp_q_pop(pop))))
+                                list(pp_q_pop(pop), pp_q_where(where))))
   pal_var <- if (style == "stacked") category else group
-  pal <- pp_q_pal("pal", df, pal_var, "bar_df", palette)
+  pal <- if (style == "stacked") pp_q_pal("pal", df, pal_var, "bar_df", palette) else pp_q_group_pal("pal", df, pal_var, "bar_df", palette)
   lab <- pp_q_param_label(adam, data, param, param)
   if (style == "rate_ci") {
     data_lines <- c(pp_q_load(c(data, "ADSL")), prep, pal,

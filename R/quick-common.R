@@ -86,6 +86,9 @@ pp_q_filter <- function(conds, df = NULL) {
 
 pp_q_pop <- function(pop) if (is.null(pop)) NULL else sprintf('filter(%s == "Y")', pop)
 
+# Extra record condition written by the user (R code), e.g. 'AVISIT != "Retrieval"'.
+pp_q_where <- function(where) if (is.null(where)) NULL else sprintf("filter(%s)", where)
+
 # ADSL variables joined into a BDS dataset.
 pp_q_adsl_join <- function(vars, key = "USUBJID") {
   vars <- unique(vars[!vapply(vars, is.null, logical(1))])
@@ -98,12 +101,13 @@ pp_q_adsl_join <- function(vars, key = "USUBJID") {
 
 # Evaluate a data step on the ADaM data at generation time (for literal
 # codelists). Returns NULL when data or columns are missing.
-pp_q_eval <- function(adam, data, conds = list(), adsl_vars = NULL, key = "USUBJID") {
+pp_q_eval <- function(adam, data, conds = list(), adsl_vars = NULL, key = "USUBJID", where = NULL) {
   if (is.null(adam) || is.null(adam[[data]])) return(NULL)
   df <- adam[[data]]
   if (length(adsl_vars) && data != "ADSL" && !is.null(adam$ADSL)) {
     sl <- adam$ADSL
-    keep <- intersect(c(key, adsl_vars), names(sl))
+    # paired numeric codes (TRT01AN for TRT01A) give the order of the values
+    keep <- intersect(c(key, adsl_vars, paste0(adsl_vars, "N")), names(sl))
     df <- df[setdiff(names(df), setdiff(keep, key))]
     df <- merge(df, sl[keep], by = key, all.x = TRUE, sort = FALSE)
   }
@@ -111,6 +115,10 @@ pp_q_eval <- function(adam, data, conds = list(), adsl_vars = NULL, key = "USUBJ
     if (is.null(conds[[v]])) next
     if (!v %in% names(df)) return(NULL)
     df <- df[as.character(df[[v]]) %in% as.character(conds[[v]]), , drop = FALSE]
+  }
+  if (!is.null(where)) {
+    keep <- tryCatch(eval(parse(text = where)[[1]], df, baseenv()), error = function(e) NULL)
+    if (is.logical(keep) && length(keep) == nrow(df)) df <- df[keep %in% TRUE, , drop = FALSE]
   }
   df
 }
@@ -137,6 +145,13 @@ pp_q_pal <- function(obj, df, var, df_name, palette = "treatment", values = NULL
     fallback[(k - 1) %% length(fallback) + 1]
   }, character(1))
   sprintf("%s <- %s", obj, vec_code(stats::setNames(cols, values)))
+}
+
+# Group palette plus a factor() so that plots follow the palette order
+# (e.g. TRT01AN order instead of alphabetical).
+pp_q_group_pal <- function(obj, df, var, df_name, palette) {
+  c(pp_q_pal(obj, df, var, df_name, palette),
+    sprintf("%s <- %s %%>%% mutate(%s = factor(%s, levels = names(%s)))", df_name, df_name, var, var, obj))
 }
 
 pp_q_script <- function(pid, what, title, libs, data, plot, width, height, dpi = 300, units = "in",

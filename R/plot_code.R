@@ -27,7 +27,7 @@ plot_code <- function(spec, plot_id = NULL, adam = NULL) {
 write_plot_code <- function(spec, dir, plot_id = NULL, adam = NULL) {
   code <- plot_code(spec, plot_id, adam)
   dir.create(dir, showWarnings = FALSE, recursive = TRUE)
-  paths <- file.path(dir, paste0(make.names(names(code)), ".R"))
+  paths <- file.path(dir, paste0(pp_file_name(names(code)), ".R"))
   for (i in seq_along(code)) writeLines(code[[i]], paths[i], useBytes = TRUE)
   invisible(paths)
 }

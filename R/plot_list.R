@@ -138,7 +138,7 @@ plot_list_code <- function(x, adam = NULL, dir = NULL) {
   names(code) <- x$plot_id %or% paste0("plot", seq_len(nrow(x)))
   if (!is.null(dir)) {
     dir.create(dir, showWarnings = FALSE, recursive = TRUE)
-    for (i in seq_along(code)) writeLines(code[[i]], file.path(dir, paste0(make.names(names(code)[i]), ".R")), useBytes = TRUE)
+    for (i in seq_along(code)) writeLines(code[[i]], file.path(dir, paste0(pp_file_name(names(code)[i]), ".R")), useBytes = TRUE)
     return(invisible(code))
   }
   code

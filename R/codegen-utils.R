@@ -2,6 +2,9 @@
 # Not `%or%`: the ARD / plan code needs base R's NULL-only meaning of that.
 `%or%` <- function(a, b) if (is.null(a) || length(a) == 0 || (length(a) == 1 && is.na(a))) b else a
 
+# File name of a plot id: keeps letters, digits, '-', '_' and '.' (F-14.2.1 stays as is).
+pp_file_name <- function(x) gsub("[^A-Za-z0-9._-]", "_", x)
+
 # Quote a string as R code.
 q <- function(x) encodeString(as.character(x), quote = '"')
 
