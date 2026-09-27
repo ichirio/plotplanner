@@ -51,9 +51,11 @@ plot type and a **style** — a few arguments instead of a few hundred lines.
 tflspec does not try to cover every figure. It writes the ~95% that is the
 same every time (data preparation from ADaM, the plot, legend, `ggsave()`), and
 you finish the rest by editing the generated script. The script depends only on
-dplyr + ggplot2 (+ ggsurvfit / patchwork), not on tflspec.
+dplyr + ggplot2 (+ ggsurvfit / patchwork), not on tflspec — except the
+treatment-sequence `sankey` / `sunburst`, which are drawn by tflspec's own
+ggplot2 functions (`plot_sankey()`, `plot_sunburst()`).
 
-Figure types so far: `km`, `waterfall`, `swimmer`.
+Figure types so far: `km`, `waterfall`, `swimmer`, `sankey`, `sunburst`.
 
 ### Quick start
 
@@ -97,8 +99,32 @@ Try it on synthetic data: `adam <- pp_example_adam()`.
 | swimmer | assessment | bars coloured by BOR + response at each assessment + ongoing arrows |
 | swimmer | response | bars coloured by BOR + ongoing arrows |
 | swimmer | bar | bars in one colour + ongoing arrows |
+| sankey | **grey_links** | treatment-line nodes (subjects per line x category) + links in light grey |
+| sankey | colored_links | treatment-line nodes + links in the colour of their source node |
+| sankey | subgroups | one sankey per subgroup (`by`) on a shared scale, side by side |
+| sunburst | **rings** | one ring per line (inner = first line); arcs = subjects, gaps = no further line |
 
 **Bold** = default. `pp_styles()` lists them.
+
+## Treatment sequences: sankey and sunburst
+
+Input: one row per subject and line (e.g. lines of therapy), default dataset
+`ADLOT` with `USUBJID`, `LINE` and `TRT` (change with `data`, `stage`, `category`).
+
+```r
+pp_sankey(adam)                                          # grey links
+pp_sankey(adam, style = "colored_links")
+pp_sankey(adam, style = "subgroups", by = "AGEGR1")
+pp_sunburst(adam)
+```
+
+The scripts call `sankey_data()` / `sunburst_data()` (nodes, links and paths
+from the line data) and `plot_sankey()` / `plot_sankey_subgroups_batch()` /
+`plot_sunburst()` (moved here from ydisctools), which can also be used directly.
+
+| `pp_sankey(adam, style = "colored_links")` | `pp_sankey(adam, style = "subgroups", by = "AGEGR1")` | `pp_sunburst(adam)` |
+|---|---|---|
+| ![](man/figures/quick_sankey.png) | ![](man/figures/quick_sankey_subgroups.png) | ![](man/figures/quick_sunburst.png) |
 
 ## Legends
 

@@ -14,10 +14,12 @@ pp_styles <- function() {
   s <- data.frame(
     type = c("km", "km", "km", "km",
              "waterfall", "waterfall",
-             "swimmer", "swimmer", "swimmer", "swimmer"),
+             "swimmer", "swimmer", "swimmer", "swimmer",
+             "sankey", "sankey", "sankey", "sunburst"),
     style = c("risk_table", "simple", "ci", "single_arm",
               "response", "plain",
-              "full", "assessment", "response", "bar"),
+              "full", "assessment", "response", "bar",
+              "grey_links", "colored_links", "subgroups", "rings"),
     description = c(
       "KM curves by group + censor marks + median line + number at risk panel",
       "KM curves by group + censor marks",
@@ -28,11 +30,16 @@ pp_styles <- function() {
       "Bars coloured by BOR + response at each assessment + event markers + ongoing arrows",
       "Bars coloured by BOR + response at each assessment + ongoing arrows",
       "Bars coloured by BOR + ongoing arrows",
-      "Bars in one colour + ongoing arrows"
+      "Bars in one colour + ongoing arrows",
+      "Treatment-line nodes (subjects per line x category) + links in light grey (tflspec::plot_sankey)",
+      "Treatment-line nodes + links in the colour of their source node (tflspec::plot_sankey)",
+      "One sankey per subgroup (`by`) on a shared scale, side by side (tflspec::plot_sankey_subgroups_batch)",
+      "One ring per line (inner = first line), arcs = subjects, gaps = no further line (tflspec::plot_sunburst)"
     ),
     stringsAsFactors = FALSE
   )
-  defaults <- c(km = "risk_table", waterfall = "response", swimmer = "full")
+  defaults <- c(km = "risk_table", waterfall = "response", swimmer = "full",
+                sankey = "grey_links", sunburst = "rings")
   s$default <- s$style == defaults[s$type]
   s[c("type", "style", "default", "description")]
 }

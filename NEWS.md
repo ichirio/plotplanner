@@ -1,3 +1,20 @@
+# tflspec 0.0.6
+
+* **Treatment-sequence figures moved here from ydisctools**: `plot_sankey()`
+  (nodes laid out from the node table, baseline-aware ribbon stacking,
+  shared / adaptive scales), `plot_sankey_subgroups_batch()` and
+  `plot_sunburst()`, with their tests. `plot_sankey_polygon()` (deprecated
+  alias) was not carried over.
+* `sankey_data()` / `sunburst_data()` build their inputs from one row per
+  subject and line (e.g. lines of therapy), optionally by subgroup.
+* Quick API `pp_sankey()` (styles `grey_links`, `colored_links`,
+  `subgroups`) and `pp_sunburst()` (style `rings`); both are also available
+  as `type` in the Excel plot list (`group` = subgroup variable of sankey).
+  Unlike the other figure types, these scripts call tflspec.
+* `pp_example_adam()` gains `ADLOT` (lines of therapy); existing datasets
+  are unchanged.
+* ggplot2 and rlang are now imported.
+
 # tflspec 0.0.5
 
 * **`library(tflspec)` is enough**: rtfreporter moved from `Imports` to

@@ -2,7 +2,7 @@
 #'
 #' Synthetic oncology data (no real subjects): `ADSL`, `ADTTE` (OS / PFS /
 #' DOR, days), `ADRS` (OVR per visit + BOR) and `ADTR` (best percent change in
-#' sum of diameters).
+#' sum of diameters) and `ADLOT` (lines of therapy: `LINE`, `TRT`).
 #'
 #' @param n Number of subjects.
 #' @param seed Random seed.
@@ -70,5 +70,20 @@ pp_example_adam <- function(n = 40, seed = 1) {
                      AVAL = pchg, stringsAsFactors = FALSE)
   adtr$AVAL <- lab(adtr$AVAL, "Best % Change in Sum of Target Lesion Diameters")
 
-  list(ADSL = adsl, ADTTE = tte, ADRS = adrs, ADTR = adtr)
+  # lines of therapy: one row per subject and line (drawn after the other
+  # data so their values do not change)
+  classes <- c("Chemo", "Immunotherapy", "Targeted")
+  lot <- do.call(rbind, lapply(seq_len(n), function(i) {
+    k <- sample(1:4, 1, prob = c(0.35, 0.3, 0.2, 0.15))
+    trt <- character(k)
+    trt[1] <- sample(classes, 1, prob = c(0.5, 0.3, 0.2))
+    for (j in seq_len(k)[-1]) trt[j] <- sample(setdiff(classes, trt[j - 1]), 1)
+    data.frame(USUBJID = id[i], LINE = seq_len(k), TRT = trt, stringsAsFactors = FALSE)
+  }))
+  lot$FASFL <- adsl$FASFL[match(lot$USUBJID, id)]
+  lot$AGEGR1 <- ifelse(match(lot$USUBJID, id) %% 3 == 0, ">=65", "<65")
+  lot$LINE <- lab(lot$LINE, "Line of Therapy")
+  lot$TRT <- lab(lot$TRT, "Treatment Class")
+
+  list(ADSL = adsl, ADTTE = tte, ADRS = adrs, ADTR = adtr, ADLOT = lot)
 }

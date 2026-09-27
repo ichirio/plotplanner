@@ -2,7 +2,8 @@
 
 pp_list_cols <- c("plot_id", "type", "style", "title", "param", "group", "pop", "legend", "args")
 
-pp_quick_fun <- list(km = "pp_km", waterfall = "pp_waterfall", swimmer = "pp_swimmer")
+pp_quick_fun <- list(km = "pp_km", waterfall = "pp_waterfall", swimmer = "pp_swimmer",
+                     sankey = "pp_sankey", sunburst = "pp_sunburst")
 
 #' Write an Excel plot list template
 #'
@@ -120,6 +121,7 @@ plot_list_code <- function(x, adam = NULL, dir = NULL) {
     for (a in c("style", "title", "param", "group", "legend")) {
       if (!is.null(r[[a]]) && a %in% names(formals(get(fun)))) args[[a]] <- r[[a]]
     }
+    if (!is.null(r$group) && "by" %in% names(formals(get(fun)))) args$by <- r$group
     if (!is.null(r$pop)) args$pop <- if (toupper(r$pop) == "NONE") NULL else r$pop
     if (!is.null(r$args)) {
       extra <- tryCatch(eval(parse(text = paste0("list(", r$args, ")")), envir = baseenv()),
