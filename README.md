@@ -110,6 +110,28 @@ Try it on synthetic data: `adam <- pp_example_adam()`.
 | `right`, `bottom`, `inside`, `inside_bl` | ggplot2 legend of the mapped colours / fills / shapes |
 | `panel`, `panel_right`, `panel_inside` | a legend **panel drawn from an item table**, independent of the data (like hand-made legends in study figures). The items are written into the script as a `tribble` — add, remove or relabel rows by hand |
 
+## Figure style standard
+
+Every look-and-feel value of a figure -- font sizes, line widths, ticks,
+reference lines, the censor mark, palettes, event markers, the output size --
+is one catalog, `fig_style()` (sheets `settings`, `colors`, `markers`), so
+every figure of a study looks the same.  The built-in one comes from the KM /
+waterfall / swimmer sample programs the generators were built from; a company
+keeps its own in a workbook:
+
+```r
+fig_style_template("fig_style.xlsx")                      # the built-in one, to edit
+options(tflspec.fig_style = read_fig_style("fig_style.xlsx"))
+```
+
+The generators take their defaults from it.  For figure programs written by
+hand (or by an AI), `fig_setup_code()` writes the same style as plain ggplot2
+helpers -- `theme_tfl()`, `scale_colour_tfl()`, `tfl_marker()`, `tfl_save()`
+-- and `tfl_check()`, which warns about dropped rows, legend colours that are
+not the standard's and a legend in the wrong order (`check_figure()` runs it
+from R).  `pp_km(ard = )` reads the number at risk from the KM table's ARD, so
+the figure and the table agree.
+
 ## Common arguments and options
 
 - `title`, `pop` (population flag, `NULL` = none), `time_unit` (`days` / `weeks` / `months` / `years`), `file`, `plot_id`

@@ -41,10 +41,13 @@ pp_plot_code1 <- function(spec, pid, adam) {
   )
   g <- gen(ctx)
 
-  units <- ctx$prow$units %or% "in"
-  width <- as.numeric(ctx$prow$width %or% if (units == "px") "2250" else "7.5")
-  height <- as.numeric(ctx$prow$height %or% if (units == "px") "1350" else "4.5")
-  dpi <- ctx$prow$dpi %or% "300"
+  units <- ctx$prow$units %or% pp_opt(ctx, "units") %or% "in"
+  std <- identical(units, pp_opt(ctx, "units"))
+  width <- as.numeric(ctx$prow$width %or% (if (std) pp_opt(ctx, "width")) %or%
+                        if (units == "px") "2250" else "7.5")
+  height <- as.numeric(ctx$prow$height %or% (if (std) pp_opt(ctx, "height")) %or%
+                         if (units == "px") "1350" else "4.5")
+  dpi <- ctx$prow$dpi %or% pp_opt(ctx, "dpi") %or% "300"
   width_in <- switch(units, "in" = width, cm = width / 2.54, px = width / as.numeric(dpi))
 
   lg <- pp_legend_code(ctx, g$parts, width_in)

@@ -161,8 +161,12 @@ pp_legend_code <- function(ctx, auto_parts, fig_width_in) {
   } else if (inside) {
     width_chars <- round(0.85 * fig_width_in * inside_w * 17)
   }
-  call <- sprintf("p_legend <- legend_panel(legend_items, ncol = %d, width_chars = %d%s)",
-                  ncol, width_chars, if (inside) ", box = TRUE" else "")
+  sizes <- c(text_size = pp_opt(ctx, "legend_label_size"),
+             key_size = pp_opt(ctx, "legend_point_size"))
+  sizes <- sizes[!is.na(sizes) & nzchar(sizes)]
+  extra <- if (length(sizes)) paste0(", ", names(sizes), " = ", sizes, collapse = "") else ""
+  call <- sprintf("p_legend <- legend_panel(legend_items, ncol = %d, width_chars = %d%s%s)",
+                  ncol, width_chars, extra, if (inside) ", box = TRUE" else "")
   pre <- c(legend_panel_fun,
            sprintf("# ---- legend: manual (%s) - edit the items freely ----", source),
            items_code, call)

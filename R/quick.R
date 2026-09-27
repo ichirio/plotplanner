@@ -156,6 +156,12 @@ pp_prep_adam <- function(adam) if (is.null(adam)) NULL else read_adam(adam)
 #' @param title Figure title.
 #' @param file Write the script to this file.
 #' @param plot_id Used in the output file name.
+#' @param ard R code (a string) that gives the ARD of the KM table --
+#'   `cardx::ard_survival_survfit(times = )` -- e.g.
+#'   `'readRDS("output/ard/ard.rds") |> subset(output_id == "T-14-2-2")'`.
+#'   The number at risk is then read from it, so the figure and the table
+#'   agree, and checked against the curve's own count.  The risk table's
+#'   times are the ARD's; the ARD's time unit must be the axis's.
 #' @param ... Engine options, e.g. `x_max = 24`, `x_by = 3`, `palette = "grey"`,
 #'   `theme = "classic"`, `width = 7`, `height = 5`.
 #' @return A `pp_code` object (character; printed as the script).
@@ -164,7 +170,7 @@ pp_km <- function(adam = NULL, param = "OS", group = "TRT01P",
                   style = c("risk_table", "simple", "ci", "single_arm"),
                   legend = NULL, pop = "FASFL", data = "ADTTE",
                   time = "AVAL", censor = "CNSR", time_unit = "months",
-                  title = NULL, file = NULL, plot_id = "km", ...) {
+                  title = NULL, file = NULL, plot_id = "km", ard = NULL, ...) {
   style <- match.arg(style)
   adam <- pp_prep_adam(adam)
   if (style == "single_arm") group <- NULL
@@ -180,7 +186,9 @@ pp_km <- function(adam = NULL, param = "OS", group = "TRT01P",
       if (!is.null(param)) list(plot_id = plot_id, layer = NA, dataset = NA, variable = "PARAMCD", value = param),
       pp_pop_filter(plot_id, pop, data, adam)
     ),
-    time_unit = time_unit, dots = list(...), default_palette = "treatment"
+    time_unit = time_unit,
+    dots = c(if (!is.null(ard)) list(risk_ard = ard), list(...)),
+    default_palette = "treatment"
   ), adam, file)
 }
 
@@ -256,6 +264,16 @@ pp_swimmer <- function(adam = NULL, style = c("full", "assessment", "response", 
   ev_shapes <- c("triangle_down", "circle", "triangle", "square", "x", "diamond")
   ev_cols <- c("black", "#FF00FF", "black", "#00A0A0", "black", "#E69F00")
   k <- seq_along(events)
+  ev_shapes <- ev_shapes[(k - 1) %% 6 + 1]
+  ev_cols <- ev_cols[(k - 1) %% 6 + 1]
+  # an event named like a marker of the figure style standard takes it
+  for (i in k) {
+    m <- .fs_marker(names(events)[i])
+    if (!is.null(m)) {
+      ev_shapes[i] <- m$shape
+      if (!is.na(m$fill)) ev_cols[i] <- m$fill
+    }
+  }
   roles <- pp_rows(
     list(plot_id = plot_id, layer = NA, role = "id", dataset = NA, variable = id, label = NA, shape = NA, colour = NA),
     list(plot_id = plot_id, layer = NA, role = "end", dataset = NA, variable = duration, label = NA, shape = NA, colour = NA),
@@ -264,7 +282,7 @@ pp_swimmer <- function(adam = NULL, style = c("full", "assessment", "response", 
     if (with_assess) list(plot_id = plot_id, layer = "assessment_marker", role = "fill", dataset = response_data, variable = "AVALC", label = NA, shape = NA, colour = NA),
     if (with_events) data.frame(plot_id = plot_id, layer = "event_marker", role = "x", dataset = NA,
                                 variable = unname(events), label = names(events),
-                                shape = ev_shapes[(k - 1) %% 6 + 1], colour = ev_cols[(k - 1) %% 6 + 1])
+                                shape = ev_shapes, colour = ev_cols)
   )
   filters <- pp_rows(
     pp_pop_filter(plot_id, pop, data, adam),
@@ -281,7 +299,7 @@ pp_swimmer <- function(adam = NULL, style = c("full", "assessment", "response", 
     pid = plot_id, type = "swimmer", style = style, data = data, legend = legend, title = title,
     roles = roles, filters = filters, time_unit = time_unit, layers = layers,
     dots = c(list(id_var = key, visit_every = visit_every), list(...)), default_palette = "response_light",
-    theme = "L_axis"
+    theme = .fs_get("theme", "swimmer") %or% "L_axis"
   ), adam, file)
 }
 
@@ -289,7 +307,8 @@ pp_swimmer <- function(adam = NULL, style = c("full", "assessment", "response", 
 pp_plot_args <- c("palette", "theme", "width", "height", "units", "dpi", "x_label", "y_label")
 
 pp_quick_spec <- function(pid, type, style, data, legend, title, roles, filters, time_unit,
-                          dots, default_palette, layers = NULL, theme = "boxed") {
+                          dots, default_palette, layers = NULL,
+                          theme = .fs_get("theme", type) %or% "boxed") {
   if (!time_unit %in% names(pp_time_units)) {
     stop("`time_unit` must be one of: ", paste(names(pp_time_units), collapse = ", "), call. = FALSE)
   }
