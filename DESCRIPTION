@@ -1,10 +1,27 @@
 Package: plotplanner
 Title: Generate 'ggplot2' Figure Code from an Excel Specification
-Version: 0.0.0.9000
+Version: 0.0.1
 Authors@R: person("ichirio", role = c("aut", "cre"), email = "ichi.r.pro@gmail.com")
 Description: Reads an Excel specification (plot type, ADaM variable roles,
-    codelist selections and presets) and writes skeleton 'ggplot2' code.
+    codelist selections, layer patterns and presets) and writes skeleton
+    'ggplot2' code. The generated code depends only on 'ggplot2' and the
+    relevant extension packages, not on 'plotplanner'.
 License: MIT + file LICENSE
 Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Depends: R (>= 4.1)
 Imports:
-    ggplot2
+    openxlsx,
+    stats,
+    utils
+Suggests:
+    dplyr,
+    ggplot2 (>= 3.5.0),
+    ggsurvfit,
+    haven,
+    patchwork,
+    survival,
+    testthat (>= 3.0.0),
+    tibble
+Config/testthat/edition: 3
+RoxygenNote: 7.3.3
