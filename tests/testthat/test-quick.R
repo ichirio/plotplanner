@@ -15,9 +15,9 @@ test_that("every style of the quick API generates runnable code", {
 
 test_that("legend presets map to legend types", {
   adam <- pp_example_adam()
-  for (lg in names(plotplanner:::pp_quick_legends)) {
+  for (lg in names(tflspec:::pp_quick_legends)) {
     code <- pp_km(adam, legend = lg)
-    type <- plotplanner:::pp_quick_legends[[lg]][1]
+    type <- tflspec:::pp_quick_legends[[lg]][1]
     if (type == "manual") expect_match(code, "legend_panel(", fixed = TRUE)
     if (type == "none") expect_match(code, 'legend.position = "none"', fixed = TRUE)
   }
@@ -29,7 +29,7 @@ test_that("unknown options are reported", {
 })
 
 test_that("global options set data access and output path once", {
-  withr_opts <- options(plotplanner.data_expr = "adam_data${ds}")
+  withr_opts <- options(tflspec.data_expr = "adam_data${ds}")
   on.exit(options(withr_opts))
   code <- pp_km()
   expect_match(code, "adtte <- adam_data$adtte", fixed = TRUE)

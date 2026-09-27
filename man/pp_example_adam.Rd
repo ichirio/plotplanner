@@ -2,7 +2,7 @@
 % Please edit documentation in R/example.R
 \name{pp_example_adam}
 \alias{pp_example_adam}
-\title{Example ADaM-like data for trying plotplanner}
+\title{Example ADaM-like data for trying tflspec}
 \usage{
 pp_example_adam(n = 40, seed = 1)
 }

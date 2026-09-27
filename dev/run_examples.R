@@ -1,9 +1,9 @@
 # Generate code for the example spec (several legend variants), run it, save PNGs.
-library(plotplanner)
+library(tflspec)
 for (pk in c("dplyr", "ggplot2", "ggsurvfit", "patchwork", "survival")) suppressWarnings(suppressMessages(library(pk, character.only = TRUE)))
 adam <- pp_example_adam()
 for (nm in names(adam)) assign(tolower(nm), adam[[nm]])
-out <- "C:/Yrepo/plotplanner/dev/out"
+out <- "C:/Yrepo/tflspec/dev/out"
 spec <- pp_example_spec()
 spec$options <- rbind(spec$options, data.frame(plot_id = NA, key = "fig_path",
   value = sprintf('file.path("%s", "{plot_id}.png")', out)))

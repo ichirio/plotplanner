@@ -1,9 +1,9 @@
-library(plotplanner)
+library(tflspec)
 for (pk in c("dplyr", "ggplot2", "ggsurvfit", "patchwork", "survival")) suppressWarnings(suppressMessages(library(pk, character.only = TRUE)))
 adam <- pp_example_adam()
 for (nm in names(adam)) assign(tolower(nm), adam[[nm]])
-out <- "C:/Yrepo/plotplanner/dev/out/quick"
-options(plotplanner.fig_path = sprintf('file.path("%s", "{plot_id}.png")', out))
+out <- "C:/Yrepo/tflspec/dev/out/quick"
+options(tflspec.fig_path = sprintf('file.path("%s", "{plot_id}.png")', out))
 calls <- list(
   km_risk      = quote(pp_km(adam, param = "OS", x_max = 24, x_by = 3, plot_id = "km_risk")),
   km_simple    = quote(pp_km(adam, param = "PFS", style = "simple", legend = "bottom", plot_id = "km_simple")),

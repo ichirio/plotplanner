@@ -22,9 +22,9 @@ test_that("example spec generates runnable code for every legend variant", {
   }
 })
 
-test_that("generated code does not depend on plotplanner", {
+test_that("generated code does not depend on tflspec", {
   code <- plot_code(pp_example_spec(), adam = pp_example_adam())
-  expect_false(any(grepl("plotplanner::", code)))
+  expect_false(any(grepl("tflspec::", code)))
   expect_true(all(grepl("ggsave(", code, fixed = TRUE)))
 })
 

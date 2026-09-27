@@ -1,4 +1,4 @@
-#' Example ADaM-like data for trying plotplanner
+#' Example ADaM-like data for trying tflspec
 #'
 #' Synthetic oncology data (no real subjects): `ADSL`, `ADTTE` (OS / PFS /
 #' DOR, days), `ADRS` (OVR per visit + BOR) and `ADTR` (best percent change in

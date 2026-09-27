@@ -89,11 +89,11 @@ pp_finish <- function(spec, adam, file) {
 }
 
 # Global defaults a study sets once, e.g.
-# options(plotplanner.data_expr = "adam_data${ds}",
-#         plotplanner.fig_path  = 'file.path(output_path, "{plot_id}.png")')
+# options(tflspec.data_expr = "adam_data${ds}",
+#         tflspec.fig_path  = 'file.path(output_path, "{plot_id}.png")')
 pp_global_options <- function() {
   keys <- names(pp_default_options())
-  vals <- lapply(keys, function(k) getOption(paste0("plotplanner.", k)))
+  vals <- lapply(keys, function(k) getOption(paste0("tflspec.", k)))
   names(vals) <- keys
   vals[!vapply(vals, is.null, logical(1))]
 }

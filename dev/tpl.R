@@ -1,6 +1,6 @@
-library(plotplanner)
+library(tflspec)
 adam <- pp_example_adam()
-path <- "C:/Yrepo/plotplanner/inst/examples/plot_spec_example.xlsx"
+path <- "C:/Yrepo/tflspec/inst/examples/plot_spec_example.xlsx"
 write_plot_spec_template(adam, path, spec = pp_example_spec())
 spec2 <- read_plot_spec(path)
 print(spec2)

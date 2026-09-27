@@ -1,27 +1,39 @@
-Package: plotplanner
-Title: Generate 'ggplot2' Figure Code from an Excel Specification
-Version: 0.0.2
+Package: tflspec
+Title: Excel Specifications for Clinical Tables, Listings and Figures
+Version: 0.0.3
 Authors@R: person("ichirio", role = c("aut", "cre"), email = "ichi.r.pro@gmail.com")
-Description: Reads an Excel specification (plot type, ADaM variable roles,
-    codelist selections, layer patterns and presets) and writes skeleton
-    'ggplot2' code. The generated code depends only on 'ggplot2' and the
-    relevant extension packages, not on 'plotplanner'.
+Description: Reads study specifications written in Excel and produces what a
+    clinical TFL report is made of. Tables: 'cards'/'cardx' analysis results
+    data (ARD) are normalized and laid out through a declarative plan or a
+    table specification, then rendered by 'rtfreporter'. Figures: skeleton
+    'ggplot2' code is generated from a plot specification; that code depends
+    only on 'ggplot2' and the relevant extension packages, not on 'tflspec'.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Depends: R (>= 4.1)
 Imports:
     openxlsx,
+    rtfreporter (>= 0.8.0.9085),
     stats,
     utils
 Suggests:
+    cards,
+    cardx,
     dplyr,
     ggplot2 (>= 3.5.0),
     ggsurvfit,
     haven,
+    magrittr,
     patchwork,
+    readxl,
+    rstudioapi,
     survival,
     testthat (>= 3.0.0),
-    tibble
+    tibble,
+    tidyr,
+    writexl
+Remotes:
+    ichirio/rtfreporter
 Config/testthat/edition: 3
 RoxygenNote: 7.3.3

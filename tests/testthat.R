@@ -1,3 +1,3 @@
 library(testthat)
-library(plotplanner)
-test_check("plotplanner")
+library(tflspec)
+test_check("tflspec")
