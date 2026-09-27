@@ -30,7 +30,7 @@ test_that("generated code does not depend on tflspec", {
 
 test_that("codelist values from ADaM become literal palettes", {
   code <- plot_code(pp_example_spec(), "F-KM-1", adam = pp_example_adam())
-  expect_match(code, 'pal_strata <- c("Drug A" = "#0072B2", "Drug B" = "#D55E00")', fixed = TRUE)
+  expect_match(code, 'pal_strata <- c("Drug A" = "blue", "Drug B" = "#D55E00")', fixed = TRUE)
   expect_match(code, 'PARAMCD == "OS"', fixed = TRUE)
   # without data, an unnamed palette is resolved at run time
   code2 <- plot_code(pp_example_spec(), "F-KM-1")

@@ -1,3 +1,28 @@
+# tflspec 0.0.6
+
+* **Figure style standard** (`fig_style()`, `fig_style_template()`,
+  `read_fig_style()`): every look-and-feel value of a figure -- font sizes,
+  line widths, ticks, reference lines, the censor mark, palettes, event
+  markers, the output size -- in one catalog of three sheets (`settings`,
+  `colors`, `markers`).  The built-in one is taken from the KM / waterfall /
+  swimmer sample programs; a company sets its own with
+  `options(tflspec.fig_style = read_fig_style(path))`.  `pp_km()`,
+  `pp_waterfall()` and `pp_swimmer()` take their defaults from it (so the
+  generated scripts change: e.g. the KM line is 0.3, the censor mark size 3
+  / stroke 0.6, the 50% line `twodash`; a swimmer event named like a marker
+  of the style -- `Death`, `Discontinued` -- takes its shape and colour).
+* **Figure checks** (`fig_setup_code()`, `check_figure()`): the style as
+  data plus `theme_tfl()`, `scale_colour_tfl()` / `scale_fill_tfl()`,
+  `tfl_marker()`, `tfl_save()` and `tfl_check()` as plain ggplot2 code, for
+  figure programs written by hand or by an AI.  `tfl_check()` warns
+  ("Figure check: ...") about rows ggplot2 dropped, legend colours that are
+  not the standard's and a legend not in the expected order, notes data
+  beyond the visible axes, and returns a fingerprint of the drawn data.
+* **KM number at risk from the table's ARD**: `pp_km(ard = )` reads the
+  number at risk from the KM table's `cardx::ard_survival_survfit()` ARD, so
+  the figure and the table agree, and warns when it differs from the
+  curve's own count.
+
 # tflspec 0.0.5
 
 * **`library(tflspec)` is enough**: rtfreporter moved from `Imports` to

@@ -37,7 +37,7 @@ test_that("global options set data access and output path once", {
 
 test_that("swimmer events are named and ordered", {
   code <- pp_swimmer(events = c(Death = "DTHADY", Discontinued = "EOSDY"))
-  expect_match(code, 'event_shape  <- c("Death" = 25, "Discontinued" = 21)', fixed = TRUE)
+  expect_match(code, 'event_shape  <- c("Death" = 25, "Discontinued" = 24)', fixed = TRUE)
   expect_error(pp_swimmer(events = c("DTHADY")), "named")
 })
 

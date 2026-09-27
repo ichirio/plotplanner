@@ -18,6 +18,7 @@ pp_km(
   title = NULL,
   file = NULL,
   plot_id = "km",
+  ard = NULL,
   ...
 )
 }
@@ -48,6 +49,13 @@ pp_km(
 \item{file}{Write the script to this file.}
 
 \item{plot_id}{Used in the output file name.}
+
+\item{ard}{R code (a string) that gives the ARD of the KM table --
+\code{cardx::ard_survival_survfit(times = )} -- e.g.
+\code{'readRDS("output/ard/ard.rds") |> subset(output_id == "T-14-2-2")'}.
+The number at risk is then read from it, so the figure and the table
+agree, and checked against the curve's own count.  The risk table's
+times are the ARD's; the ARD's time unit must be the axis's.}
 
 \item{...}{Engine options, e.g. \code{x_max = 24}, \code{x_by = 3}, \code{palette = "grey"},
 \code{theme = "classic"}, \code{width = 7}, \code{height = 5}.}
