@@ -1,6 +1,9 @@
 pp_gen_swimmer <- function(ctx) {
   id <- pp_role(ctx, "id", required = TRUE)$variable
   end <- pp_role(ctx, "end", required = TRUE)$variable
+  # subtype: bars from 0 (default) or from a start variable to `end`
+  start <- pp_role(ctx, "start")$variable
+  x0 <- start %or% "0"
   bar_col <- pp_role(ctx, "colour")
   key <- pp_opt(ctx, "id_var")  # join key; `id` is only the y-axis label
   src <- pp_use_ds(ctx, ctx$ds)
@@ -9,7 +12,7 @@ pp_gen_swimmer <- function(ctx) {
 
   # ---- subject-level bar data ----
   steps <- list(src, pp_filter_code(ctx, flist, ctx$ds))
-  time_vars <- end
+  time_vars <- c(start, end)
   c_var <- NULL
   sv_bar <- NULL
   if (!is.null(bar_col)) {
@@ -104,9 +107,9 @@ pp_gen_swimmer <- function(ctx) {
   base_terms <- list(
     "ggplot(bar_df, aes(y = Y_ID))",
     if (!is.null(c_var)) {
-      c(sprintf("geom_segment(aes(x = 0, xend = %s, yend = Y_ID, colour = %s), linewidth = %s)", end, c_var, bw),
+      c(sprintf("geom_segment(aes(x = %s, xend = %s, yend = Y_ID, colour = %s), linewidth = %s)", x0, end, c_var, bw),
         pp_scale_manual("colour", sv_bar, 'na.value = "grey80"'))
-    } else sprintf('geom_segment(aes(x = 0, xend = %s, yend = Y_ID), colour = "#9DB4C0", linewidth = %s)', end, bw),
+    } else sprintf('geom_segment(aes(x = %s, xend = %s, yend = Y_ID), colour = "#9DB4C0", linewidth = %s)', x0, end, bw),
     if (grid) {
       paste0("scale_x_continuous(
 ",

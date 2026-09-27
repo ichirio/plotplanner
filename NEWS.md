@@ -1,5 +1,23 @@
 # tflspec 0.0.6
 
+* **Catalogue of clinical figure types**: `pp_catalog()` classifies every type
+  and style (subtype) by category (efficacy: time to event / tumour response /
+  subgroups and rates, longitudinal, safety, PK / PD, distribution, treatment
+  patterns), with planned types recorded for later. `pp_styles()` and the
+  Excel plot list are derived from it.
+* **Ten new figure types**, each with styles: `pp_forest()` (hr, or,
+  estimates), `pp_bar()` (rate_ci, stacked, dodged), `pp_mean()` (se, sd, ci,
+  se_n), `pp_individual()` (spaghetti, spider), `pp_box()` (by_visit,
+  by_group, change), `pp_ae_dot()` (risk_diff, incidence), `pp_butterfly()`
+  (soc, pt), `pp_edish()` (alt, alt_ast), `pp_scatter()` (shift, xy) and
+  `pp_pk()` (mean, mean_log, individual). Their scripts depend only on
+  dplyr / ggplot2 (+ survival, patchwork).
+* Swimmer subtype: `pp_swimmer(start =, end =)` draws bars from a start day
+  instead of 0.
+* `pp_example_adam()` gains `ADAE`, `ADLB`, `ADPC`, tumour size over time in
+  `ADTR`, and `SEX` / `AGEGR1` / `TRT01A` / start and end days in `ADSL`
+  (drawn from a separate random stream: existing values are unchanged).
+
 * **Treatment-sequence figures moved here from ydisctools**: `plot_sankey()`
   (nodes laid out from the node table, baseline-aware ribbon stacking,
   shared / adaptive scales), `plot_sankey_subgroups_batch()` and

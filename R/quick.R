@@ -5,45 +5,6 @@
 # from the standard need to be given; everything else is finished by hand in
 # the generated script.
 
-#' Styles of the quick API
-#'
-#' @return A data frame: `type`, `style`, `default` (the default style of the
-#'   type), `description`.
-#' @export
-pp_styles <- function() {
-  s <- data.frame(
-    type = c("km", "km", "km", "km",
-             "waterfall", "waterfall",
-             "swimmer", "swimmer", "swimmer", "swimmer",
-             "sankey", "sankey", "sankey", "sunburst"),
-    style = c("risk_table", "simple", "ci", "single_arm",
-              "response", "plain",
-              "full", "assessment", "response", "bar",
-              "grey_links", "colored_links", "subgroups", "rings"),
-    description = c(
-      "KM curves by group + censor marks + median line + number at risk panel",
-      "KM curves by group + censor marks",
-      "KM curves by group + confidence bands + censor marks + number at risk panel",
-      "One KM curve (no group) + censor marks + median line + number at risk panel",
-      "Bars coloured by best overall response + reference lines (+20% / -30%) with labels",
-      "Bars in one colour + reference lines (+20% / -30%) with labels",
-      "Bars coloured by BOR + response at each assessment + event markers + ongoing arrows",
-      "Bars coloured by BOR + response at each assessment + ongoing arrows",
-      "Bars coloured by BOR + ongoing arrows",
-      "Bars in one colour + ongoing arrows",
-      "Treatment-line nodes (subjects per line x category) + links in light grey (tflspec::plot_sankey)",
-      "Treatment-line nodes + links in the colour of their source node (tflspec::plot_sankey)",
-      "One sankey per subgroup (`by`) on a shared scale, side by side (tflspec::plot_sankey_subgroups_batch)",
-      "One ring per line (inner = first line), arcs = subjects, gaps = no further line (tflspec::plot_sunburst)"
-    ),
-    stringsAsFactors = FALSE
-  )
-  defaults <- c(km = "risk_table", waterfall = "response", swimmer = "full",
-                sankey = "grey_links", sunburst = "rings")
-  s$default <- s$style == defaults[s$type]
-  s[c("type", "style", "default", "description")]
-}
-
 pp_style_layers <- list(
   km = list(
     risk_table = c("censor_mark", "median_line", "n_at_risk"),
@@ -231,7 +192,9 @@ pp_waterfall <- function(adam = NULL, style = c("response", "plain"),
 #'
 #' @inheritParams pp_km
 #' @param style One of [pp_styles()] for `swimmer`.
-#' @param duration Bar length variable (days) on `data`.
+#' @param duration Bar length variable (days) on `data`; bars start at 0.
+#' @param start,end Subtype "from start": bars run from `start` to `end`
+#'   (days on a common origin, e.g. randomization) instead of 0 to `duration`.
 #' @param id Y-axis label variable.
 #' @param response PARAMCD of the best overall response (bar colour).
 #' @param assessment PARAMCD of the response at each assessment.
@@ -246,7 +209,7 @@ pp_waterfall <- function(adam = NULL, style = c("response", "plain"),
 #' @param key Join key between datasets.
 #' @export
 pp_swimmer <- function(adam = NULL, style = c("full", "assessment", "response", "bar"),
-                       duration = "TRTDURD", id = "SUBJID", response = "BOR",
+                       duration = "TRTDURD", start = NULL, end = NULL, id = "SUBJID", response = "BOR",
                        assessment = "OVR", day = "ADY",
                        events = c(Death = "DTHADY"), ongoing = c(EOSSTT = "ONGOING"),
                        legend = "panel", pop = "FASFL", data = "ADSL", response_data = "ADRS",
@@ -254,6 +217,7 @@ pp_swimmer <- function(adam = NULL, style = c("full", "assessment", "response", 
                        title = NULL, file = NULL, plot_id = "swimmer", ...) {
   style <- match.arg(style)
   adam <- pp_prep_adam(adam)
+  if (!is.null(start) && is.null(end)) stop("`start` needs `end` (bars run from `start` to `end`).", call. = FALSE)
   with_resp <- style != "bar"
   with_assess <- style %in% c("full", "assessment")
   with_events <- style == "full" && length(events) > 0
@@ -265,7 +229,8 @@ pp_swimmer <- function(adam = NULL, style = c("full", "assessment", "response", 
   k <- seq_along(events)
   roles <- pp_rows(
     list(plot_id = plot_id, layer = NA, role = "id", dataset = NA, variable = id, label = NA, shape = NA, colour = NA),
-    list(plot_id = plot_id, layer = NA, role = "end", dataset = NA, variable = duration, label = NA, shape = NA, colour = NA),
+    list(plot_id = plot_id, layer = NA, role = "end", dataset = NA, variable = end %or% duration, label = NA, shape = NA, colour = NA),
+    if (!is.null(start)) list(plot_id = plot_id, layer = NA, role = "start", dataset = NA, variable = start, label = NA, shape = NA, colour = NA),
     if (with_resp) list(plot_id = plot_id, layer = NA, role = "colour", dataset = response_data, variable = "AVALC", label = NA, shape = NA, colour = NA),
     if (with_assess) list(plot_id = plot_id, layer = "assessment_marker", role = "x", dataset = response_data, variable = day, label = NA, shape = NA, colour = NA),
     if (with_assess) list(plot_id = plot_id, layer = "assessment_marker", role = "fill", dataset = response_data, variable = "AVALC", label = NA, shape = NA, colour = NA),

@@ -8,6 +8,8 @@ pp_swimmer(
   adam = NULL,
   style = c("full", "assessment", "response", "bar"),
   duration = "TRTDURD",
+  start = NULL,
+  end = NULL,
   id = "SUBJID",
   response = "BOR",
   assessment = "OVR",
@@ -33,7 +35,10 @@ pp_swimmer(
 
 \item{style}{One of \code{\link[=pp_styles]{pp_styles()}} for \code{swimmer}.}
 
-\item{duration}{Bar length variable (days) on \code{data}.}
+\item{duration}{Bar length variable (days) on \code{data}; bars start at 0.}
+
+\item{start, end}{Subtype "from start": bars run from \code{start} to \code{end}
+(days on a common origin, e.g. randomization) instead of 0 to \code{duration}.}
 
 \item{id}{Y-axis label variable.}
 

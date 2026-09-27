@@ -115,6 +115,6 @@ pp_seq_prepare <- function(data, id, stage, category, levels) {
   if (anyDuplicated(d[c(".id", ".stage_i")])) {
     stop("More than one row per subject and ", stage, "; keep one ", category, " per line.", call. = FALSE)
   }
-  attr(d, "levels_order") <- levels %||% unique(d$.cat[order(d$.stage_i)])
+  attr(d, "levels_order") <- levels %or% unique(d$.cat[order(d$.stage_i)])
   d
 }

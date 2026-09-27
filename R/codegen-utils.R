@@ -254,28 +254,7 @@ pp_scale_manual <- function(aes, sv, extra = NULL) {
 # ---- theme -----------------------------------------------------------------------
 
 pp_theme_code <- function(ctx) {
-  th <- ctx$prow$theme %or% "boxed"
-  bs <- pp_opt(ctx, "base_size")
-  switch(th,
-    boxed = c(
-      sprintf("theme_minimal(base_size = %s)", bs),
-      paste0("theme(\n",
-             "  panel.border      = element_rect(colour = \"black\", fill = NA, linewidth = 0.5),\n",
-             "  panel.grid        = element_blank(),\n",
-             "  axis.ticks        = element_line(linewidth = 0.4),\n",
-             "  axis.ticks.length = unit(2, \"mm\")\n)")
-    ),
-    L_axis = c(
-      sprintf("theme_minimal(base_size = %s)", bs),
-      paste0("theme(\n",
-             "  panel.grid = element_blank(),\n",
-             "  axis.line  = element_line(colour = \"black\", linewidth = 0.3),\n",
-             "  axis.ticks = element_line(linewidth = 0.3)\n)")
-    ),
-    minimal = sprintf("theme_minimal(base_size = %s)", bs),
-    classic = sprintf("theme_classic(base_size = %s)", bs),
-    stop("Unknown theme: ", th, call. = FALSE)
-  )
+  pp_theme_lines(ctx$prow$theme %or% "boxed", pp_opt(ctx, "base_size"))
 }
 
 # Join ggplot terms with " +".

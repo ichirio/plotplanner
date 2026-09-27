@@ -1,0 +1,173 @@
+# Shared building blocks of the template-based quick functions
+# (forest, bar, mean, individual, box, ae_dot, butterfly, edish, scatter, pk).
+#
+# Conventions of the generated scripts:
+# - group / population / subgroup variables always come from ADSL (joined by
+#   the subject key after dropping any copies in the analysis dataset), so a
+#   BDS dataset does not need to carry them;
+# - Step1 data, Step2 figure, Step3 ggsave, like the engine-based types.
+
+pp_q_legends <- c("none", "right", "bottom", "top", "inside", "inside_tl", "inside_br", "inside_bl")
+
+# Theme terms of a preset (shared with the engine).
+pp_theme_lines <- function(theme = "boxed", base_size = 10) {
+  switch(theme,
+    boxed = c(
+      sprintf("theme_minimal(base_size = %s)", base_size),
+      paste0("theme(\n",
+             "  panel.border      = element_rect(colour = \"black\", fill = NA, linewidth = 0.5),\n",
+             "  panel.grid        = element_blank(),\n",
+             "  axis.ticks        = element_line(linewidth = 0.4),\n",
+             "  axis.ticks.length = unit(2, \"mm\")\n)")
+    ),
+    L_axis = c(
+      sprintf("theme_minimal(base_size = %s)", base_size),
+      paste0("theme(\n",
+             "  panel.grid = element_blank(),\n",
+             "  axis.line  = element_line(colour = \"black\", linewidth = 0.3),\n",
+             "  axis.ticks = element_line(linewidth = 0.3)\n)")
+    ),
+    minimal = sprintf("theme_minimal(base_size = %s)", base_size),
+    classic = sprintf("theme_classic(base_size = %s)", base_size),
+    stop("Unknown theme: ", theme, call. = FALSE)
+  )
+}
+
+pp_q_legend <- function(legend, title_blank = TRUE) {
+  if (!legend %in% pp_q_legends) {
+    stop("`legend` must be one of: ", paste(pp_q_legends, collapse = ", "), call. = FALSE)
+  }
+  out <- if (legend == "none") {
+    'theme(legend.position = "none")'
+  } else if (grepl("^inside", legend)) {
+    pos <- if (legend == "inside") "inside_tr" else legend
+    j <- pp_inside_just[[pos]]
+    sprintf(paste0("theme(\n",
+                   "  legend.position        = \"inside\",\n",
+                   "  legend.position.inside = %s,\n",
+                   "  legend.justification   = %s,\n",
+                   "  legend.background      = element_rect(colour = \"black\", fill = \"white\", linewidth = 0.3)\n)"),
+            vec_code(abs(j - 0.02)), vec_code(j))
+  } else {
+    sprintf('theme(legend.position = "%s")', legend)
+  }
+  if (title_blank && legend != "none") out <- c(out, "theme(legend.title = element_blank())")
+  out
+}
+
+pp_q_data_expr <- function(data) {
+  expr <- getOption("tflspec.data_expr") %or% "{ds}"
+  gsub("{ds}", pp_ds_name(data), gsub("{DS}", data, expr, fixed = TRUE), fixed = TRUE)
+}
+
+pp_q_load <- function(datasets) {
+  datasets <- unique(datasets)
+  out <- character()
+  for (d in datasets) {
+    rhs <- pp_q_data_expr(d)
+    if (rhs != pp_ds_name(d)) out <- c(out, sprintf("%s <- %s", pp_ds_name(d), rhs))
+  }
+  if (!length(out)) out <- sprintf("# Input data frames: %s", paste(pp_ds_name(datasets), collapse = ", "))
+  out
+}
+
+# filter() code from a named list of values; numbers stay unquoted.
+pp_q_filter <- function(conds, df = NULL) {
+  conds <- conds[!vapply(conds, is.null, logical(1))]
+  if (!length(conds)) return(NULL)
+  terms <- vapply(names(conds), function(v) {
+    x <- conds[[v]]
+    num <- if (!is.null(df) && v %in% names(df)) is.numeric(df[[v]]) else is.numeric(x)
+    lit <- if (num) format(x) else q(x)
+    if (length(x) == 1) sprintf("%s == %s", v, lit) else sprintf("%s %%in%% c(%s)", v, paste(lit, collapse = ", "))
+  }, character(1))
+  sprintf("filter(%s)", paste(terms, collapse = ", "))
+}
+
+pp_q_pop <- function(pop) if (is.null(pop)) NULL else sprintf('filter(%s == "Y")', pop)
+
+# ADSL variables joined into a BDS dataset.
+pp_q_adsl_join <- function(vars, key = "USUBJID") {
+  vars <- unique(vars[!vapply(vars, is.null, logical(1))])
+  vars <- setdiff(unlist(vars), key)
+  if (!length(vars)) return(NULL)
+  v <- paste(q(vars), collapse = ", ")
+  c(sprintf("select(-any_of(c(%s)))", v),
+    sprintf("left_join(adsl %%>%% select(%s, all_of(c(%s))), by = %s)", key, v, q(key)))
+}
+
+# Evaluate a data step on the ADaM data at generation time (for literal
+# codelists). Returns NULL when data or columns are missing.
+pp_q_eval <- function(adam, data, conds = list(), adsl_vars = NULL, key = "USUBJID") {
+  if (is.null(adam) || is.null(adam[[data]])) return(NULL)
+  df <- adam[[data]]
+  if (length(adsl_vars) && data != "ADSL" && !is.null(adam$ADSL)) {
+    sl <- adam$ADSL
+    keep <- intersect(c(key, adsl_vars), names(sl))
+    df <- df[setdiff(names(df), setdiff(keep, key))]
+    df <- merge(df, sl[keep], by = key, all.x = TRUE, sort = FALSE)
+  }
+  for (v in names(conds)) {
+    if (is.null(conds[[v]])) next
+    if (!v %in% names(df)) return(NULL)
+    df <- df[as.character(df[[v]]) %in% as.character(conds[[v]]), , drop = FALSE]
+  }
+  df
+}
+
+# Named colour vector for the values of `var`. Literal when `df` is known,
+# otherwise computed when the script runs from `df_name`.
+pp_q_pal <- function(obj, df, var, df_name, palette = "treatment", values = NULL) {
+  pals <- pp_palettes()
+  if (!palette %in% names(pals)) stop("Unknown palette: ", palette, call. = FALSE)
+  pal <- pals[[palette]]
+  fallback <- if (is.null(names(pal))) pal else pals$okabe_ito
+  if (is.null(values) && !is.null(df) && var %in% names(df)) values <- pp_values(df, var)
+  if (is.null(values)) {
+    if (!is.null(names(pal))) {
+      return(sprintf("%s <- %s", obj, vec_code(pal)))
+    }
+    return(sprintf("%s_lv <- if (is.factor(%s$%s)) levels(%s$%s) else sort(unique(na.omit(%s$%s)))\n%s <- setNames(%s[seq_along(%s_lv)], %s_lv)",
+                   obj, df_name, var, df_name, var, df_name, var, obj, vec_code(unname(fallback)), obj, obj))
+  }
+  k <- 0
+  cols <- vapply(values, function(v) {
+    if (!is.null(names(pal)) && v %in% names(pal)) return(unname(pal[v]))
+    k <<- k + 1
+    fallback[(k - 1) %% length(fallback) + 1]
+  }, character(1))
+  sprintf("%s <- %s", obj, vec_code(stats::setNames(cols, values)))
+}
+
+pp_q_script <- function(pid, what, title, libs, data, plot, width, height, dpi = 300, units = "in",
+                        file = NULL) {
+  code <- paste(c(
+    pp_seq_header(pid, what, title, libs),
+    section("Step1: Preparing Analysis Data"),
+    paste(data[!vapply(data, is.null, logical(1))], collapse = "\n\n"),
+    "",
+    section("Step2: Making a figure"),
+    paste(plot, collapse = "\n"),
+    "fig",
+    "",
+    pp_seq_save(pid, width, height, dpi, units)
+  ), collapse = "\n")
+  pp_seq_finish(code, file)
+}
+
+pp_q_check_cols <- function(adam, data, cols) {
+  if (is.null(adam)) return(invisible())
+  if (is.null(adam[[data]])) stop("Dataset ", data, " not in `adam`.", call. = FALSE)
+  miss <- setdiff(unlist(cols), names(adam[[data]]))
+  if (length(miss)) stop(data, " has no column(s): ", paste(miss, collapse = ", "), call. = FALSE)
+  invisible()
+}
+
+pp_q_param_label <- function(adam, data, param, fallback) {
+  df <- if (!is.null(adam)) adam[[data]] else NULL
+  if (!is.null(df) && all(c("PARAMCD", "PARAM") %in% names(df))) {
+    lab <- unique(df$PARAM[df$PARAMCD %in% param])
+    if (length(lab) == 1) return(lab)
+  }
+  fallback
+}

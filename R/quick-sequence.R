@@ -14,7 +14,7 @@ pp_seq_header <- function(pid, what, title, libs) {
 }
 
 pp_seq_save <- function(pid, width, height, dpi, units) {
-  fp <- getOption("tflspec.fig_path") %||% pp_default_options()$fig_path
+  fp <- getOption("tflspec.fig_path") %or% pp_default_options()$fig_path
   c(section("Step3: Saving the figure"),
     sprintf("fig_path   <- %s", gsub("{plot_id}", pid, fp, fixed = TRUE)),
     sprintf("fig_width  <- %s", format(width)),
@@ -30,7 +30,7 @@ pp_seq_save <- function(pid, width, height, dpi, units) {
 # Step1 shared by sankey and sunburst: load, filter, category colours.
 pp_seq_data <- function(adam, data, pop, id, stage, category, palette) {
   ds <- pp_ds_name(data)
-  expr <- getOption("tflspec.data_expr") %||% "{ds}"
+  expr <- getOption("tflspec.data_expr") %or% "{ds}"
   rhs <- gsub("{ds}", ds, gsub("{DS}", data, expr, fixed = TRUE), fixed = TRUE)
   df <- if (!is.null(adam)) adam[[data]] else NULL
   if (!is.null(adam) && is.null(df)) stop("Dataset ", data, " not in `adam`.", call. = FALSE)
