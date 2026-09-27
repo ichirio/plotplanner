@@ -89,6 +89,12 @@ pp_gen_swimmer <- function(ctx) {
              "\n) %>%\n  filter(!is.na(X)) %>%\n  mutate(EVENT = factor(EVENT, levels = names(event_shape)))"))
   }
   data <- c(pal_before(sv_bar, sv_as), data, pal_after(sv_bar, sv_as), pp_x_axis_lines(ctx, "bar_df", end))
+  grid <- has_layer(ctx, "visit_grid")
+  if (grid) {
+    ve <- pp_opt(ctx, "visit_every")
+    if (is.na(ve)) stop("Plot ", ctx$pid, ": layer visit_grid needs option visit_every.", call. = FALSE)
+    data <- c(data, sprintf("visit_x <- seq(%s, x_max, by = %s)", ve, ve))
+  }
 
   # ---- plot ----
   bw <- pp_opt(ctx, "bar_width")
@@ -101,8 +107,15 @@ pp_gen_swimmer <- function(ctx) {
       c(sprintf("geom_segment(aes(x = 0, xend = %s, yend = Y_ID, colour = %s), linewidth = %s)", end, c_var, bw),
         pp_scale_manual("colour", sv_bar, 'na.value = "grey80"'))
     } else sprintf('geom_segment(aes(x = 0, xend = %s, yend = Y_ID), colour = "#9DB4C0", linewidth = %s)', end, bw),
-    "scale_x_continuous(breaks = x_breaks, expand = expansion(mult = c(0, 0.02)))",
-    'coord_cartesian(xlim = c(0, x_max), clip = "off")',
+    if (grid) {
+      paste0("scale_x_continuous(
+",
+             "  breaks = x_breaks, expand = expansion(mult = c(0, 0.02)),
+",
+             "  sec.axis = dup_axis(breaks = visit_x, labels = paste(", q(pp_opt(ctx, "visit_label")), ", visit_x), name = NULL)
+)")
+    } else "scale_x_continuous(breaks = x_breaks, expand = expansion(mult = c(0, 0.02)))",
+    "coord_cartesian(xlim = c(0, x_max))",
     sprintf("labs(x = %s, y = %s%s)", q(x_lab), if (is.na(y_lab)) "NULL" else q(y_lab),
             if (!is.na(ctx$prow$title)) paste0(", title = ", q(ctx$prow$title)) else ""),
     pp_theme_code(ctx),
@@ -146,15 +159,11 @@ pp_gen_swimmer <- function(ctx) {
              "  aes(x = ", end, ", xend = ", end, " + x_max * 0.03, yend = Y_ID),\n",
              "  arrow = arrow(length = unit(0.12, \"cm\"), type = \"closed\"), linewidth = 0.3\n)"))
   }
-  if (has_layer(ctx, "visit_grid")) {
-    ve <- pp_opt(ctx, "visit_every")
-    if (is.na(ve)) stop("Plot ", ctx$pid, ": layer visit_grid needs option visit_every.", call. = FALSE)
-    plot <- c(plot, "# ---- layer: visit_grid ----",
-      sprintf("visit_x <- seq(%s, x_max, by = %s)", ve, ve),
+  if (grid) {
+    plot <- c(plot, "# ---- layer: visit_grid (labels on the top axis) ----",
       plus_code("p", list(
         'geom_vline(xintercept = visit_x, linetype = "dotted", colour = "grey60")',
-        sprintf('annotate("text", x = visit_x, y = Inf, label = paste(%s, visit_x), vjust = -0.5, size = 2.6)', q(pp_opt(ctx, "visit_label"))),
-        "theme(plot.margin = margin(t = 15, r = 5.5, b = 5.5, l = 5.5))"
+        "theme(axis.ticks.x.top = element_blank(), axis.line.x.top = element_blank())"
       ), append = TRUE))
   }
 

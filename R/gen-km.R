@@ -71,14 +71,16 @@ pp_gen_km <- function(ctx) {
     if (!is.null(s_var)) pp_scale_manual("colour", sv),
     "scale_x_continuous(breaks = x_breaks, expand = expansion(mult = c(0.02, 0.02)))",
     "scale_y_continuous(breaks = seq(0, 1, by = 0.2))",
-    'coord_cartesian(xlim = c(0, x_max), ylim = c(0, 1), clip = "off")',
+    "coord_cartesian(xlim = c(0, x_max), ylim = c(0, 1))",
     sprintf("labs(x = %s, y = %s%s)", q(x_lab), q(y_lab),
             if (!is.na(ctx$prow$title)) paste0(", title = ", q(ctx$prow$title)) else "")
   )
   plot <- c("# ---- base: km ----", plus_code("p", c(base_terms, list(pp_theme_code(ctx)))))
 
   if (has_layer(ctx, "ci")) {
-    plot <- c(plot, "# ---- layer: ci ----", "p <- p + add_confidence_interval()")
+    plot <- c(plot, "# ---- layer: ci ----",
+              if (is.null(s_var)) "p <- p + add_confidence_interval(fill = pal_strata[[1]])"
+              else 'p <- p + add_confidence_interval() + scale_fill_manual(values = pal_strata, guide = "none")')
   }
   if (has_layer(ctx, "censor_mark")) {
     col <- if (is.null(s_var)) ", colour = pal_strata[[1]]" else ""

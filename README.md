@@ -1,95 +1,109 @@
 # plotplanner
 
-Generate **ggplot2 / extension-package code** for clinical figures from an **Excel spec**.
+Generate a **ggplot2 skeleton script** for common clinical figures by choosing a
+plot type and a **style** — a few arguments instead of a few hundred lines.
 
-plotplanner is not a plotting package: it *writes code*. The goal is a runnable
-**skeleton** that is quicker to get than writing ggplot2 by hand — not a perfect
-figure. The last details are finished by editing the generated script.
+plotplanner does not try to cover every figure. It writes the ~95% that is the
+same every time (data preparation from ADaM, the plot, legend, `ggsave()`), and
+you finish the rest by editing the generated script. The script depends only on
+dplyr + ggplot2 (+ ggsurvfit / patchwork), not on plotplanner.
 
-- Pick a **plot type** (base pattern) and add **layer patterns**
-- Assign ADaM **variables to roles**; datasets, variables and codelist values are
-  **chosen from the ADaM data** (Excel drop-downs)
-- Choose **presets**: theme, palette, legend type / position
-- The generated script uses only dplyr + ggplot2 (+ ggsurvfit / patchwork), not plotplanner
-
-Status: early development (km / waterfall / swimmer). Design discussion and sample
+Status: early development — `km`, `waterfall`, `swimmer`. Discussion and sample
 code: [Discussions](https://github.com/ichirio/plotplanner/discussions).
 
-## Workflow
+## Quick start
 
 ```r
 library(plotplanner)
+adam <- read_adam("data/adam")     # optional: .xpt / .sas7bdat / .rds folder, or list(adsl = ...)
 
-adam <- read_adam("data/adam")                  # folder of .xpt / .sas7bdat / .rds, or list(adsl = ...)
-write_plot_spec_template(adam, "plot_spec.xlsx") # sheets with drop-downs from the ADaM data
-
-# ... fill in plot_spec.xlsx in Excel ...
-
-spec <- read_plot_spec("plot_spec.xlsx")
-check_plot_spec(spec, adam)                      # variables / values exist? required roles?
-write_plot_code(spec, "programs/figures", adam = adam)
+pp_km(adam, param = "OS")                                      # print the script
+pp_km(adam, param = "DOR", style = "single_arm", file = "programs/f_km_dor.R")
+pp_waterfall(adam)
+pp_swimmer(adam, events = c(Death = "DTHADY", Discontinued = "EOSDY"), visit_every = 3)
 ```
 
-Try it without your own data:
+Standard ADaM names are assumed (ADTTE `AVAL`/`CNSR`/`PARAMCD`, `TRT01P`,
+`FASFL`, ADRS `BOR`/`OVR` in `AVALC`, ADSL `TRTDURD`, ...). Pass an argument only
+when your study differs, e.g. `group = "TRT01A"`, `pop = "SAFFL"`, `data = "ADEFF"`.
+With `adam`, the group / response values and their colours are written literally
+into the script; without it, they are taken from the data when the script runs.
 
-```r
-adam <- pp_example_adam()   # synthetic ADSL / ADTTE / ADRS / ADTR
-spec <- pp_example_spec()   # the three figures below
-cat(plot_code(spec, "F-SW-1", adam = adam))
-```
+Try it on synthetic data: `adam <- pp_example_adam()`.
 
-| km | waterfall | swimmer |
+| `pp_km(adam, x_max = 24, x_by = 3)` | `pp_km(adam, style = "single_arm")` | `pp_km(adam, style = "ci", legend = "panel_inside")` |
 |---|---|---|
-| ![](man/figures/F-KM-1.png) | ![](man/figures/F-WF-1.png) | ![](man/figures/F-SW-1.png) |
+| ![](man/figures/quick_km_risk.png) | ![](man/figures/quick_km_single.png) | ![](man/figures/quick_km_ci.png) |
 
-## Spec sheets
-
-| sheet | one row = | columns |
+| `pp_waterfall(adam)` | `pp_swimmer(adam, events = ..., visit_every = 3)` | `pp_swimmer(adam, style = "response", legend = "inside_bl")` |
 |---|---|---|
-| `plots` | a figure | `plot_id`, `plot_type`, `dataset`, `layers` (comma separated), `title`, `x_label`, `y_label`, `theme`, `palette`, `legend_type`, `legend_pos`, `width`, `height`, `units`, `dpi` |
-| `roles` | a role of a pattern | `plot_id`, `layer` (blank = base), `role`, `dataset` (blank = plot dataset; another dataset is joined by `id_var`), `variable`, `label`, `shape`, `colour` |
-| `filters` | a condition | `plot_id`, `layer` (blank = base), `dataset`, `variable`, `value` (several rows for the same variable = `%in%`) |
-| `levels` | a codelist value | `plot_id`, `variable`, `value`, `label`, `order`, `colour` |
-| `legend` | a legend item | `plot_id`, `order`, `label`, `glyph` (`point` / `line` / `rect`), `shape`, `colour`, `fill`, `linetype` |
-| `options` | a setting | `plot_id` (blank = all plots), `key`, `value` |
+| ![](man/figures/quick_wf_resp.png) | ![](man/figures/quick_sw_full.png) | ![](man/figures/quick_sw_resp.png) |
 
-The template also contains `adam_vars` and `adam_values` (all variables and codelist values of the data).
+## Styles
 
-## Plot types and patterns
-
-| plot_type | base roles | layers (layer roles) |
+| type | style | draws |
 |---|---|---|
-| `km` | `time`, `censor`, `strata`* | `censor_mark`, `ci`, `median_line`, `n_at_risk` |
-| `waterfall` | `id`, `value`, `fill`* | `ref_lines`, `ref_labels` |
-| `swimmer` | `id`, `end`, `colour`* | `assessment_marker` (`x`, `fill`*), `event_marker` (`x`; one row per event with `label` / `shape` / `colour`), `ongoing_arrow` (uses a filter row), `visit_grid` |
+| km | **risk_table** | curves by group + censor marks + median line + number at risk panel |
+| km | simple | curves by group + censor marks |
+| km | ci | curves by group + confidence bands + censor marks + number at risk panel |
+| km | single_arm | one curve + censor marks + median line + number at risk panel |
+| waterfall | **response** | bars coloured by best overall response + +20% / -30% lines with labels |
+| waterfall | plain | bars in one colour + +20% / -30% lines with labels |
+| swimmer | **full** | bars coloured by BOR + response at each assessment + event markers + ongoing arrows |
+| swimmer | assessment | bars coloured by BOR + response at each assessment + ongoing arrows |
+| swimmer | response | bars coloured by BOR + ongoing arrows |
+| swimmer | bar | bars in one colour + ongoing arrows |
 
-\* optional
+**Bold** = default. `pp_styles()` lists them.
 
 ## Legends
 
-| `legend_type` | |
+`legend =`
+
+| value | legend |
 |---|---|
-| `mapped` | ggplot2 legends of the mapped aesthetics (colour / fill / shape), e.g. bar colour + assessment fill + event shape |
-| `manual` | a legend **panel drawn from a table of items**, independent of the data. Items come from the `legend` sheet; when it is empty they are built from the spec (levels, event markers). The items are written into the script as a `tribble`, easy to edit |
 | `none` | no legend |
+| `right`, `bottom`, `inside`, `inside_bl` | ggplot2 legend of the mapped colours / fills / shapes |
+| `panel`, `panel_right`, `panel_inside` | a legend **panel drawn from an item table**, independent of the data (like hand-made legends in study figures). The items are written into the script as a `tribble` — add, remove or relabel rows by hand |
 
-`legend_pos`: `right`, `bottom`, `top`, `left`, `below`, `inside_tr`, `inside_tl`, `inside_br`, `inside_bl`.
+## Common arguments and options
 
-| mapped, bottom | manual, inside_tr |
-|---|---|
-| ![](man/figures/F-SW-1_mapped_bottom.png) | ![](man/figures/F-KM-1_manual_inside.png) |
+- `title`, `pop` (population flag, `NULL` = none), `time_unit` (`days` / `weeks` / `months` / `years`), `file`, `plot_id`
+- `...`: `x_max`, `x_by`, `y_min`, `y_max`, `y_by`, `ref_lines` (`"20,-30"`), `palette`
+  (`treatment`, `response`, `response_light`, `okabe_ito`, `grey`), `theme` (`boxed`, `L_axis`,
+  `minimal`, `classic`), `width`, `height`, `units`, `dpi`, `censor_shape`, `legend_ncol`, ...
+- Set once per study:
 
-## Presets and options
+```r
+options(
+  plotplanner.data_expr = "adam_data${ds}",                          # how the script gets ADTTE etc.
+  plotplanner.fig_path  = 'file.path(output_path, "{plot_id}.png")'  # where it saves
+)
+```
 
-- `theme`: `boxed` (frame, no grid), `L_axis` (left/bottom axis lines), `minimal`, `classic`
-- `palette`: `response`, `response_light`, `treatment`, `okabe_ito`, `grey` — named palettes
-  match values by name (CR/PR/SD/PD/NE); `levels` rows override colours, labels and order
-- Shapes: `circle`, `square`, `diamond`, `triangle`, `triangle_down`, `x`, `plus`, `dot`, ... or a number
-- Options (`options` sheet): `data_expr` (e.g. `adam_data${ds}`), `id_var` (default `USUBJID`),
-  `time_unit` (`as_is` / `days_to_weeks` / `days_to_months` / `days_to_years`), `x_max`, `x_by`,
-  `y_min`, `y_max`, `y_by`, `ref_lines`, `censor_shape`, `visit_every`, `visit_label`,
-  `marker_palette`, `legend_ncol`, `legend_width`, `legend_height`, `legend_title`, `legend_hide`,
-  `fig_path`, `base_size`, ...
+## Many figures: Excel plot list
 
-Out of scope by design: deriving analysis variables (e.g. time from dates / AVISIT). Roles
-take variables that already exist in the ADaM data; derive anything else in the script.
+One row per figure, columns = the arguments above.
+
+```r
+write_plot_list_template("plot_list.xlsx", adam)   # drop-downs for type, style, legend, PARAMCD, group, pop
+plot_list_code("plot_list.xlsx", adam, dir = "programs/figures")
+```
+
+| plot_id | type | style | title | param | group | pop | legend | args |
+|---|---|---|---|---|---|---|---|---|
+| F-14.2.1 | km | risk_table | | OS | TRT01P | | | `x_max = 24, x_by = 3` |
+| F-14.2.2 | waterfall | response | | | | | | |
+| F-14.2.3 | swimmer | full | | | | | | `events = c(Death = "DTHADY")` |
+
+Blank = default. `args` takes any further argument in R syntax.
+
+## Advanced: detailed spec
+
+The quick API is built on a detailed spec (plots / roles / filters / levels /
+legend / options sheets) that can express other combinations of patterns:
+`write_plot_spec_template()`, `read_plot_spec()`, `check_plot_spec()`,
+`plot_code()`. See `?plot_code` and `pp_example_spec()`.
+
+Out of scope by design: deriving analysis variables (e.g. time from dates or
+AVISIT). Use variables that exist in the ADaM data and derive the rest in the script.

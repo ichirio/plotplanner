@@ -1,6 +1,6 @@
 Package: plotplanner
 Title: Generate 'ggplot2' Figure Code from an Excel Specification
-Version: 0.0.1
+Version: 0.0.2
 Authors@R: person("ichirio", role = c("aut", "cre"), email = "ichi.r.pro@gmail.com")
 Description: Reads an Excel specification (plot type, ADaM variable roles,
     codelist selections, layer patterns and presets) and writes skeleton
