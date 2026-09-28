@@ -1,3 +1,11 @@
+# tflspec 0.0.10
+
+* **The former names are gone** (#11): `ard_normalize()`, `rtf_plan()`,
+  `table_plan()`, `plan_cells()`, `rtf_report()`, `pp_km()`, `plot_code()`
+  and the rest now stop with "could not find function"; call the `tfl_`
+  name (the table is in 0.0.9 below).  tflspec keeps only the `tfl_`
+  functions, before its API grows around two sets of names.
+
 # tflspec 0.0.9
 
 * **Every function now starts with `tfl_`** (#9), so tflspec's names do not

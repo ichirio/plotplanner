@@ -105,8 +105,7 @@
     nm <- if (is.name(f)) as.character(f)
           else if (is.call(f) && identical(as.character(f[[1L]]), "::"))
             as.character(f[[3L]]) else ""
-    if (startsWith(nm, "tfl_plan") || startsWith(nm, "plan_") ||
-        nm %in% c("table_plan", "rtf_plan")) return(cl)
+    if (startsWith(nm, "tfl_plan")) return(cl)
   }
   NULL
 }
