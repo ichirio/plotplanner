@@ -67,7 +67,7 @@ pp_opt <- function(ctx, key) {
   hit <- o$value[o$plot_id %in% ctx$pid & o$key %in% key]
   if (!length(hit)) hit <- o$value[is.na(o$plot_id) & o$key %in% key]
   if (length(hit) && !is.na(hit[1])) return(hit[1])
-  d <- pp_default_options()[[key]]
+  d <- pp_default_options(ctx$type)[[key]]
   if (is.null(d)) stop("Unknown option: ", key, call. = FALSE)
   if (identical(d, "")) NA_character_ else d
 }
@@ -257,7 +257,8 @@ pp_scale_manual <- function(aes, sv, extra = NULL) {
 # ---- theme -----------------------------------------------------------------------
 
 pp_theme_code <- function(ctx) {
-  pp_theme_lines(ctx$prow$theme %or% "boxed", pp_opt(ctx, "base_size"))
+  th <- ctx$prow$theme %or% pp_opt(ctx, "theme") %or% "boxed"
+  pp_theme_lines(th, pp_opt(ctx, "base_size"), function(k) pp_opt(ctx, k))
 }
 
 # Join ggplot terms with " +".

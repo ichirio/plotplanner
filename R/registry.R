@@ -65,24 +65,7 @@ pp_glyphs <- c("point", "line", "rect")
 #' unnamed palettes are assigned to values in order.
 #' @return A named list of character vectors.
 #' @export
-pp_palettes <- function() {
-  list(
-    response = c(
-      CR = "#008000", PR = "#0000FF", SD = "#FFA500", PD = "#800080",
-      NE = "#A0A0A0", "NON-CR/NON-PD" = "#20B2AA"
-    ),
-    response_light = c(
-      CR = "#99CC99", PR = "#9999FF", SD = "#FFCC99", PD = "#CC99FF",
-      NE = "#D9D9D9", "NON-CR/NON-PD" = "#99D8D3"
-    ),
-    treatment = c("#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9"),
-    okabe_ito = c(
-      "#E69F00", "#56B4E9", "#009E73", "#F0E442",
-      "#0072B2", "#D55E00", "#CC79A7", "#000000"
-    ),
-    grey = c("#000000", "#555555", "#999999", "#CCCCCC")
-  )
-}
+pp_palettes <- function() .fs_palettes()
 
 # Shape names accepted in the spec, mapped to ggplot2 point shapes.
 pp_shape_names <- c(
@@ -91,33 +74,27 @@ pp_shape_names <- c(
   star = 8, open_circle = 1
 )
 
-# Default option values. `{plot_id}` / `{ds}` are substituted at generation.
-pp_default_options <- function() {
-  list(
+# Default option values: the generator's own, then the figure style
+# standard's (fig_style(); a type's rows over the blank-type rows).
+# `{plot_id}` / `{ds}` are substituted at generation.
+pp_default_options <- function(type = NA) {
+  base <- list(
     data_expr = "{ds}",
     id_var = "USUBJID",
-    line_width = "0.5",
     fig_path = 'file.path("output", "{plot_id}.png")',
-    base_size = "10",
     time_unit = "as_is",
     x_max = "", x_by = "", y_min = "", y_max = "", y_by = "",
-    censor_shape = "x",
     arm_label = "All",
-    risk_title = "Number of Patients at Risk",
-    risk_height = "0.18",
-    ref_lines = "20,-30",
-    bar_width = "2",
-    marker_size = "1.8",
-    marker_palette = "response",
     visit_every = "",
-    visit_label = "Month",
-    bar_legend_prefix = "Best response ",
+    risk_ard = "",
     legend_title = "",
-    legend_ncol = "3",
-    legend_height = "0.2",
     legend_width = "0.3",
     legend_hide = ""
   )
+  st <- .fs_all(type)
+  st <- lapply(st, function(v) if (is.na(v)) "" else v)
+  for (k in names(st)) base[[k]] <- st[[k]]
+  base
 }
 
 pp_time_divisor <- c(as_is = NA, days_to_weeks = 7, days_to_months = 30.4375, days_to_years = 365.25)

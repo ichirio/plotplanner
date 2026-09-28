@@ -70,7 +70,7 @@ pp_gen_km <- function(ctx) {
     else sprintf("ggsurvfit(km_fit, linewidth = %s)", lw),
     if (!is.null(s_var)) pp_scale_manual("colour", sv),
     "scale_x_continuous(breaks = x_breaks, expand = expansion(mult = c(0.02, 0.02)))",
-    "scale_y_continuous(breaks = seq(0, 1, by = 0.2))",
+    sprintf("scale_y_continuous(breaks = seq(0, 1, by = %s))", pp_opt(ctx, "y_by")),
     "coord_cartesian(xlim = c(0, x_max), ylim = c(0, 1))",
     sprintf("labs(x = %s, y = %s%s)", q(x_lab), q(y_lab),
             if (!is.na(ctx$prow$title)) paste0(", title = ", q(ctx$prow$title)) else "")
@@ -85,27 +85,56 @@ pp_gen_km <- function(ctx) {
   if (has_layer(ctx, "censor_mark")) {
     col <- if (is.null(s_var)) ", colour = pal_strata[[1]]" else ""
     plot <- c(plot, "# ---- layer: censor_mark ----",
-              sprintf("p <- p + add_censor_mark(shape = %s, size = 2%s)", format(cshape), col))
+              sprintf("p <- p + add_censor_mark(shape = %s, size = %s, stroke = %s%s)",
+                      format(cshape), pp_opt(ctx, "censor_size"),
+                      pp_opt(ctx, "censor_stroke"), col))
   }
   if (has_layer(ctx, "median_line")) {
     plot <- c(plot, "# ---- layer: median_line ----",
-              'p <- p + geom_hline(yintercept = 0.5, linetype = "dashed", colour = "grey50", linewidth = 0.3)')
+              sprintf('p <- p + geom_hline(yintercept = 0.5, linetype = %s, colour = %s, linewidth = %s)',
+                      q(pp_opt(ctx, "median_linetype")), q(pp_opt(ctx, "median_colour")),
+                      pp_opt(ctx, "median_line_width")))
   }
 
   panels <- list()
+  risk_ard <- pp_opt(ctx, "risk_ard")
   if (has_layer(ctx, "n_at_risk")) {
     single <- is.null(s_var)
-    plot <- c(plot, "# ---- layer: n_at_risk (separate panel, combined below the curve) ----",
+    risk_code <- if (is.na(risk_ard)) c(
       "sr <- summary(km_fit, times = x_breaks, extend = TRUE)",
       paste0("risk_df <- data.frame(\n",
              "  time   = sr$time,\n",
              if (single) sprintf("  strata = %s,\n", q(sv$values[1]))
              else "  strata = sub(\"^[^=]*=\", \"\", as.character(sr$strata)),\n",
-             "  n_risk = sr$n.risk\n)"),
+             "  n_risk = sr$n.risk\n)")) else c(
+      "# the number at risk is the KM table's (its ARD, cardx::ard_survival_survfit()),",
+      "# so the figure and the table agree; the curve's own count is checked against it",
+      sprintf("km_ard  <- %s", risk_ard),
+      "km_ard  <- km_ard[km_ard$variable == \"time\" & km_ard$stat_name == \"n.risk\", ]",
+      paste0("risk_df <- data.frame(\n",
+             "  time   = as.numeric(unlist(km_ard$variable_level))",
+             if (!identical(pp_opt(ctx, "time_unit"), "as_is"))
+               paste0(" / ", format(pp_time_divisor[[pp_opt(ctx, "time_unit")]]),
+                      ",   # in the axis's unit\n")
+             else ",\n",
+             if (single) sprintf("  strata = %s,\n", q(sv$values[1]))
+             else "  strata = as.character(unlist(km_ard$group1_level)),\n",
+             "  n_risk = as.numeric(unlist(km_ard$stat))\n)"),
+      "sr <- summary(km_fit, times = sort(unique(risk_df$time)), extend = TRUE)",
+      paste0("curve_n <- data.frame(time = sr$time, n = sr$n.risk, strata = ",
+             if (single) q(sv$values[1])
+             else "sub(\"^[^=]*=\", \"\", as.character(sr$strata))", ")"),
+      "chk <- merge(risk_df, curve_n, by = c(\"strata\", \"time\"))",
+      "if (nrow(chk) != nrow(risk_df) || any(chk$n_risk != chk$n)) {",
+      "  warning(\"Figure check: the number at risk of the ARD differs from the curve's (\",",
+      "          sum(chk$n_risk != chk$n) + nrow(risk_df) - nrow(chk), \" cell(s))\", call. = FALSE)",
+      "}")
+    plot <- c(plot, "# ---- layer: n_at_risk (separate panel, combined below the curve) ----",
+      risk_code,
       "risk_df$strata <- factor(risk_df$strata, levels = rev(names(pal_strata)))",
       plus_code("p_risk", list(
         "ggplot(risk_df, aes(x = time, y = strata, label = n_risk, colour = strata))",
-        "geom_text(size = 3)",
+        sprintf("geom_text(size = %s)", pp_opt(ctx, "text_size")),
         'scale_colour_manual(values = pal_strata, guide = "none")',
         "scale_x_continuous(breaks = x_breaks, expand = expansion(mult = c(0.02, 0.02)))",
         'coord_cartesian(xlim = c(0, x_max), clip = "off")',

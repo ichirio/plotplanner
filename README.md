@@ -15,7 +15,7 @@ rtfreporter  the RTF renderer; usable on its own
 
 | Part | What it does | Entry points |
 |---|---|---|
-| Tables (ARD) | a cards/cardx ARD -> a table data.frame -> rtfreporter pages, declared once as a plan or in an Excel table spec | `ard_normalize()`, `ard_spread()`, `rtf_plan()` + `plan_*()`, `table_spec()`, `read_report_spec()`, `rtf_report()` |
+| Tables (ARD) | a cards/cardx ARD -> a table data.frame -> rtfreporter pages, declared once as a plan or in an Excel table spec | `ard_normalize()`, `ard_spread()`, `table_plan()` + `plan_*()`, `table_spec()`, `read_report_spec()`, `rtf_report()` |
 | Figures | an Excel plot spec -> a ggplot2 skeleton script | `plot_spec()`, `plot_code()`, `pp_km()`, `pp_waterfall()`, `pp_swimmer()` |
 
 A plan is a table source for rtfreporter: `rtf_tables(doc, plan)` and
@@ -34,7 +34,7 @@ library(tflspec)     # attaches rtfreporter too (Depends)
 
 tbl <- ard |>
   ard_normalize() |>
-  rtf_plan(cols = "TRT01A", rows = c(group = "variable")) |>
+  table_plan(cols = "TRT01A", rows = c(group = "variable")) |>
   plan_cells(continuous = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
              categorical = "{n} ({p:%})") |>
   plan_digits(1)
@@ -191,6 +191,28 @@ from the line data) and `plot_sankey()` / `plot_sankey_subgroups_batch()` /
 | `none` | no legend |
 | `right`, `bottom`, `inside`, `inside_bl` | ggplot2 legend of the mapped colours / fills / shapes |
 | `panel`, `panel_right`, `panel_inside` | a legend **panel drawn from an item table**, independent of the data (like hand-made legends in study figures). The items are written into the script as a `tribble` — add, remove or relabel rows by hand |
+
+## Figure style standard
+
+Every look-and-feel value of a figure -- font sizes, line widths, ticks,
+reference lines, the censor mark, palettes, event markers, the output size --
+is one catalog, `fig_style()` (sheets `settings`, `colors`, `markers`), so
+every figure of a study looks the same.  The built-in one comes from the KM /
+waterfall / swimmer sample programs the generators were built from; a company
+keeps its own in a workbook:
+
+```r
+fig_style_template("fig_style.xlsx")                      # the built-in one, to edit
+options(tflspec.fig_style = read_fig_style("fig_style.xlsx"))
+```
+
+The generators take their defaults from it.  For figure programs written by
+hand (or by an AI), `fig_setup_code()` writes the same style as plain ggplot2
+helpers -- `theme_tfl()`, `scale_colour_tfl()`, `tfl_marker()`, `tfl_save()`
+-- and `tfl_check()`, which warns about dropped rows, legend colours that are
+not the standard's and a legend in the wrong order (`check_figure()` runs it
+from R).  `pp_km(ard = )` reads the number at risk from the KM table's ARD, so
+the figure and the table agree.
 
 ## Common arguments and options
 

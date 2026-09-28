@@ -7,7 +7,7 @@
 \title{tflspec: Excel specifications for tables, listings and figures}
 \description{
 Reads study specifications written in Excel and turns them into what a
-clinical TFL report is made of: ARD-based tables (\verb{ard_*()}, \code{rtf_plan()} /
+clinical TFL report is made of: ARD-based tables (\verb{ard_*()}, \code{table_plan()} /
 \verb{plan_*()}, \code{table_spec()} / \code{read_report_spec()}) and figure code
 (\code{plot_spec()} / \code{plot_code()}).  Rendering to RTF is rtfreporter's job;
 this package decides \emph{what} goes on the page.

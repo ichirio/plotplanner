@@ -32,14 +32,16 @@ pp_gen_waterfall <- function(ctx) {
   y_max <- pp_opt_num(ctx, "y_max", 100)
   y_by <- pp_opt_num(ctx, "y_by", 20)
   y_lab <- ctx$prow$y_label %or% pp_var_label_of(ctx, ctx$ds, value) %or% value
-  x_lab <- ctx$prow$x_label %or% "Patients"
+  x_lab <- ctx$prow$x_label %or% pp_opt(ctx, "x_label") %or% "Patients"
 
   aes_fill <- if (!is.null(f_var)) sprintf(", fill = %s", f_var) else ""
   base_terms <- list(
     sprintf("ggplot(wf_df, aes(x = INDEX, y = %s%s))", value, aes_fill),
-    if (!is.null(f_var)) "geom_col(width = 0.8)" else 'geom_col(width = 0.8, fill = "#4F6D7A")',
+    if (!is.null(f_var)) sprintf("geom_col(width = %s)", pp_opt(ctx, "bar_width"))
+    else sprintf('geom_col(width = %s, fill = "#4F6D7A")', pp_opt(ctx, "bar_width")),
     if (!is.null(f_var)) pp_scale_manual("fill", sv, 'na.value = "grey80"'),
-    'geom_hline(yintercept = 0, colour = "black", linewidth = 0.5)',
+    sprintf("geom_hline(yintercept = 0, colour = %s, linewidth = %s)",
+            q(pp_opt(ctx, "zero_line_colour")), pp_opt(ctx, "zero_line_width")),
     "scale_y_continuous(breaks = seq(y_min, y_max, by = y_by))",
     'coord_cartesian(ylim = c(y_min, y_max), clip = "off")',
     sprintf("labs(x = %s, y = %s%s)", q(x_lab), q(y_lab),
@@ -53,14 +55,18 @@ pp_gen_waterfall <- function(ctx) {
   if (has_layer(ctx, "ref_lines") && length(refs)) {
     plot <- c(plot, "# ---- layer: ref_lines ----",
               sprintf("ref_y <- %s", vec_code(refs)),
-              'p <- p + geom_hline(yintercept = ref_y, colour = "grey50", linetype = "dashed", linewidth = 0.5)')
+              sprintf('p <- p + geom_hline(yintercept = ref_y, colour = %s, linetype = %s, linewidth = %s)',
+                      q(pp_opt(ctx, "ref_line_colour")), q(pp_opt(ctx, "ref_linetype")),
+                      pp_opt(ctx, "ref_line_width")))
   }
   if (has_layer(ctx, "ref_labels") && length(refs)) {
     if (!has_layer(ctx, "ref_lines")) plot <- c(plot, sprintf("ref_y <- %s", vec_code(refs)))
     plot <- c(plot, "# ---- layer: ref_labels (outside the panel, right) ----",
               plus_code("p", list(
-                'annotate("text", x = Inf, y = ref_y, label = paste0(ref_y, "%"), hjust = -0.2, size = 3)',
-                "theme(plot.margin = margin(t = 5.5, r = 35, b = 5.5, l = 5.5))"
+                sprintf('annotate("text", x = Inf, y = ref_y, label = paste0(ref_y, "%%"), hjust = %s, size = %s)',
+                        pp_opt(ctx, "ref_label_hjust"), pp_opt(ctx, "ref_label_size")),
+                sprintf("theme(plot.margin = margin(t = 5.5, r = %s, b = 5.5, l = 5.5))",
+                        pp_opt(ctx, "right_margin"))
               ), append = TRUE))
   }
 

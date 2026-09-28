@@ -13,7 +13,7 @@ read_report_spec(path, output_id = NULL)
 }
 \value{
 A \code{\link[=table_spec]{table_spec()}} carrying the report sheets as well; it serves
-\code{rtf_plan(spec = )} and \code{\link[=rtf_report]{rtf_report()}} alike.
+\code{table_plan(spec = )} and \code{\link[=rtf_report]{rtf_report()}} alike.
 }
 \description{
 A \strong{report definition} is the \code{\link[=table_spec]{table_spec()}} sheets plus the ones that

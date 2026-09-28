@@ -56,8 +56,8 @@ that each fact is written once:\tabular{lll}{
 
 
 The first four say how the ARD becomes a table data frame; the last
-four how that becomes \code{rtftable} pages.  \code{\link[=rtf_plan]{rtf_plan()}} reads them all
-(\code{rtf_plan(data, spec = )}), as the first layers of a plan, so a verb
+four how that becomes \code{rtftable} pages.  \code{\link[=table_plan]{table_plan()}} reads them all
+(\code{table_plan(data, spec = )}), as the first layers of a plan, so a verb
 written after it still wins.
 }
 \section{\code{study}}{
@@ -214,7 +214,7 @@ arm's spanner the arm), \code{{n1}}, \code{{n2}} (the population at that
 depth of the keys) and \code{{n:sum}} (the total over the cell's
 columns).  \code{{n}} is read from the ARD whenever a text uses it; a
 number the ARD does not state prints \code{NA} with a warning, and
-\code{plan_col_header(n = )} after \code{rtf_plan(spec = )} supplies it.
+\code{plan_col_header(n = )} after \code{table_plan(spec = )} supplies it.
 Quote a text to keep leading spaces: \code{"  Category"}.}
 \item{\code{align}, \code{bold}, \code{border_top}, \code{border_bottom}}{As
 \code{\link[rtfreporter:col_cell]{rtfreporter::col_cell()}} / \code{\link[rtfreporter:rtf_border]{rtfreporter::rtf_border()}} take them (\code{single}, \code{none}, ...).}

@@ -10,25 +10,51 @@
 pp_q_legends <- c("none", "right", "bottom", "top", "inside", "inside_tl", "inside_br", "inside_bl")
 
 # Theme terms of a preset (shared with the engine).
-pp_theme_lines <- function(theme = "boxed", base_size = 10) {
+pp_theme_lines <- function(theme = "boxed", base_size = NULL, opt = NULL) {
+  # sizes and line widths come from the figure style standard (fig_style()),
+  # or from `opt(key)` -- a plot's own options -- when the caller has them
+  if (is.null(opt)) {
+    d <- pp_default_options()
+    opt <- function(k) d[[k]]
+  }
+  o <- opt
+  bs <- base_size %||% o("base_size")
+  text_sizes <- paste0(
+    "  axis.title        = element_text(size = ", o("axis_title_size"), "),
+",
+    "  axis.text         = element_text(size = ", o("axis_text_size"), "),
+",
+    "  legend.text       = element_text(size = ", o("legend_text_size"), "),
+",
+    "  legend.key.size   = unit(", o("legend_key_size"), ", \"lines\"),
+")
   switch(theme,
     boxed = c(
-      sprintf("theme_minimal(base_size = %s)", base_size),
-      paste0("theme(\n",
-             "  panel.border      = element_rect(colour = \"black\", fill = NA, linewidth = 0.5),\n",
-             "  panel.grid        = element_blank(),\n",
-             "  axis.ticks        = element_line(linewidth = 0.4),\n",
-             "  axis.ticks.length = unit(2, \"mm\")\n)")
+      sprintf("theme_minimal(base_size = %s)", bs),
+      paste0("theme(
+", text_sizes,
+             "  panel.border      = element_rect(colour = \"black\", fill = NA, linewidth = ", o("panel_border_width"), "),
+",
+             "  panel.grid        = element_blank(),
+",
+             "  axis.ticks        = element_line(linewidth = ", o("tick_width"), "),
+",
+             "  axis.ticks.length = unit(", o("tick_length"), ", \"mm\")
+)")
     ),
     L_axis = c(
-      sprintf("theme_minimal(base_size = %s)", base_size),
-      paste0("theme(\n",
-             "  panel.grid = element_blank(),\n",
-             "  axis.line  = element_line(colour = \"black\", linewidth = 0.3),\n",
-             "  axis.ticks = element_line(linewidth = 0.3)\n)")
+      sprintf("theme_minimal(base_size = %s)", bs),
+      paste0("theme(
+", text_sizes,
+             "  panel.grid = element_blank(),
+",
+             "  axis.line  = element_line(colour = \"black\", linewidth = ", o("axis_line_width"), "),
+",
+             "  axis.ticks = element_line(linewidth = ", o("axis_line_width"), ")
+)")
     ),
-    minimal = sprintf("theme_minimal(base_size = %s)", base_size),
-    classic = sprintf("theme_classic(base_size = %s)", base_size),
+    minimal = sprintf("theme_minimal(base_size = %s)", bs),
+    classic = sprintf("theme_classic(base_size = %s)", bs),
     stop("Unknown theme: ", theme, call. = FALSE)
   )
 }

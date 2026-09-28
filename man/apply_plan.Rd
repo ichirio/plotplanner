@@ -7,7 +7,7 @@
 apply_plan(plan, stage = c("auto", "long", "args", "table", "pages"))
 }
 \arguments{
-\item{plan}{An \code{\link[=rtf_plan]{rtf_plan()}}.}
+\item{plan}{An \code{\link[=table_plan]{table_plan()}}.}
 
 \item{stage}{How far to go.  \code{"auto"}, the default, is \strong{as far as the
 plan declares}: a plan that says nothing about the display stops at
@@ -36,13 +36,13 @@ for \code{stage = "pages"} what \code{\link[rtfreporter:as_rtftables]{rtfreporte
 return.
 }
 \description{
-Resolves an \code{\link[=rtf_plan]{rtf_plan()}}'s layers and runs the conversion.  \code{stage} stops
+Resolves an \code{\link[=table_plan]{table_plan()}}'s layers and runs the conversion.  \code{stage} stops
 it early, so the same one pass answers "what does this do" and "what did it
 do" --- there is no second code path that could disagree with the first.
 }
 \section{Lifecycle}{
 
-\strong{Spike.}  See \code{\link[=rtf_plan]{rtf_plan()}}.
+\strong{Spike.}  See \code{\link[=table_plan]{table_plan()}}.
 }
 
 \examples{
@@ -51,7 +51,7 @@ if (requireNamespace("cards", quietly = TRUE)) {
          cards::ADSL, .by = ARM,
          cards::ard_continuous(variables = AGE)) |>
     ard_normalize() |>
-    rtf_plan(cols = "ARM", rows = c(group = "variable")) |>
+    table_plan(cols = "ARM", rows = c(group = "variable")) |>
     plan_cells(continuous = c("Mean (SD)" = "{mean} ({sd})")) |>
     plan_digits(2) |>
     plan_digits(AGE = 0)
@@ -61,5 +61,5 @@ if (requireNamespace("cards", quietly = TRUE)) {
 }
 }
 \seealso{
-\code{\link[=rtf_plan]{rtf_plan()}}, \link{plan_verbs}
+\code{\link[=table_plan]{table_plan()}}, \link{plan_verbs}
 }

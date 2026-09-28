@@ -152,7 +152,7 @@ pp_gen_swimmer <- function(ctx) {
 ",
                "      fill   = I(event_colour[as.character(EVENT)])),
 ",
-               "  size = ", ms, "
+               "  size = ", pp_opt(ctx, "event_size"), "
 )"),
         "scale_shape_manual(values = event_shape, breaks = names(event_shape))",
         "guides(shape = guide_legend(override.aes = list(colour = unname(event_colour), fill = unname(event_colour))))"
@@ -175,7 +175,8 @@ pp_gen_swimmer <- function(ctx) {
   if (grid) {
     plot <- c(plot, "# ---- layer: visit_grid (labels on the top axis) ----",
       plus_code("p", list(
-        'geom_vline(xintercept = visit_x, linetype = "dotted", colour = "grey60")',
+        sprintf('geom_vline(xintercept = visit_x, linetype = %s, colour = %s)',
+                q(pp_opt(ctx, "visit_linetype")), q(pp_opt(ctx, "visit_colour"))),
         "theme(axis.ticks.x.top = element_blank(), axis.line.x.top = element_blank())"
       ), append = TRUE))
   }
@@ -188,6 +189,7 @@ pp_gen_swimmer <- function(ctx) {
   }
   if (!is.null(sv_bar)) {
     prefix <- pp_opt(ctx, "bar_legend_prefix") %or% ""
+    if (nzchar(trimws(prefix))) prefix <- paste0(trimws(prefix), " ")
     parts <- c(parts, list(if (!is.null(sv_bar$values)) legend_part(paste0(prefix, sv_bar$labels), "rect", fill = sv_bar$colours)
       else sprintf('tibble::tibble(label = paste0(%s, names(pal_bar)), glyph = "rect", shape = NA, colour = NA, fill = unname(pal_bar), linetype = NA)', q(prefix))))
   }
