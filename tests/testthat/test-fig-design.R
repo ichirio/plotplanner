@@ -33,7 +33,7 @@ test_that("a design is checked against the schema and the data", {
   p <- tfl_check_fig_design(d, adam)
   expect_true(all(c("group", "legend", "x_max", "colour") %in% p$arg))
   ok <- tfl_fig_design("km", args = list(param = unique(adam$ADTTE$PARAMCD)[1],
-                                         group = "TRT01A"))
+                                         group = "TRT01P"))
   expect_equal(nrow(tfl_check_fig_design(ok, adam)), 0L)
 })
 
