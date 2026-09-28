@@ -32,7 +32,7 @@ tfl_read_data_code <- function(datasets, dataset) {
   r <- datasets[!is.na(datasets$dataset) & datasets$dataset == dataset, ,
                 drop = FALSE]
   if (!nrow(r) || is.na(r$path[1L])) {
-    return(sprintf("stop(\"tflplanner: dataset %s is not in the data catalog.\")",
+    return(sprintf("stop(\"tflspec: dataset %s is not in the data catalog.\")",
                    dataset))
   }
   obj <- .r_name(dataset)

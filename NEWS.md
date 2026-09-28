@@ -1,3 +1,9 @@
+# tflspec 0.0.13
+
+* `tfl_read_data_code()`: a dataset the data catalog has not gives
+  `stop("tflspec: dataset X is not in the data catalog.")` (it said
+  `tflplanner:`, though the code is tflspec's) (#17).
+
 # tflspec 0.0.12
 
 * **Figure designs** (#14): a figure as data -- its type, its style and the
