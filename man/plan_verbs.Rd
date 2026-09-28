@@ -105,7 +105,7 @@ plan_paginate_cols(
 )
 }
 \arguments{
-\item{plan}{An \code{\link[=rtf_plan]{rtf_plan()}}.}
+\item{plan}{An \code{\link[=table_plan]{table_plan()}}.}
 
 \item{...}{For \code{plan_cells()}, exactly what \code{ard_spread(cells = )}
 takes: one bare entry, or entries named by variable, \code{context},
@@ -151,7 +151,7 @@ other layer.}
 \item{vars, into, indent, group_summary}{For \code{plan_stub()}: the row keys to
 fold into one stub column and how, as \code{\link[rtfreporter:stub_cols]{rtfreporter::stub_cols()}} takes them.
 \code{into} is the NAME the folded column gets (\code{stub_cols(label = )}), which
-is a different thing from \code{rtf_plan(label = )} --- the column whose
+is a different thing from \code{table_plan(label = )} --- the column whose
 VALUES are the row text.  \code{vars} is derived when left out.}
 
 \item{before}{For \code{plan_stub()}: \code{FALSE} (default) folds the stub inside
@@ -255,7 +255,7 @@ finished table is written exactly as it always was.}
 \item{n}{For \code{plan_col_header()}: the population each column describes
 --- its analysis set, the number a header prints as \code{(N=86)}.
 \code{TRUE} reads it from the data, keyed by the same \code{cols} / \code{levels}
-\code{rtf_plan()} was given, \strong{at every depth of the keys}: with
+\code{table_plan()} was given, \strong{at every depth of the keys}: with
 \code{cols = c("TRT", "SEX")} both the arm (\code{"Placebo"}) and the arm x sex
 cell (\code{"Placebo____F"}) are looked up.  Only a number the ARD
 \strong{states as a population size} is read:
@@ -324,7 +324,7 @@ under \code{"{col1} {n1}"}.
 To \strong{give the numbers yourself}, pass a vector named by column
 key, at any depth --- \code{c(Placebo = 86, "Placebo____F" = 53, ...)} ---
 or a function of the data returning one; a single unnamed number
-fills every cell.  After a workbook (\code{rtf_plan(spec = )}), a later
+fills every cell.  After a workbook (\code{table_plan(spec = )}), a later
 \code{plan_col_header(n = ...)} supplies the numbers and keeps the
 workbook's header.
 A \strong{function} of the data covers what neither can find, and a
@@ -379,18 +379,18 @@ of \code{at}, \code{cols}, \code{by} or \code{every}.}
 The plan, with one more layer.
 }
 \description{
-Each verb adds a layer to an \code{\link[=rtf_plan]{rtf_plan()}}.  \strong{A later layer wins.}
+Each verb adds a layer to an \code{\link[=table_plan]{table_plan()}}.  \strong{A later layer wins.}
 The roles --- which column goes across, which go down, which carries
-the row identity --- are said once, on \code{\link[=rtf_plan]{rtf_plan()}}; these verbs are
+the row identity --- are said once, on \code{\link[=table_plan]{table_plan()}}; these verbs are
 the things a report really does declare twice.  Their arguments are
 the ones \code{\link[=ard_spread]{ard_spread()}} and \code{\link[rtfreporter:as_rtftables]{rtfreporter::as_rtftables()}} already take, so the
 layering is the only new idea.
 }
 \section{Lifecycle}{
 
-\strong{Spike.}  See \code{\link[=rtf_plan]{rtf_plan()}}.
+\strong{Spike.}  See \code{\link[=table_plan]{table_plan()}}.
 }
 
 \seealso{
-\code{\link[=rtf_plan]{rtf_plan()}}, \code{\link[=apply_plan]{apply_plan()}}
+\code{\link[=table_plan]{table_plan()}}, \code{\link[=apply_plan]{apply_plan()}}
 }

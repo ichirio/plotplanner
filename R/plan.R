@@ -17,7 +17,7 @@
 #
 #      ard |>
 #        ard_normalize() |>                              # run, not declared
-#        rtf_plan(cols = "TRT01P", rows = c(group = "variable")) |>
+#        table_plan(cols = "TRT01P", rows = c(group = "variable")) |>
 #        plan_cells(continuous = c("n"         = "{N:d}",
 #                                  "Mean (SD)" = "{mean} ({sd})"),
 #                   categorical = "{n} ({p:%})") |>
@@ -42,7 +42,7 @@
 #     engine -- specificity still decides what a variable with no layer of its
 #     own gets.
 #
-#  2. THE ROLES ARE SAID ONCE, WHERE THE DATA IS.  `rtf_plan()` takes the
+#  2. THE ROLES ARE SAID ONCE, WHERE THE DATA IS.  `table_plan()` takes the
 #     NORMALIZED frame and, like `ggplot(data, aes(x, y))`, the columns
 #     that play a part in the table: `cols` across, `rows` down, `label`
 #     for the row identity.  Every other verb reads them from there, so
@@ -50,7 +50,7 @@
 #     restated and cannot disagree.
 #
 #     Normalising is NOT deferred.  Nothing in the plan feeds it, nothing
-#     overrides it later, and deferring it meant `rtf_plan()` had to GUESS
+#     overrides it later, and deferring it meant `table_plan()` had to GUESS
 #     whether what it was handed still needed flattening -- a guess that
 #     silently skipped the step for every report once already.  Run it,
 #     look at it, then name its columns.
@@ -105,7 +105,7 @@
     nm <- if (is.name(f)) as.character(f)
           else if (is.call(f) && identical(as.character(f[[1L]]), "::"))
             as.character(f[[3L]]) else ""
-    if (startsWith(nm, "plan_") || identical(nm, "rtf_plan")) return(cl)
+    if (startsWith(nm, "plan_") || nm %in% c("table_plan", "rtf_plan")) return(cl)
   }
   NULL
 }
@@ -137,8 +137,8 @@
 }
 
 .plan_layer <- function(plan, kind, fields) {
-  if (!inherits(plan, "rtf_plan")) {
-    .ard_stop("Expected an rtf_plan; pipe from rtf_plan(ard).")
+  if (!inherits(plan, "table_plan")) {
+    .ard_stop("Expected a table_plan; pipe from table_plan(ard).")
   }
   fields <- fields[!vapply(fields, is.null, logical(1L))]
   # Recorded even when empty: calling the verb is the declaration, and
@@ -339,7 +339,7 @@
 
 #' A deferred, last-wins plan for a table (SPIKE)
 #'
-#' `rtf_plan()` starts a plan, and takes the **roles**: which column goes
+#' `table_plan()` starts a plan, and takes the **roles**: which column goes
 #' across the table, which go down it, which carries the row identity.
 #' This is `ggplot(data, aes(x, y))` --- the names must be columns of the
 #' data you hand it, so you can check them by looking.  Every `plan_*()`
@@ -397,10 +397,10 @@
 #'   given here wins), then everything else --- levels, labels, cells,
 #'   rounding, and the `layout` / `columns` / `style` of the pages --- as
 #'   if the matching verbs had been written first.  A verb written after
-#'   `rtf_plan()` therefore still wins, which is how one report departs
+#'   `table_plan()` therefore still wins, which is how one report departs
 #'   from the study's workbook in a line of code.
 #'
-#' @return An object of class `rtf_plan`.
+#' @return An object of class `table_plan`.
 #'
 #' @section Lifecycle:
 #' **Spike.**  A prototype for #474, kept in one deletable file.  It may be
@@ -415,7 +415,7 @@
 #'
 #'   ard |>
 #'     ard_normalize() |>
-#'     rtf_plan(cols = "ARM", rows = c(group = "variable")) |>
+#'     table_plan(cols = "ARM", rows = c(group = "variable")) |>
 #'     plan_cells(continuous  = c("Mean (SD)" = "{mean} ({sd})"),
 #'                categorical = "{n} ({p:%})") |>
 #'     plan_digits(2) |>
@@ -424,7 +424,7 @@
 #' }
 #' @seealso [apply_plan()], [ard_normalize()], [ard_spread()]
 #' @export
-rtf_plan <- function(data = NULL, cols = NULL, rows = NULL,
+table_plan <- function(data = NULL, cols = NULL, rows = NULL,
                      label = NULL,
                      variable = NULL, stat_name = NULL, stat = NULL,
                      stats = NULL, sep = NULL, value = NULL,
@@ -455,18 +455,18 @@ rtf_plan <- function(data = NULL, cols = NULL, rows = NULL,
       "is what lets a typo\n  be caught here rather than three stages later.\n",
       "  A house style that serves every study is an ordinary ",
       "function:\n",
-      "    my_dm <- function(d) rtf_plan(d, cols = ...) |> ",
+      "    my_dm <- function(d) table_plan(d, cols = ...) |> ",
       "plan_cells(...)"))
   }
   kind <- .plan_source_kind(data, roles)
   if (identical(kind, "ard")) {
     .ard_stop(paste0(
-      "rtf_plan() takes the NORMALIZED frame, not a raw ARD, so that ",
+      "table_plan() takes the NORMALIZED frame, not a raw ARD, so that ",
       "`cols` / `rows` / `label`\n  name columns you can see.  ",
       "Flatten it first:\n",
       "    ard |>\n",
       "      ard_normalize() |>\n",
-      "      rtf_plan(cols = ...)\n",
+      "      table_plan(cols = ...)\n",
       "  ard_normalize() is what adds `.label`, `.kind` and `.depth`, ",
       "and names the\n  hierarchy levels -- which is what `rows` ",
       "and `label` then point at."))
@@ -475,7 +475,7 @@ rtf_plan <- function(data = NULL, cols = NULL, rows = NULL,
   p <- structure(list(data = data, kind = kind, roles = roles,
                       layers = list(),
                       cache = new.env(parent = emptyenv())),
-                 class = "rtf_plan")
+                 class = "table_plan")
   if (!is.null(sp)) p <- .plan_from_spec(p, sp)
   p
 }
@@ -736,7 +736,7 @@ rtf_plan <- function(data = NULL, cols = NULL, rows = NULL,
 }
 
 # The whole point of naming the roles beside the data is that the names can
-# be CHECKED there, so a typo blames rtf_plan() rather than the resolver.
+# be CHECKED there, so a typo blames table_plan() rather than the resolver.
 # Only plain strings are checked: a constant (`~ "Worst Post-Baseline"`) and
 # a guarded template (`.label %in% x ~ "  {.label}"`) are not column names,
 # and `label = NA` says there is no label column at all.
@@ -753,10 +753,10 @@ rtf_plan <- function(data = NULL, cols = NULL, rows = NULL,
     miss <- setdiff(v, nm)
     if (length(miss)) {
       .ard_stop(sprintf(paste0(
-        "rtf_plan(%s = ): no column %s in the data.\n",
+        "table_plan(%s = ): no column %s in the data.\n",
         "  Columns: %s%s\n",
         "  A column you derive has to exist first: dplyr::mutate() ",
-        "it before rtf_plan()."),
+        "it before table_plan()."),
         r, paste(sQuote(miss), collapse = ", "),
         paste(utils::head(nm, 12L), collapse = ", "),
         if (length(nm) > 12L) ", ..." else ""))
@@ -765,9 +765,16 @@ rtf_plan <- function(data = NULL, cols = NULL, rows = NULL,
   invisible(TRUE)
 }
 
+#' @rdname table_plan
+#' @description
+#' `rtf_plan()` is the former name of `table_plan()`, kept so existing
+#' programs still run.  **Superseded**: write `table_plan()` in new code.
 #' @export
-print.rtf_plan <- function(x, ...) {
-  cat("<rtf_plan>  ",
+rtf_plan <- table_plan
+
+#' @export
+print.table_plan <- function(x, ...) {
+  cat("<table_plan>  ",
       switch(x$kind %||% "normalized",
              normalized = "from a normalized frame, ",
              long       = "from a long frame of statistics, ",
@@ -854,14 +861,14 @@ print.rtf_plan <- function(x, ...) {
 
 #' Declare the table, one layer at a time (SPIKE)
 #'
-#' Each verb adds a layer to an [rtf_plan()].  **A later layer wins.**
+#' Each verb adds a layer to an [table_plan()].  **A later layer wins.**
 #' The roles --- which column goes across, which go down, which carries
-#' the row identity --- are said once, on [rtf_plan()]; these verbs are
+#' the row identity --- are said once, on [table_plan()]; these verbs are
 #' the things a report really does declare twice.  Their arguments are
 #' the ones [ard_spread()] and [as_rtftables()] already take, so the
 #' layering is the only new idea.
 #'
-#' @param plan An [rtf_plan()].
+#' @param plan An [table_plan()].
 #' @param ... For `plan_cells()`, exactly what `ard_spread(cells = )`
 #'   takes: one bare entry, or entries named by variable, `context`,
 #'   kind (`continuous` / `categorical`) or `default`.
@@ -903,7 +910,7 @@ print.rtf_plan <- function(x, ...) {
 #' @param vars,into,indent,group_summary For `plan_stub()`: the row keys to
 #'   fold into one stub column and how, as [stub_cols()] takes them.
 #'   `into` is the NAME the folded column gets (`stub_cols(label = )`), which
-#'   is a different thing from `rtf_plan(label = )` --- the column whose
+#'   is a different thing from `table_plan(label = )` --- the column whose
 #'   VALUES are the row text.  `vars` is derived when left out.
 #' @param before For `plan_stub()`: `FALSE` (default) folds the stub inside
 #'   [as_rtftables()], after grouping and pagination have had their say.
@@ -1019,7 +1026,7 @@ print.rtf_plan <- function(x, ...) {
 #' @param n For `plan_col_header()`: the population each column describes
 #'   --- its analysis set, the number a header prints as `(N=86)`.
 #'   `TRUE` reads it from the data, keyed by the same `cols` / `levels`
-#'   `rtf_plan()` was given, **at every depth of the keys**: with
+#'   `table_plan()` was given, **at every depth of the keys**: with
 #'   `cols = c("TRT", "SEX")` both the arm (`"Placebo"`) and the arm x sex
 #'   cell (`"Placebo____F"`) are looked up.  Only a number the ARD
 #'   **states as a population size** is read:
@@ -1087,7 +1094,7 @@ print.rtf_plan <- function(x, ...) {
 #'   To **give the numbers yourself**, pass a vector named by column
 #'   key, at any depth --- `c(Placebo = 86, "Placebo____F" = 53, ...)` ---
 #'   or a function of the data returning one; a single unnamed number
-#'   fills every cell.  After a workbook (`rtf_plan(spec = )`), a later
+#'   fills every cell.  After a workbook (`table_plan(spec = )`), a later
 #'   `plan_col_header(n = ...)` supplies the numbers and keeps the
 #'   workbook's header.
 
@@ -1119,17 +1126,17 @@ print.rtf_plan <- function(x, ...) {
 #' @return The plan, with one more layer.
 #'
 #' @section Lifecycle:
-#' **Spike.**  See [rtf_plan()].
+#' **Spike.**  See [table_plan()].
 #'
 #' @name plan_verbs
-#' @seealso [rtf_plan()], [apply_plan()]
+#' @seealso [table_plan()], [apply_plan()]
 NULL
 
 # The order values appear in, and the text they appear as.  These are the
 # two declarations a report really does make twice -- one order for
 # everything, then one variable's own -- so they are layers, merged one
 # KEY at a time: a later plan_levels() adds a variable without restating
-# the rest.  The roles are said once, on rtf_plan(); these are not roles.
+# the rest.  The roles are said once, on table_plan(); these are not roles.
 #' @rdname plan_verbs
 #' @export
 plan_levels <- function(plan, ...) {
@@ -1224,7 +1231,7 @@ plan_digits <- function(plan, ..., rounding = NULL) {
 #  built:
 #
 #      (dplyr)        a derived column or a filter is written before
-#                     rtf_plan(), in the same sentence
+#                     table_plan(), in the same sentence
 #      plan_fmt()     fmt_numeric()      on the table data.frame
 #      plan_stub()    stub_cols()        fold the row keys into one stub
 #      plan_cell_style()  cell_styles    bold / colour / align, by condition
@@ -1258,12 +1265,12 @@ plan_fmt <- function(plan, ...) .plan_layer(plan, "fmt", list(...))
 #' @rdname plan_verbs
 #' @export
 # `vars` is derivable and was being written twice: the row keys are the
-# names of rtf_plan(rows = ), the label column is the name of its
+# names of table_plan(rows = ), the label column is the name of its
 # `label = `, and a grouping carrier is not part of the stub.  Left out,
 # it is worked out from what has already been declared.
 plan_stub <- function(plan, vars = NULL, into = NULL, indent = NULL,
                       group_summary = NULL, before = FALSE) {
-  # `into` rather than `label`: rtf_plan(label = ) is the column whose
+  # `into` rather than `label`: table_plan(label = ) is the column whose
   # VALUES are the row text, and this is the NAME of the column the
   # row keys are folded into.  One letter of difference is not worth
   # the two of them being confusable.
@@ -1375,7 +1382,7 @@ plan_cell_style <- function(plan, ...) .plan_keyed(plan, "styles", list(...))
 # is why it is not plan_row_group(), whose subject is how repeated
 # values look down the body.
 #
-# `col` may be left out and read off rtf_plan(rows = ), so which column
+# `col` may be left out and read off table_plan(rows = ), so which column
 # to hide is not known here.  Record the answer and let
 # .plan_rtf_args() do it once the roles are in hand.
 #' @rdname plan_verbs
@@ -1478,7 +1485,7 @@ plan_style <- function(plan, border = NULL, widths = NULL, ...) {
 # `n` lives here because the header is the only thing that uses it, and
 # because it already knows which columns there are: `TRUE` means "the
 # denominator each percentage used", read with the SAME `cols` and
-# `levels` rtf_plan() was given, so nothing is written twice.  A
+# `levels` table_plan() was given, so nothing is written twice.  A
 # function of the ARD covers a denominator ard_pull() cannot find; a
 # named list covers a header that needs more than one.
 # There is ONE way to write a header: rtf_col_header(), the same
@@ -1574,11 +1581,11 @@ plan_after <- function(plan, ...) {
 
 #' Run a plan, or look inside it (SPIKE)
 #'
-#' Resolves an [rtf_plan()]'s layers and runs the conversion.  `stage` stops
+#' Resolves an [table_plan()]'s layers and runs the conversion.  `stage` stops
 #' it early, so the same one pass answers "what does this do" and "what did it
 #' do" --- there is no second code path that could disagree with the first.
 #'
-#' @param plan An [rtf_plan()].
+#' @param plan An [table_plan()].
 #' @param stage How far to go.  `"auto"`, the default, is **as far as the
 #'   plan declares**: a plan that says nothing about the display stops at
 #'   the table `data.frame`; one that carries a display verb goes on
@@ -1605,7 +1612,7 @@ plan_after <- function(plan, ...) {
 #'   return.
 #'
 #' @section Lifecycle:
-#' **Spike.**  See [rtf_plan()].
+#' **Spike.**  See [table_plan()].
 #'
 #' @examples
 #' if (requireNamespace("cards", quietly = TRUE)) {
@@ -1613,7 +1620,7 @@ plan_after <- function(plan, ...) {
 #'          cards::ADSL, .by = ARM,
 #'          cards::ard_continuous(variables = AGE)) |>
 #'     ard_normalize() |>
-#'     rtf_plan(cols = "ARM", rows = c(group = "variable")) |>
+#'     table_plan(cols = "ARM", rows = c(group = "variable")) |>
 #'     plan_cells(continuous = c("Mean (SD)" = "{mean} ({sd})")) |>
 #'     plan_digits(2) |>
 #'     plan_digits(AGE = 0)
@@ -1621,12 +1628,12 @@ plan_after <- function(plan, ...) {
 #'   str(apply_plan(p, "args")$cells)   # AGE won
 #'   apply_plan(p)
 #' }
-#' @seealso [rtf_plan()], [plan_verbs]
+#' @seealso [table_plan()], [plan_verbs]
 #' @export
 apply_plan <- function(plan, stage = c("auto", "long", "args",
                                        "table", "pages")) {
-  if (!inherits(plan, "rtf_plan")) {
-    .ard_stop("Expected an rtf_plan; start from rtf_plan(ard).")
+  if (!inherits(plan, "table_plan")) {
+    .ard_stop("Expected a table_plan; start from table_plan(ard).")
   }
   stage <- match.arg(stage)
   if (identical(stage, "auto")) stage <- .plan_reach(plan)
@@ -1658,7 +1665,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
         "  A table to lay out : keep the display verbs (plan_stub, ",
         "plan_pages, ...).\n",
         "  A listing of records: add plan_listing(listing_col(...), ...).\n",
-        "  An ARD to convert  : name the roles on rtf_plan(), add ",
+        "  An ARD to convert  : name the roles on table_plan(), add ",
         "plan_cells().\n",
         "  Columns seen       : ", paste(utils::head(names(plan$data), 8L),
                                          collapse = ", ")))
@@ -1672,7 +1679,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
     .ard_stop(paste0(
       "This source has no statistics to read -- no `stat_name` / `stat`, ",
       "and none of\n  the columns ard_normalize() adds -- but ",
-      "rtf_plan(cols = ) / plan_cells() need them.\n",
+      "table_plan(cols = ) / plan_cells() need them.\n",
       "  If it is already the table, drop those and keep the display ",
       "verbs.\n",
       "  If it is a listing of records, add plan_listing(...).\n",
@@ -1687,7 +1694,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
   .plan_remember(plan, "long", x)
   if (identical(stage, "long")) return(x)
 
-  # 2. the spread arguments.  The roles were said once, on rtf_plan();
+  # 2. the spread arguments.  The roles were said once, on table_plan();
   #    `levels` and `labels` are layers and merge one KEY at a time, so a
   #    later one adds a variable without restating the rest.
   s_args <- .plan_spread_args(plan)
@@ -1815,7 +1822,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
     src <- as.character(src)[1L]
     if (!src %in% names(d)) {
       .ard_stop(sprintf(
-        "rtf_plan(%s = %s): no such column.\n  Columns: %s",
+        "table_plan(%s = %s): no such column.\n  Columns: %s",
         k, sQuote(src), paste(utils::head(names(d), 12L),
                               collapse = ", ")))
     }
@@ -2024,7 +2031,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
 }
 
 # The stub is the row keys plus the label column, minus any column that is
-# only there to group by.  All of that was said on rtf_plan(), so saying it
+# only there to group by.  All of that was said on table_plan(), so saying it
 # again is a place for the two to disagree.
 # What the label column is called in the spread table.
 .plan_label_name <- function(plan) {
@@ -2050,7 +2057,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
   if (!length(v)) {
     .ard_stop(paste0(
       "plan_stub(): nothing to fold.  The row keys and label column are ",
-      "worked out from\n  rtf_plan(rows = , label = ) less ",
+      "worked out from\n  table_plan(rows = , label = ) less ",
       "whatever `show = FALSE` hides, and none\n  of them is in ",
       "the table.  ",
       "Name them with `vars = `.\n  Columns: ",
@@ -2072,7 +2079,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
 # as_rtftables() has its own answer, and two reports group without
 # naming a column at all.  The exception is `show = FALSE`: a carrier
 # that is not printed has to be NAMED to be hidden, and that name is
-# always the outermost row key, which rtf_plan(rows = ) has already
+# always the outermost row key, which table_plan(rows = ) has already
 # given.  Deriving it there and nowhere else is the difference between
 # removing a duplicate and guessing.
 .plan_group_col <- function(plan) {
@@ -2424,7 +2431,7 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
   out
 }
 
-# The denominator, read once, with the keys rtf_plan() already has.
+# The denominator, read once, with the keys table_plan() already has.
 .plan_n_values <- function(plan, n, data = plan$data, page = NULL) {
   if (is.null(n)) return(NULL)
   sp <- .plan_spread_args(plan)
@@ -2464,7 +2471,7 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
       if (is.null(sp$cols)) {
         .ard_stop(paste0(
           "plan_col_header(n = TRUE) reads the denominator with the ",
-          "same `cols` rtf_plan()\n  was given, and this plan ",
+          "same `cols` table_plan()\n  was given, and this plan ",
           "has none.  Give a function of the data instead."))
       }
       # Only a number the ARD STATES as a population size, at every
@@ -3043,7 +3050,7 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
 #' Write the plan for you (SPIKE)
 #'
 #' The counterpart of [ard_template()] for the deferred form: reads an ARD
-#' and prints a runnable [rtf_plan()] pipeline, filled in with the keys,
+#' and prints a runnable [table_plan()] pipeline, filled in with the keys,
 #' hierarchy, contexts and statistics it actually found.
 #'
 #' It writes **both halves** --- the ARD to the table, and the table to the
@@ -3055,13 +3062,13 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
 #'
 #' @inheritParams ard_template
 #' @param spec When `TRUE`, the generated plan reads its definition from a
-#'   workbook (`rtf_plan(spec = read_table_spec(...))`) instead of inlining
+#'   workbook (`table_plan(spec = read_table_spec(...))`) instead of inlining
 #'   the cells.
 #'
 #' @return The generated code, as a character vector, invisibly.
 #'
 #' @section Lifecycle:
-#' **Spike.**  See [rtf_plan()].
+#' **Spike.**  See [table_plan()].
 #'
 #' @examples
 #' if (requireNamespace("cards", quietly = TRUE)) {
@@ -3071,7 +3078,7 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
 #'     cards::ard_categorical(variables = SEX))
 #'   plan_template(ard, cols = "ARM")
 #' }
-#' @seealso [rtf_plan()], [apply_plan()], [ard_template()]
+#' @seealso [table_plan()], [apply_plan()], [ard_template()]
 #' @export
 plan_template <- function(ard, cols = NULL, hierarchy = character(),
                           spec = FALSE, file = NULL, pipe = NULL) {
@@ -3131,13 +3138,13 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
          if (length(norm)) .plan_call("ard_normalize", norm, op)
          else paste0("  tflspec::ard_normalize() ", op))
   if (isTRUE(spec)) {
-    L <- c(L, .plan_call("rtf_plan",
+    L <- c(L, .plan_call("table_plan",
                          c(spread,
                            paste0("spec = tflspec::read_table_spec(",
                                   "\"ard-spec.xlsx\")")),
                          op))
   } else {
-    L <- c(L, .plan_call("rtf_plan", spread, op))
+    L <- c(L, .plan_call("table_plan", spread, op))
     # already indented and comma-ed: a `c(` entry spans several lines,
     # so it cannot go through .plan_call(), which commas every argument.
     L <- c(L, "  tflspec::plan_cells(", .plan_cell_lines(f),
@@ -3151,7 +3158,7 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
   # `plan_stub()` rather than plan_rtf(stub_vars = ): the plan then sees the
   # rows that will be printed, which plan_cell_style() needs.
   # `vars` is left out on purpose: plan_stub() works it out from
-  # rtf_plan(rows = , label = ) less any plan_row_group(col = ).
+  # table_plan(rows = , label = ) less any plan_row_group(col = ).
   L <- c(L, .plan_call("plan_stub",
                        "into = \"row_label\"", op))
   # One concern per line.  Delete the ones this report does not want;
@@ -3249,18 +3256,18 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
 #  from how it was typed, so two plans that mean the same thing give the
 #  same workbook.  What a sheet cannot say -- a function, a guarded label,
 #  a positional list that no name reproduces -- is named, not dropped in
-#  silence, and the workbook is run back through rtf_plan(spec = ) against
+#  silence, and the workbook is run back through table_plan(spec = ) against
 #  the plan's own data to say whether it gives the same pages.
 
 #' Write a plan as a table definition workbook
 #'
 #' @description
-#' `as_table_spec()` turns an [rtf_plan()] --- typically one a report
+#' `as_table_spec()` turns an [table_plan()] --- typically one a report
 #' already has as code --- into a [table_spec()], the definition
 #' [write_table_spec()] writes as an Excel workbook.  It is how an existing
 #' report becomes the **template for a new study**: write the workbook,
 #' edit its labels, levels and output ids, and read it back with
-#' `rtf_plan(data, spec = read_table_spec(path, output_id = ))`.
+#' `table_plan(data, spec = read_table_spec(path, output_id = ))`.
 #'
 #' Everything is read from what the plan **resolves to**, against its own
 #' data: the roles, levels, labels and cell templates (digits written in),
@@ -3275,10 +3282,10 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
 #' step (except `set_decimal_split()`, which becomes
 #' `columns$decimal_split` on the value columns), a guarded label, a
 #' column-scoped `labels` entry, `plan_cell_style()`, a literal `n`.  The
-#' result is then run back through `rtf_plan(spec = )` on the plan's data,
+#' result is then run back through `table_plan(spec = )` on the plan's data,
 #' and whether it gives **the same pages** is reported.
 #'
-#' @param x An [rtf_plan()], a **named list** of them (the names are the
+#' @param x An [table_plan()], a **named list** of them (the names are the
 #'   output ids; one workbook for the study), or anything [table_spec()]
 #'   takes.
 #' @param output_id The report the rows belong to.  `NULL` writes them as
@@ -3291,22 +3298,22 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
 #'   `NA` when not checked).
 #'
 #' @section Lifecycle:
-#' **Spike.**  See [rtf_plan()].
+#' **Spike.**  See [table_plan()].
 #'
 #' @examples
 #' \dontrun{
-#' p <- ard |> ard_normalize() |> rtf_plan(cols = "TRT01P") |> ...
+#' p <- ard |> ard_normalize() |> table_plan(cols = "TRT01P") |> ...
 #' as_table_spec(p, output_id = "T14-1-1") |> write_table_spec("study.xlsx")
 #'
 #' # a whole study at once
 #' as_table_spec(list(DM = p_dm, AE = p_ae)) |> write_table_spec("study.xlsx")
 #' }
-#' @seealso [table_spec()], [write_table_spec()], [rtf_plan()]
+#' @seealso [table_spec()], [write_table_spec()], [table_plan()]
 #' @export
 as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   if (inherits(x, "table_spec")) return(x)
-  if (is.list(x) && !inherits(x, "rtf_plan") && length(x) &&
-      all(vapply(x, inherits, NA, "rtf_plan"))) {
+  if (is.list(x) && !inherits(x, "table_plan") && length(x) &&
+      all(vapply(x, inherits, NA, "table_plan"))) {
     ids <- names(x)
     if (is.null(ids) || any(!nzchar(ids)) || anyDuplicated(ids)) {
       .ard_stop(paste0("A list of plans needs unique names: they are the ",
@@ -3332,7 +3339,7 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
       vapply(parts, function(s) attr(s, "same_pages") %||% NA, NA), ids)
     return(sp)
   }
-  if (!inherits(x, "rtf_plan")) return(table_spec(x))
+  if (!inherits(x, "table_plan")) return(table_spec(x))
   .plan_to_spec(x, output_id, check)
 }
 
@@ -3354,7 +3361,7 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   seen$h <- p$cache[["header_raw"]]
 
   for (r in intersect(c("variable", "stat_name", "stat"), names(p$roles))) {
-    miss("rtf_plan(%s = ): a column rename stays in code", r)
+    miss("table_plan(%s = ): a column rename stays in code", r)
   }
 
   # -- tables ---------------------------------------------------------------
@@ -3595,7 +3602,7 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   same <- NA
   if (isTRUE(check)) {
     back <- tryCatch(suppressMessages(apply_plan(
-      rtf_plan(p$data, spec = sp, notes = FALSE), "pages")),
+      table_plan(p$data, spec = sp, notes = FALSE), "pages")),
       error = function(e) e)
     same <- !inherits(back, "error") && isTRUE(all.equal(back, pages))
     if (inherits(back, "error")) {

@@ -7,7 +7,7 @@
 as_table_spec(x, output_id = NULL, check = TRUE)
 }
 \arguments{
-\item{x}{An \code{\link[=rtf_plan]{rtf_plan()}}, a \strong{named list} of them (the names are the
+\item{x}{An \code{\link[=table_plan]{table_plan()}}, a \strong{named list} of them (the names are the
 output ids; one workbook for the study), or anything \code{\link[=table_spec]{table_spec()}}
 takes.}
 
@@ -23,12 +23,12 @@ workbook could not carry) and \code{"same_pages"} (\code{TRUE} / \code{FALSE}, o
 \code{NA} when not checked).
 }
 \description{
-\code{as_table_spec()} turns an \code{\link[=rtf_plan]{rtf_plan()}} --- typically one a report
+\code{as_table_spec()} turns an \code{\link[=table_plan]{table_plan()}} --- typically one a report
 already has as code --- into a \code{\link[=table_spec]{table_spec()}}, the definition
 \code{\link[=write_table_spec]{write_table_spec()}} writes as an Excel workbook.  It is how an existing
 report becomes the \strong{template for a new study}: write the workbook,
 edit its labels, levels and output ids, and read it back with
-\code{rtf_plan(data, spec = read_table_spec(path, output_id = ))}.
+\code{table_plan(data, spec = read_table_spec(path, output_id = ))}.
 
 Everything is read from what the plan \strong{resolves to}, against its own
 data: the roles, levels, labels and cell templates (digits written in),
@@ -43,17 +43,17 @@ What a workbook cannot say is \strong{listed, not dropped}: a \code{plan_after()
 step (except \code{set_decimal_split()}, which becomes
 \code{columns$decimal_split} on the value columns), a guarded label, a
 column-scoped \code{labels} entry, \code{plan_cell_style()}, a literal \code{n}.  The
-result is then run back through \code{rtf_plan(spec = )} on the plan's data,
+result is then run back through \code{table_plan(spec = )} on the plan's data,
 and whether it gives \strong{the same pages} is reported.
 }
 \section{Lifecycle}{
 
-\strong{Spike.}  See \code{\link[=rtf_plan]{rtf_plan()}}.
+\strong{Spike.}  See \code{\link[=table_plan]{table_plan()}}.
 }
 
 \examples{
 \dontrun{
-p <- ard |> ard_normalize() |> rtf_plan(cols = "TRT01P") |> ...
+p <- ard |> ard_normalize() |> table_plan(cols = "TRT01P") |> ...
 as_table_spec(p, output_id = "T14-1-1") |> write_table_spec("study.xlsx")
 
 # a whole study at once
@@ -61,5 +61,5 @@ as_table_spec(list(DM = p_dm, AE = p_ae)) |> write_table_spec("study.xlsx")
 }
 }
 \seealso{
-\code{\link[=table_spec]{table_spec()}}, \code{\link[=write_table_spec]{write_table_spec()}}, \code{\link[=rtf_plan]{rtf_plan()}}
+\code{\link[=table_spec]{table_spec()}}, \code{\link[=write_table_spec]{write_table_spec()}}, \code{\link[=table_plan]{table_plan()}}
 }

@@ -7,9 +7,9 @@
 #      Rscript data-raw/ard-plan-spike/try-it.R
 #
 #  Left:  ard_normalize() |> ard_spread()          -- runs as it is called
-#  Right: rtf_plan() |> plan_*() |> apply_plan()   -- declarations, LAST WINS
+#  Right: table_plan() |> plan_*() |> apply_plan()   -- declarations, LAST WINS
 #
-#  Flattening is NOT deferred either way.  rtf_plan() takes the normalized
+#  Flattening is NOT deferred either way.  table_plan() takes the normalized
 #  frame and the ROLES -- which column goes across, which go down, which
 #  carries the row identity -- so the names it is given are names you can
 #  see, the way ggplot(data, aes(x, y)) works.
@@ -65,12 +65,12 @@ direct <- ard |>
 print(as.data.frame(direct))
 
 # -- 2. the same thing as a plan ---------------------------------------------
-bar("2. rtf_plan() |> plan_*() |> apply_plan()   (the roles, said once)")
+bar("2. table_plan() |> plan_*() |> apply_plan()   (the roles, said once)")
 
 nz <- ard_normalize(ard)        # run it, and look at it if you like
 
 p <- nz |>
-  rtf_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
+  table_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
   plan_cells(continuous  = c("n"         = "{N:d}",
                              "Mean (SD)" = "{mean} ({sd})"),
              categorical = "{n:d} ({p:%})") |>   # `{p:%}`: digits from the plan
@@ -104,7 +104,7 @@ bar("4. reaching in with dplyr -- before the plan, or inside it")
 d <- nz[nz$variable != "BMIBL", ]      # the kind of edit no plan can declare
 
 reentered <- d |>
-  rtf_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
+  table_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
   plan_cells(continuous = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
              categorical = "{n:d} ({p:%})") |>
   plan_digits(1) |>
@@ -127,7 +127,7 @@ own <- data.frame(
 
 print(as.data.frame(apply_plan(
   own |>
-    rtf_plan(cols = "TRT", rows = c(param = "PARAM"),
+    table_plan(cols = "TRT", rows = c(param = "PARAM"),
              # every statistic is a row of its own, and WHICH COLUMN names
              # the row depends on the kind of row: a level for the
              # categorical ones, the statistic for the continuous ones.
@@ -140,12 +140,12 @@ print(as.data.frame(apply_plan(
 # -- 6. one house style, every study ----------------------------------------
 bar("6. a house style is an ordinary function")
 
-# The plan always holds its data -- that is what lets rtf_plan() check the
+# The plan always holds its data -- that is what lets table_plan() check the
 # role names where they are written.  A style shared between studies is
 # therefore a function, which is plain R and takes parameters.
 house <- function(d, digits = 1) {
   d |>
-    rtf_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
+    table_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
     plan_cells(continuous  = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
                categorical = "{n:d} ({p:%})") |>
     plan_digits(digits)
