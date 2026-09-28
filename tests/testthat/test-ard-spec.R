@@ -21,7 +21,7 @@ toy_spec <- function(analyses) {
     }
     s[[n]] <- s[[n]][.ard_spec_sheets[[n]]]
   }
-  ard_spec(s)
+  tfl_ard_spec(s)
 }
 
 test_that("a definition is checked", {
@@ -61,17 +61,17 @@ test_that("the definition becomes code and the code the study ARD", {
     list(output_id = "X", analysis_id = "T", method = "custom",
          population_id = "SAF",
          code = "cardx::ard_stats_t_test(\n  data[data$TRT01A != \"Placebo\", ], by = TRT01A, variables = AGE)")))
-  code <- ard_spec_code(x)
+  code <- tfl_ard_code(x)
   expect_silent(parse(text = code))
   expect_true(any(grepl("cards::ard_stack_hierarchical", code, fixed = TRUE)))
   expect_true(any(grepl("denominator = population", code, fixed = TRUE)))
 
-  a <- build_ard(x, dir = dir)
+  a <- tfl_build_ard(x, dir = dir)
   expect_true(file.exists(file.path(dir, "output", "ard", "ard.rds")))
   expect_setequal(unique(a$output_id), c("DM", "AE", "CI", "X"))
   expect_true(all(c("output_id", "analysis_id", "population_id") %in%
                     names(a)))
-  dm <- ard_for(a, "DM")
+  dm <- tfl_ard_for(a, "DM")
   expect_false("output_id" %in% names(dm))
   expect_setequal(unique(dm$stat_name), c("n", "N", "p", "mean", "sd"))
   # the population's subjects only
@@ -83,7 +83,7 @@ test_that("the definition becomes code and the code the study ARD", {
   expect_true("p.value" %in% a$stat_name[a$output_id == "X"])
 
   # the same outputs as one part of the whole
-  only <- build_ard(x, dir = dir, output_id = "DM", save = FALSE)
+  only <- tfl_build_ard(x, dir = dir, output_id = "DM", save = FALSE)
   expect_equal(unique(only$output_id), "DM")
 })
 
@@ -94,8 +94,8 @@ test_that("a workbook reads back as written", {
                              variables = "TRT01A")))
   f <- file.path(withr_tempdir(), "ard_spec.xlsx")
   writexl::write_xlsx(c(list(`_README` = data.frame(a = 1)), unclass(x)), f)
-  y <- read_ard_spec(f)
-  expect_equal(ard_spec_code(y, save = FALSE)[-2], ard_spec_code(x, save = FALSE)[-2])
+  y <- tfl_read_ard_spec(f)
+  expect_equal(tfl_ard_code(y, save = FALSE)[-2], tfl_ard_code(x, save = FALSE)[-2])
 })
 
 test_that("statistics of the catalog and formats become stat_fmt", {
@@ -113,11 +113,11 @@ test_that("statistics of the catalog and formats become stat_fmt", {
          statistics = "estimate | conf.low | conf.high"),
     list(output_id = "DM", analysis_id = "SEX", method = "categorical",
          population_id = "SAF", by = "TRT01A", variables = "SEX")))
-  code <- ard_spec_code(x)
+  code <- tfl_ard_code(x)
   expect_true(any(grepl(".tfl_stats[c(\"cv\", \"geo_mean\")]", code,
                         fixed = TRUE)))
   expect_false(any(grepl("`p5` = function", code, fixed = TRUE)))
-  a <- build_ard(x, dir = dir)
+  a <- tfl_build_ard(x, dir = dir)
   # the formatted statistics as text (tflplanner's ard_view() shows the same)
   v <- data.frame(analysis_id = a$analysis_id, variable = a$variable,
                   stat_name = a$stat_name,
@@ -139,12 +139,12 @@ test_that("statistics of the catalog and formats become stat_fmt", {
   bad <- x
   bad$analyses$statistics[1] <- "N | nonsense"
   bad$analyses$formats[3] <- "p=x.y"
-  expect_error(ard_spec(unclass(bad)), "no continuous statistic nonsense")
-  expect_error(ard_spec(unclass(bad)), "p")
+  expect_error(tfl_ard_spec(unclass(bad)), "no continuous statistic nonsense")
+  expect_error(tfl_ard_spec(unclass(bad)), "p")
 })
 
 test_that("every computed statistic of the catalog is a function of x", {
-  st <- ard_statistics("continuous")
+  st <- tfl_ard_statistics("continuous")
   x <- c(2.1, 3.4, 5.9, 4.2, 3.3)
   for (i in which(!is.na(st$fun))) {
     f <- eval(parse(text = st$fun[i]))
@@ -163,27 +163,27 @@ test_that("a catalog of one's own is used for the call, then let go", {
                           statistics = "N | trimmed", dataset = "ADSL"))
   x <- lapply(stats::setNames(names(x), names(x)),
               function(n) .normalize_ard_sheet(x[[n]], n))
-  expect_error(ard_spec(x), "no continuous statistic trimmed")
+  expect_error(tfl_ard_spec(x), "no continuous statistic trimmed")
 
-  st <- ard_statistics()
+  st <- tfl_ard_statistics()
   st <- rbind(st, data.frame(statistic = "trimmed", kind = "continuous",
                              group = "own", label = "10% trimmed mean",
                              fmt = "xx.x",
                              fun = "function(x) mean(x, trim = 0.1)",
                              note = NA))
-  expect_s3_class(ard_spec(x, statistics = st), "ard_spec")
-  code <- ard_spec_code(x, statistics = st)
+  expect_s3_class(tfl_ard_spec(x, statistics = st), "tfl_ard_spec")
+  code <- tfl_ard_code(x, statistics = st)
   expect_true(any(grepl("`trimmed` = function(x) mean(x, trim = 0.1)", code,
                         fixed = TRUE)))
   # nothing is left behind: the next call has the built-in catalog again
   expect_null(getOption("tflspec.ard_statistics"))
-  expect_error(ard_spec(x), "no continuous statistic trimmed")
+  expect_error(tfl_ard_spec(x), "no continuous statistic trimmed")
 
   # the pieces tflplanner assembles its programs from
-  setup <- ard_spec_code(x, part = "setup")
-  body <- ard_spec_code(x, output_id = "T1", part = "body")
+  setup <- tfl_ard_code(x, part = "setup")
+  body <- tfl_ard_code(x, output_id = "T1", part = "body")
   expect_true("library(cards)" %in% setup)
   expect_false(any(grepl("saveRDS", c(setup, body))))
-  expect_match(ard_spec_hash(ard_spec(x, statistics = st), "T1"),
+  expect_match(tfl_ard_spec_hash(tfl_ard_spec(x, statistics = st), "T1"),
                "^[0-9a-f]{32}$")
 })

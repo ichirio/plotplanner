@@ -9,7 +9,7 @@
 #' @param seed Random seed.
 #' @return A named list of data frames.
 #' @export
-pp_example_adam <- function(n = 40, seed = 1) {
+tfl_example_adam <- function(n = 40, seed = 1) {
   set.seed(seed)
   lab <- function(x, l) { attr(x, "label") <- l; x }
   id <- sprintf("PP-01-%04d", seq_len(n))

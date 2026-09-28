@@ -39,21 +39,21 @@ pp_quick_legends <- list(
 pp_time_units <- c(days = "as_is", weeks = "days_to_weeks", months = "days_to_months", years = "days_to_years")
 
 #' Code object returned by the quick API
-#' @param x A `pp_code` object.
+#' @param x A `tfl_code` object.
 #' @param ... Unused.
 #' @export
-print.pp_code <- function(x, ...) {
+print.tfl_code <- function(x, ...) {
   cat(x, sep = "\n\n")
   invisible(x)
 }
 
 pp_finish <- function(spec, adam, file) {
-  code <- plot_code(spec, adam = adam)
+  code <- tfl_fig_code(spec, adam = adam)
   if (!is.null(file)) {
     dir.create(dirname(file), showWarnings = FALSE, recursive = TRUE)
     writeLines(code, file, useBytes = TRUE)
   }
-  structure(unname(code), class = "pp_code", spec = spec)
+  structure(unname(code), class = "tfl_code", spec = spec)
 }
 
 # Global defaults a study sets once, e.g.
@@ -105,15 +105,15 @@ pp_pop_filter <- function(pid, pop, data, adam) {
   list(plot_id = pid, layer = NA, dataset = NA, variable = pop, value = "Y")
 }
 
-pp_prep_adam <- function(adam) if (is.null(adam)) NULL else read_adam(adam)
+pp_prep_adam <- function(adam) if (is.null(adam)) NULL else tfl_read_adam(adam)
 
 #' Kaplan-Meier plot code (ggsurvfit)
 #'
-#' @param adam Optional ADaM data ([read_adam()]); values found in the data
+#' @param adam Optional ADaM data ([tfl_read_adam()]); values found in the data
 #'   (groups, colours) are written literally into the code.
 #' @param param PARAMCD of the time-to-event parameter.
 #' @param group Grouping variable (`NULL` for one curve).
-#' @param style One of [pp_styles()] for `km`.
+#' @param style One of [tfl_fig_types()] for `km`.
 #' @param legend `none`, `right`, `bottom`, `inside`, `inside_bl`, `panel`,
 #'   `panel_right`, `panel_inside` (`panel*` = legend drawn from an item table).
 #' @param pop Population flag (`== "Y"`); `NULL` for none.
@@ -132,9 +132,9 @@ pp_prep_adam <- function(adam) if (is.null(adam)) NULL else read_adam(adam)
 #'   times are the ARD's; the ARD's time unit must be the axis's.
 #' @param ... Engine options, e.g. `x_max = 24`, `x_by = 3`, `palette = "grey"`,
 #'   `theme = "classic"`, `width = 7`, `height = 5`.
-#' @return A `pp_code` object (character; printed as the script).
+#' @return A `tfl_code` object (character; printed as the script).
 #' @export
-pp_km <- function(adam = NULL, param = "OS", group = "TRT01P",
+tfl_fig_km <- function(adam = NULL, param = "OS", group = "TRT01P",
                   style = c("risk_table", "simple", "ci", "single_arm"),
                   legend = NULL, pop = "FASFL", data = "ADTTE",
                   time = "AVAL", censor = "CNSR", time_unit = "months",
@@ -162,8 +162,8 @@ pp_km <- function(adam = NULL, param = "OS", group = "TRT01P",
 
 #' Waterfall plot code
 #'
-#' @inheritParams pp_km
-#' @param style One of [pp_styles()] for `waterfall`.
+#' @inheritParams tfl_fig_km
+#' @param style One of [tfl_fig_types()] for `waterfall`.
 #' @param param PARAMCD of the one-row-per-subject parameter holding the
 #'   best percent change (`NULL` when the dataset has no PARAMCD).
 #' @param value Variable with the best percent change.
@@ -172,7 +172,7 @@ pp_km <- function(adam = NULL, param = "OS", group = "TRT01P",
 #' @param response_data Dataset of the response.
 #' @param id Subject key.
 #' @export
-pp_waterfall <- function(adam = NULL, style = c("response", "plain"),
+tfl_fig_waterfall <- function(adam = NULL, style = c("response", "plain"),
                          param = "BPCHG", value = "AVAL", response = "BOR",
                          legend = "inside", pop = "FASFL", data = "ADTR",
                          response_data = "ADRS", id = "USUBJID",
@@ -198,8 +198,8 @@ pp_waterfall <- function(adam = NULL, style = c("response", "plain"),
 
 #' Swimmer plot code
 #'
-#' @inheritParams pp_km
-#' @param style One of [pp_styles()] for `swimmer`.
+#' @inheritParams tfl_fig_km
+#' @param style One of [tfl_fig_types()] for `swimmer`.
 #' @param duration Bar length variable (days) on `data`; bars start at 0.
 #' @param start,end Subtype "from start": bars run from `start` to `end`
 #'   (days on a common origin, e.g. randomization) instead of 0 to `duration`.
@@ -216,7 +216,7 @@ pp_waterfall <- function(adam = NULL, style = c("response", "plain"),
 #' @param visit_every Draw dotted visit lines every this many time units.
 #' @param key Join key between datasets.
 #' @export
-pp_swimmer <- function(adam = NULL, style = c("full", "assessment", "response", "bar"),
+tfl_fig_swimmer <- function(adam = NULL, style = c("full", "assessment", "response", "bar"),
                        duration = "TRTDURD", start = NULL, end = NULL, id = "SUBJID", response = "BOR",
                        assessment = "OVR", day = "ADY",
                        events = c(Death = "DTHADY"), ongoing = c(EOSSTT = "ONGOING"),
@@ -298,5 +298,5 @@ pp_quick_spec <- function(pid, type, style, data, legend, title, roles, filters,
     units = plot_dots$units %or% NA, dpi = plot_dots$dpi %or% NA,
     stringsAsFactors = FALSE
   )
-  plot_spec(plots = plots, roles = roles, filters = filters, options = pp_options_df(pid, dots))
+  tfl_fig_spec(plots = plots, roles = roles, filters = filters, options = pp_options_df(pid, dots))
 }

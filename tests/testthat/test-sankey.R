@@ -1,4 +1,4 @@
-test_that("plot_sankey returns ggplot and keeps isolated nodes", {
+test_that("tfl_plot_sankey returns ggplot and keeps isolated nodes", {
   nodes <- data.frame(
     id = c("A", "B", "C", "No Treatment"),
     stage = c("L1", "L2", "L2", "L1"),
@@ -13,7 +13,7 @@ test_that("plot_sankey returns ggplot and keeps isolated nodes", {
     stringsAsFactors = FALSE
   )
 
-  p <- plot_sankey(
+  p <- tfl_plot_sankey(
     nodes = nodes,
     links = links,
     node_id = "id",
@@ -30,7 +30,7 @@ test_that("plot_sankey returns ggplot and keeps isolated nodes", {
   expect_false(any(is.na(built_nodes$ymin)))
 })
 
-test_that("plot_sankey supports vertical orientation and bottom baseline", {
+test_that("tfl_plot_sankey supports vertical orientation and bottom baseline", {
   nodes <- data.frame(
     id = c("A", "B", "C"),
     stage = c("S1", "S2", "S2"),
@@ -44,7 +44,7 @@ test_that("plot_sankey supports vertical orientation and bottom baseline", {
     stringsAsFactors = FALSE
   )
 
-  p <- plot_sankey(
+  p <- tfl_plot_sankey(
     nodes = nodes,
     links = links,
     orientation = "vertical",
@@ -58,7 +58,7 @@ test_that("plot_sankey supports vertical orientation and bottom baseline", {
   expect_true(length(p$layers) >= 2)
 })
 
-test_that("plot_sankey aligns stage tops when baseline is top", {
+test_that("tfl_plot_sankey aligns stage tops when baseline is top", {
   nodes <- data.frame(
     id = c("L1_A", "L1_No", "L2_A", "L2_No"),
     stage = c("L1", "L1", "L2", "L2"),
@@ -73,7 +73,7 @@ test_that("plot_sankey aligns stage tops when baseline is top", {
     stringsAsFactors = FALSE
   )
 
-  p <- plot_sankey(
+  p <- tfl_plot_sankey(
     nodes = nodes,
     links = links,
     node_value = "node_n",
@@ -88,7 +88,7 @@ test_that("plot_sankey aligns stage tops when baseline is top", {
   expect_equal(l1_top, l2_top, tolerance = 1e-8)
 })
 
-test_that("plot_sankey keeps input order as top-to-bottom when baseline is top", {
+test_that("tfl_plot_sankey keeps input order as top-to-bottom when baseline is top", {
   nodes <- data.frame(
     id = c("L1_A", "L1_B", "L1_No", "L2_A"),
     stage = c("L1", "L1", "L1", "L2"),
@@ -104,7 +104,7 @@ test_that("plot_sankey keeps input order as top-to-bottom when baseline is top",
     stringsAsFactors = FALSE
   )
 
-  p <- plot_sankey(
+  p <- tfl_plot_sankey(
     nodes = nodes,
     links = links,
     node_label = "label",
@@ -119,7 +119,7 @@ test_that("plot_sankey keeps input order as top-to-bottom when baseline is top",
   expect_equal(which.min(l1$ymin), 3)
 })
 
-test_that("plot_sankey reserves link-width space on the label side of the last stage", {
+test_that("tfl_plot_sankey reserves link-width space on the label side of the last stage", {
   nodes <- data.frame(
     id = c("A", "B"),
     stage = c("S1", "S2"),
@@ -133,7 +133,7 @@ test_that("plot_sankey reserves link-width space on the label side of the last s
   reserve <- (1 - node_width) + label_nudge
 
   # Default: labels on the right; panel extends past the last stage.
-  p_right <- plot_sankey(nodes, links, node_label = "label")
+  p_right <- tfl_plot_sankey(nodes, links, node_label = "label")
   expect_equal(
     p_right$coordinates$limits$x,
     c(0 - node_width / 2, 1 + node_width / 2 + reserve),
@@ -141,7 +141,7 @@ test_that("plot_sankey reserves link-width space on the label side of the last s
   )
 
   # label_position = "left": space is reserved before the first stage instead.
-  p_left <- plot_sankey(nodes, links, node_label = "label", label_position = "left")
+  p_left <- tfl_plot_sankey(nodes, links, node_label = "label", label_position = "left")
   expect_equal(
     p_left$coordinates$limits$x,
     c(0 - node_width / 2 - reserve, 1 + node_width / 2),
@@ -149,7 +149,7 @@ test_that("plot_sankey reserves link-width space on the label side of the last s
   )
 
   # No labels: no extra space on either side.
-  p_off <- plot_sankey(nodes, links, node_label = "label", show_labels = FALSE)
+  p_off <- tfl_plot_sankey(nodes, links, node_label = "label", show_labels = FALSE)
   expect_equal(
     p_off$coordinates$limits$x,
     c(0 - node_width / 2, 1 + node_width / 2),
@@ -157,7 +157,7 @@ test_that("plot_sankey reserves link-width space on the label side of the last s
   )
 
   # Vertical orientation reserves the space along y.
-  p_vert <- plot_sankey(nodes, links, node_label = "label", orientation = "vertical")
+  p_vert <- tfl_plot_sankey(nodes, links, node_label = "label", orientation = "vertical")
   expect_equal(
     p_vert$coordinates$limits$y,
     c(0 - node_width / 2, 1 + node_width / 2 + reserve),
@@ -165,7 +165,7 @@ test_that("plot_sankey reserves link-width space on the label side of the last s
   )
 })
 
-test_that("plot_sankey auto node gap scales with label size and shared scale", {
+test_that("tfl_plot_sankey auto node gap scales with label size and shared scale", {
   nodes <- data.frame(
     id = c("A", "B", "C"),
     stage = c("S1", "S1", "S2"),
@@ -187,12 +187,12 @@ test_that("plot_sankey auto node gap scales with label size and shared scale", {
   }
 
   # Local basis: max raw stage span = 150 -> gap = 0.03 * 3 * 150.
-  p_auto <- plot_sankey(nodes, links, node_label = "label")
+  p_auto <- tfl_plot_sankey(nodes, links, node_label = "label")
   expect_equal(stage_gap(p_auto), 0.03 * 3 * 150, tolerance = 1e-8)
 
   # Shared scale: the gap follows the shared basis, so every plot drawn
   # with the same shared_scale_max gets the identical gap.
-  p_shared <- plot_sankey(
+  p_shared <- tfl_plot_sankey(
     nodes, links,
     node_label = "label",
     scale_mode = "shared", shared_scale_max = 300
@@ -200,15 +200,15 @@ test_that("plot_sankey auto node gap scales with label size and shared scale", {
   expect_equal(stage_gap(p_shared), 0.03 * 3 * 300, tolerance = 1e-8)
 
   # An explicit numeric node_gap keeps the fixed behaviour.
-  p_fixed <- plot_sankey(nodes, links, node_label = "label", node_gap = 0)
+  p_fixed <- tfl_plot_sankey(nodes, links, node_label = "label", node_gap = 0)
   expect_equal(stage_gap(p_fixed), 0, tolerance = 1e-8)
 
   # Without labels the automatic gap is a hairline (0.002 * basis).
-  p_off <- plot_sankey(nodes, links, node_label = "label", show_labels = FALSE)
+  p_off <- tfl_plot_sankey(nodes, links, node_label = "label", show_labels = FALSE)
   expect_equal(stage_gap(p_off), 0.002 * 150, tolerance = 1e-8)
 })
 
-test_that("plot_sankey stacks ribbons from the baseline side in counterpart order", {
+test_that("tfl_plot_sankey stacks ribbons from the baseline side in counterpart order", {
   # Target ids chosen so alphabetical order (Y < Z) differs from the input
   # stacking order (Z above Y): the ribbon layout must follow the node
   # positions, not the ids.
@@ -226,7 +226,7 @@ test_that("plot_sankey stacks ribbons from the baseline side in counterpart orde
 
   # Top-aligned: the ribbon to the top-most target (Z, input-first) leaves
   # from the very top of A and enters the very top of Z (= panel top).
-  p_top <- plot_sankey(nodes, links, baseline = "top", show_labels = FALSE)
+  p_top <- tfl_plot_sankey(nodes, links, baseline = "top", show_labels = FALSE)
   poly_top <- ggplot2::layer_data(p_top, 1)
   rect_top <- ggplot2::layer_data(p_top, 2)
   link_z <- poly_top[poly_top$group == 1, ] # poly_id "link_1" = A -> Z
@@ -234,13 +234,13 @@ test_that("plot_sankey stacks ribbons from the baseline side in counterpart orde
 
   # Bottom-aligned: input-first Z sits at the bottom of S2 and the ribbon to
   # it leaves from the very bottom of A (= 0).
-  p_bot <- plot_sankey(nodes, links, baseline = "bottom", show_labels = FALSE)
+  p_bot <- tfl_plot_sankey(nodes, links, baseline = "bottom", show_labels = FALSE)
   poly_bot <- ggplot2::layer_data(p_bot, 1)
   link_z_bot <- poly_bot[poly_bot$group == 1, ]
   expect_equal(min(link_z_bot$y), 0, tolerance = 1e-8)
 })
 
-test_that("plot_sankey drops zero-value links without breaking link fills", {
+test_that("tfl_plot_sankey drops zero-value links without breaking link fills", {
   nodes <- data.frame(
     id = c("A", "B", "C"),
     stage = c("S1", "S2", "S2"),
@@ -257,13 +257,13 @@ test_that("plot_sankey drops zero-value links without breaking link fills", {
   # The zero-value link is dropped; the surviving link must keep its own
   # fill (the fills were previously resolved against the unfiltered links,
   # which errored on the row-count mismatch).
-  p <- plot_sankey(nodes, links, link_fill = "fill", show_labels = FALSE)
+  p <- tfl_plot_sankey(nodes, links, link_fill = "fill", show_labels = FALSE)
   poly <- ggplot2::layer_data(p, 1)
   expect_equal(length(unique(poly$group)), 1)
   expect_equal(unique(poly$fill), "#123456")
 })
 
-test_that("plot_sankey draws links in a single light grey by default", {
+test_that("tfl_plot_sankey draws links in a single light grey by default", {
   nodes <- data.frame(
     id = c("A", "B", "C"),
     stage = c("S1", "S2", "S2"),
@@ -276,17 +276,17 @@ test_that("plot_sankey draws links in a single light grey by default", {
     stringsAsFactors = FALSE
   )
 
-  p <- plot_sankey(nodes, links, show_labels = FALSE)
+  p <- tfl_plot_sankey(nodes, links, show_labels = FALSE)
   link_fill <- unique(ggplot2::layer_data(p, 1)$fill)
   expect_equal(link_fill, "#CCCCCC")
 
   # Nodes carry a black border by default; node_color overrides it.
   expect_equal(unique(ggplot2::layer_data(p, 2)$colour), "black")
-  p_none <- plot_sankey(nodes, links, show_labels = FALSE, node_color = NA)
+  p_none <- tfl_plot_sankey(nodes, links, show_labels = FALSE, node_color = NA)
   expect_true(all(is.na(ggplot2::layer_data(p_none, 2)$colour)))
 })
 
-test_that("plot_sankey places labels on the requested side", {
+test_that("tfl_plot_sankey places labels on the requested side", {
   nodes <- data.frame(
     id = c("A", "B"),
     stage = c("S1", "S2"),
@@ -295,28 +295,28 @@ test_that("plot_sankey places labels on the requested side", {
   )
   links <- data.frame(source = "A", target = "B", value = 10, stringsAsFactors = FALSE)
 
-  p_right <- plot_sankey(nodes, links, node_label = "label")
+  p_right <- tfl_plot_sankey(nodes, links, node_label = "label")
   txt_right <- ggplot2::layer_data(p_right, length(p_right$layers))
   # Anchored just right of each node edge (pmax + nudge).
   expect_equal(sort(txt_right$x), c(0.09 + 0.03, 1.09 + 0.03), tolerance = 1e-8)
 
-  p_left <- plot_sankey(nodes, links, node_label = "label", label_position = "left")
+  p_left <- tfl_plot_sankey(nodes, links, node_label = "label", label_position = "left")
   txt_left <- ggplot2::layer_data(p_left, length(p_left$layers))
   # Anchored just left of each node edge (pmin - nudge).
   expect_equal(sort(txt_left$x), c(-0.09 - 0.03, 0.91 - 0.03), tolerance = 1e-8)
 })
 
-test_that("plot_sankey validates shared scale input", {
+test_that("tfl_plot_sankey validates shared scale input", {
   nodes <- data.frame(id = c("A", "B"), stage = c("S1", "S2"), stringsAsFactors = FALSE)
   links <- data.frame(source = "A", target = "B", value = 1, stringsAsFactors = FALSE)
 
   expect_error(
-    plot_sankey(nodes, links, scale_mode = "shared"),
+    tfl_plot_sankey(nodes, links, scale_mode = "shared"),
     "shared_scale_max"
   )
 })
 
-test_that("plot_sankey supports treatment color modes", {
+test_that("tfl_plot_sankey supports treatment color modes", {
   nodes <- data.frame(
     id = c("L1_Chemo", "L1_No", "L2_Chemo", "L2_No"),
     stage = c("L1", "L1", "L2", "L2"),
@@ -332,7 +332,7 @@ test_that("plot_sankey supports treatment color modes", {
     stringsAsFactors = FALSE
   )
 
-  p_global <- plot_sankey(
+  p_global <- tfl_plot_sankey(
     nodes = nodes,
     links = links,
     node_treatment = "treatment",
@@ -344,7 +344,7 @@ test_that("plot_sankey supports treatment color modes", {
   global_fill <- ggplot2::layer_data(p_global, 2)$fill
   expect_equal(global_fill[1], global_fill[3])
 
-  p_by_line <- plot_sankey(
+  p_by_line <- tfl_plot_sankey(
     nodes = nodes,
     links = links,
     node_treatment = "treatment",

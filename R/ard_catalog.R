@@ -1,8 +1,8 @@
 # ============================================================================
 #  The catalogs an ARD spec is checked against and written from
 # ----------------------------------------------------------------------------
-#  Which methods an analysis may name (ard_methods()) and which statistics it
-#  may ask for (ard_statistics()).  The built-in ones below are the default;
+#  Which methods an analysis may name (tfl_ard_methods()) and which statistics it
+#  may ask for (tfl_ard_statistics()).  The built-in ones below are the default;
 #  a company's own are passed as `methods =` / `statistics =` to the
 #  functions that use them (tflplanner passes its company standards), or set
 #  site-wide with options(tflspec.ard_methods =, tflspec.ard_statistics =).
@@ -183,7 +183,7 @@
 #' @return A data frame: `method`, `call`, `kind`, `defaults`, `statistics`,
 #'   `formats`, `note`.
 #' @export
-ard_methods <- function() {
+tfl_ard_methods <- function() {
   m <- getOption("tflspec.ard_methods") %||% .ard_methods_builtin()
   m[] <- lapply(m, function(v) ifelse(is.na(v), "", v))
   m
@@ -212,7 +212,7 @@ ard_methods <- function() {
 #' @return A data frame: `statistic`, `kind`, `group`, `label`, `fmt`,
 #'   `fun`, `note`.
 #' @export
-ard_statistics <- function(kind = NULL) {
+tfl_ard_statistics <- function(kind = NULL) {
   d <- getOption("tflspec.ard_statistics") %||% .ard_statistics_builtin()
   if (!is.null(kind)) d <- d[d$kind %in% kind, , drop = FALSE]
   rownames(d) <- NULL
@@ -237,7 +237,7 @@ ard_statistics <- function(kind = NULL) {
 #' @return A list of data frames: `study`, `datasets`, `populations`,
 #'   `analyses`.
 #' @export
-ard_spec_template <- function() {
+tfl_ard_spec_template <- function() {
   out <- lapply(.ard_spec_sheets, function(cols)
     as.data.frame(stats::setNames(replicate(length(cols), character(),
                                             simplify = FALSE), cols),

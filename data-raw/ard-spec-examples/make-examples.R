@@ -9,10 +9,10 @@
 #  For each report this script
 #    1. builds the example ARD (the same code as Discussion #473),
 #    2. writes its definition workbook to inst/extdata/ard-spec/<id>.xlsx,
-#    3. reads the workbook back and runs table_plan(spec = ) on the ARD,
-#    4. checks the table data frame is IDENTICAL to ard_spread() written
+#    3. reads the workbook back and runs tfl_plan(spec = ) on the ARD,
+#    4. checks the table data frame is IDENTICAL to tfl_ard_spread() written
 #       out, and the finished rtftable pages to the report's plan code --
-#       and that as_table_spec(<plan code>) gives those pages back.
+#       and that tfl_as_table_spec(<plan code>) gives those pages back.
 #
 #  It also writes study.xlsx: all five in one workbook, keyed by output_id,
 #  with the study's rounding on its `study` sheet, and the shared n (%)
@@ -44,20 +44,20 @@ tbl <- function(...) {
   d
 }
 
-# Two checks per report: the table data frame against ard_spread() written
+# Two checks per report: the table data frame against tfl_ard_spread() written
 # out, and the finished rtftable pages against the report's plan code --
 # column header included: the workbook's `col_header` sheet has to give
 # what the code's hand-written rtf_col_header() gives.
 check <- function(id, ard_n, spec_path, code_tbl, code_plan, header,
                   pages_n = ard_n) {
-  sp <- read_table_spec(spec_path, output_id = id)
-  from_spec <- apply_plan(table_plan(ard_n, spec = sp, notes = FALSE), "table")
+  sp <- tfl_read_table_spec(spec_path, output_id = id)
+  from_spec <- tfl_apply_plan(tfl_plan(ard_n, spec = sp, notes = FALSE), "table")
   ok <- isTRUE(all.equal(as.data.frame(from_spec), as.data.frame(code_tbl)))
-  pg_spec <- apply_plan(table_plan(pages_n, spec = sp, notes = FALSE), "pages")
-  pg_code <- apply_plan(code_plan, "pages")
+  pg_spec <- tfl_apply_plan(tfl_plan(pages_n, spec = sp, notes = FALSE), "pages")
+  pg_code <- tfl_apply_plan(code_plan, "pages")
   ok_pg <- isTRUE(all.equal(pg_spec, pg_code))
   # and the other way: the plan code written back as a workbook
-  back <- suppressMessages(as_table_spec(code_plan, output_id = id))
+  back <- suppressMessages(tfl_as_table_spec(code_plan, output_id = id))
   ok_pg <- ok_pg && isTRUE(attr(back, "same_pages"))
   np <- if (inherits(pg_spec, "rtftable")) 1L else length(pg_spec)
   cat(sprintf(
@@ -76,7 +76,7 @@ with_pages <- function(sp, layout = NULL, columns = NULL, style = NULL,
   x <- unclass(sp)
   x$layout <- layout; x$columns <- columns; x$style <- style
   x$col_header <- col_header
-  table_spec(x)
+  tfl_table_spec(x)
 }
 # one header cell per row: tbl() of these
 hc <- function(id, line, cols, text = "", span = "", border_top = "",
@@ -98,7 +98,7 @@ ard_dm <- ard_stack(
                   statistic = ~ c("n", "p")),
   .total_n = TRUE)
 
-specs$DM <- table_spec(
+specs$DM <- tfl_table_spec(
   study = c(rounding = "sas"),
   tables = tbl(
     list(output_id = "DM", cols = "TRT01P", rows = "group = variable",
@@ -118,8 +118,8 @@ specs$DM <- table_spec(
     list(output_id = "DM", variable = "categorical", context = "", row = "",          when = "", template = "{n:.0f} ({p:.1f%})", digits = "",    signif = "")))
 
 dm_code <- ard_dm |>
-  ard_normalize() |>
-  ard_spread(
+  tfl_ard_normalize() |>
+  tfl_ard_spread(
     cols     = "TRT01P",
     rows     = c(group = "variable"),
     labels   = c(AGE    = "Age (years) [a]",
@@ -148,7 +148,7 @@ ard_ae <- ard_stack_hierarchical(
   denominator = ADSL2, id = USUBJID, over_variables = TRUE)
 ard_ae <- ard_ae[ard_ae$context != "tabulate", ]
 
-specs$AE <- table_spec(
+specs$AE <- tfl_table_spec(
   study = c(rounding = "sas"),
   tables = tbl(
     list(output_id = "AE", cols = "TR01AG1 | SEROSTAT",
@@ -164,9 +164,9 @@ specs$AE <- table_spec(
     list(output_id = "AE", variable = "", context = "", row = "", when = "",
          template = "{n:.0f} ({p:.1f%})", digits = "", signif = "")))
 
-ae_n <- ard_normalize(ard_ae, hierarchy = c("AEBODSYS", "AEDECOD"),
+ae_n <- tfl_ard_normalize(ard_ae, hierarchy = c("AEBODSYS", "AEDECOD"),
                       overall = "Any TEAE")
-ae_code <- ard_spread(
+ae_code <- tfl_ard_spread(
   ae_n,
   cols   = c("TR01AG1", "SEROSTAT"),
   rows   = c(group1 = "AEBODSYS"),
@@ -192,7 +192,7 @@ ard_orr <- cards::ADSL |>
 ard_orr <- ard_orr[ard_orr$stat_name %in%
                      c("N", "n", "estimate", "conf.low", "conf.high"), ]
 
-specs$ORR <- table_spec(
+specs$ORR <- tfl_table_spec(
   study = c(rounding = "sas"),
   tables = tbl(
     list(output_id = "ORR", cols = "TRT01P | variable",
@@ -207,16 +207,16 @@ specs$ORR <- table_spec(
     list(output_id = "ORR", variable = "orr_ci", context = "", row = "2", when = "",              template = "{conf.low:.1f%}, {conf.high:.1f%}", digits = "", signif = "")))
 
 orr_n <- ard_orr |>
-  ard_normalize() |>
+  tfl_ard_normalize() |>
   mutate(variable = if_else(stat_name == "N", "n", "orr_ci"))
-orr_code <- ard_spread(
+orr_code <- tfl_ard_spread(
   orr_n,
   cols  = c("TRT01P", "variable"), sep = "_",
   rows  = c(grp1 = "group2", grp2 = "group2_level"),
   label = NA,
   cells = list(
     n      = c("1" = "{N:.0f}"),
-    orr_ci = ard_cells(
+    orr_ci = tfl_ard_cells(
       "1" = c(n == 0        ~ "0",
               estimate == 1 ~ "{n:.0f} (100)",
                               "{n:.0f} ({estimate:.1f%})"),
@@ -245,7 +245,7 @@ ard_lb <- bind_rows(
   # the ARD states every column's N and the page's total itself (#482)
   ard_categorical(LB, by = LBTOX_LBL, variables = BASEGR))
 
-specs$LB <- table_spec(
+specs$LB <- tfl_table_spec(
   study = c(rounding = "sas"),
   tables = tbl(
     list(output_id = "LB", cols = "BASEGR",
@@ -262,8 +262,8 @@ specs$LB <- table_spec(
          template = "{n:.0f} ({p:.1f%})", digits = "", signif = "")))
 
 lb_code <- ard_lb |>
-  ard_normalize() |>
-  ard_spread(
+  tfl_ard_normalize() |>
+  tfl_ard_spread(
     cols   = "BASEGR",
     rows   = c(LBTOX_LBL = "LBTOX_LBL",
                group1    = ~ "Worst Post-Baseline Values"),
@@ -288,7 +288,7 @@ ard_pk <- ard_stack(
                    c("N", "mean", "sd", "median", "min", "max"))))
 stat_levels <- c("N", "Mean", "SD", "Median", "Min", "Max")
 
-specs$PK <- table_spec(
+specs$PK <- tfl_table_spec(
   study = c(rounding = "sas"),
   tables = tbl(
     list(output_id = "PK", cols = "ATPT", rows = "Analyte = ANALYTE",
@@ -301,8 +301,8 @@ specs$PK <- table_spec(
          levels = paste(TIMEPOINTS, collapse = " | "))))
 
 pk_code <- ard_pk |>
-  ard_normalize() |>
-  ard_spread(
+  tfl_ard_normalize() |>
+  tfl_ard_spread(
     cols   = "ATPT",
     rows   = c(Analyte = "ANALYTE"),
     label  = c(Statistics = "stat_label"),
@@ -319,7 +319,7 @@ pk_code <- ard_pk |>
 #  workbook says everything in it but the column header, which both sides add.
 
 # ---------------------------------------------------------------- DM
-dm_header <- function(p) plan_col_header(p, n = TRUE, rtf_col_header(
+dm_header <- function(p) tfl_plan_col_header(p, n = TRUE, rtf_col_header(
   c("",               "{col}"),
   c("Characteristic", "(N={n})")))
 specs$DM <- with_pages(specs$DM,
@@ -336,28 +336,28 @@ specs$DM <- with_pages(specs$DM,
     hc("DM", 2, "row_label", "Characteristic"),
     hc("DM", 2, ".values", "(N={n})", span = "each")))
 dm_plan <- ard_dm |>
-  ard_normalize() |>
-  table_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
-  plan_labels(c(AGE    = "Age (years) [a]",
+  tfl_ard_normalize() |>
+  tfl_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
+  tfl_plan_labels(c(AGE    = "Age (years) [a]",
                 AGEGR1 = "Age (group1) (years) [n (%)] [a]",
                 SEX    = "Sex [n (%)]",
                 ETHNIC = "Ethnicity [n (%)]",
                 HTBL   = "Baseline Height (cm)")) |>
-  plan_levels(AGEGR1 = c("<65", "65-80", ">80"), SEX = c("F", "M")) |>
-  plan_cells(continuous  = c("n"         = "{N:.0f}",
+  tfl_plan_levels(AGEGR1 = c("<65", "65-80", ">80"), SEX = c("F", "M")) |>
+  tfl_plan_cells(continuous  = c("n"         = "{N:.0f}",
                              "Mean (SD)" = "{mean:.2f} ({sd:.3f})",
                              "Median"    = "{median:.2f}",
                              "Min, Max"  = "{min:.1f}, {max:.1f}"),
              categorical = "{n:.0f} ({p:.1f%})") |>
-  plan_digits(rounding = "sas") |>
-  plan_stub(into = "row_label", before = TRUE) |>
-  plan_blanks(where = "between_groups", first = TRUE, last = TRUE) |>
-  plan_paginate_rows(max_rows = 21, split = "group_safe") |>
-  plan_style(widths = c(5, 2), align_count_pct = TRUE) |>
+  tfl_plan_digits(rounding = "sas") |>
+  tfl_plan_stub(into = "row_label", before = TRUE) |>
+  tfl_plan_blanks(where = "between_groups", first = TRUE, last = TRUE) |>
+  tfl_plan_paginate_rows(max_rows = 21, split = "group_safe") |>
+  tfl_plan_style(widths = c(5, 2), align_count_pct = TRUE) |>
   dm_header()
 
 # ---------------------------------------------------------------- AE
-ae_header <- function(p) plan_col_header(p, n = TRUE, rtf_col_header(
+ae_header <- function(p) tfl_plan_col_header(p, n = TRUE, rtf_col_header(
   c(list(col_cell(1, "")),
     lapply(1:3, function(i)
       col_cell(c(2 * i, 1 + 2 * i), "{col1}\n(N={n:sum})\n n (%)"))),
@@ -389,25 +389,25 @@ specs$AE <- with_pages(specs$AE,
     hc("AE", 3, ".values", "{col2}
 (N={n})", span = "each")))
 ae_plan <- ae_n |>
-  table_plan(cols  = c("TR01AG1", "SEROSTAT"),
+  tfl_plan(cols  = c("TR01AG1", "SEROSTAT"),
            rows  = c(group1 = "AEBODSYS"),
            label = c(label  = "AEDECOD"), notes = FALSE) |>
-  plan_levels(TR01AG1  = c("Placebo", "Xanomeline Low Dose",
+  tfl_plan_levels(TR01AG1  = c("Placebo", "Xanomeline Low Dose",
                            "Xanomeline High Dose"),
               SEROSTAT = c("Positive", "Negative")) |>
-  plan_sort(".overall", "group1", ".depth", "-n", "label") |>
-  plan_cells("{n:.0f} ({p:.1f%})") |>
-  plan_digits(rounding = "sas") |>
-  plan_stub(into = "row_label", before = TRUE) |>
-  plan_blanks(where = "between_groups", first = TRUE, last = TRUE,
+  tfl_plan_sort(".overall", "group1", ".depth", "-n", "label") |>
+  tfl_plan_cells("{n:.0f} ({p:.1f%})") |>
+  tfl_plan_digits(rounding = "sas") |>
+  tfl_plan_stub(into = "row_label", before = TRUE) |>
+  tfl_plan_blanks(where = "between_groups", first = TRUE, last = TRUE,
               counted = TRUE) |>
-  plan_paginate_rows(max_rows = 25, split = "group_force") |>
-  plan_style(widths = c(40, 10), align_count_pct = TRUE,
+  tfl_plan_paginate_rows(max_rows = 25, split = "group_force") |>
+  tfl_plan_style(widths = c(40, 10), align_count_pct = TRUE,
              row_height_twips = 210L) |>
   ae_header()
 
 # ---------------------------------------------------------------- ORR
-orr_header <- function(p) plan_col_header(p, function(n, tbl) {
+orr_header <- function(p) tfl_plan_col_header(p, function(n, tbl) {
   arms <- unique(sub("_(n|orr_ci)$", "", names(tbl)[-(1:2)]))
   rtf_col_header(
     c(list(col_cell(c(1, 2), "")),
@@ -444,27 +444,27 @@ specs$ORR <- with_pages(specs$ORR,
     hc("ORR", 2, "variable = n", "N", span = "each"),
     hc("ORR", 2, "variable = orr_ci", "ORR(%) 90%CI", span = "each")))
 orr_plan <- orr_n |>
-  table_plan(cols  = c("TRT01P", "variable"), sep = "_",
+  tfl_plan(cols  = c("TRT01P", "variable"), sep = "_",
            rows  = c(grp1 = "group2", grp2 = "group2_level"),
            label = NA, notes = FALSE) |>
-  plan_sort(FALSE) |>
-  plan_cells(
+  tfl_plan_sort(FALSE) |>
+  tfl_plan_cells(
     n      = c("1" = "{N:.0f}"),
-    orr_ci = ard_cells(
+    orr_ci = tfl_ard_cells(
       "1" = c(n == 0        ~ "0",
               estimate == 1 ~ "{n:.0f} (100)",
                               "{n:.0f} ({estimate:.1f%})"),
       "2" = "{conf.low:.1f%}, {conf.high:.1f%}")) |>
-  plan_digits(rounding = "sas") |>
-  plan_row_group(mode = "value", collapse = c(1L, 2L)) |>
-  plan_blanks(where = "between_groups", first = TRUE, last = TRUE) |>
-  plan_paginate_rows(max_rows = 20, split = "group_safe") |>
-  plan_style(widths = c(42, 28, rep(c(10, 14), 3)),
+  tfl_plan_digits(rounding = "sas") |>
+  tfl_plan_row_group(mode = "value", collapse = c(1L, 2L)) |>
+  tfl_plan_blanks(where = "between_groups", first = TRUE, last = TRUE) |>
+  tfl_plan_paginate_rows(max_rows = 20, split = "group_safe") |>
+  tfl_plan_style(widths = c(42, 28, rep(c(10, 14), 3)),
              align_count_pct = FALSE, row_title = c(1, 2)) |>
   orr_header()
 
 # ---------------------------------------------------------------- LB
-lb_header <- function(p) plan_col_header(p, n = TRUE, rtf_col_header(
+lb_header <- function(p) tfl_plan_col_header(p, n = TRUE, rtf_col_header(
   list(col_cell(1L, "Timepoint"),
        col_cell(c(2L, 5L), "Treatment\n(N={n})\n n (%)\n<Baseline>")),
   c("  Category", "Grade 0", "Grade 1", "Grade 2", "Total")))
@@ -483,25 +483,25 @@ specs$LB <- with_pages(specs$LB,
 <Baseline>"),
     hc("LB", 2, "row_label", '"  Category"'),
     hc("LB", 2, ".values", "{col}", span = "each")))
-lb_pages_n <- ard_normalize(ard_lb, drop_contexts = "attributes")
+lb_pages_n <- tfl_ard_normalize(ard_lb, drop_contexts = "attributes")
 lb_plan <- lb_pages_n |>
-  table_plan(cols  = "BASEGR",
+  tfl_plan(cols  = "BASEGR",
            rows  = c(LBTOX_LBL = "LBTOX_LBL",
                      group1    = ~ "Worst Post-Baseline Values"),
            label = c(label = ".label"), notes = FALSE) |>
-  plan_levels(BASEGR  = c("Grade 0", "Grade 1", "Grade 2", "Total"),
+  tfl_plan_levels(BASEGR  = c("Grade 0", "Grade 1", "Grade 2", "Total"),
               WORSTGR = c("Grade 0", "Grade 1", "Grade 2", "Grade 3",
                           "Total")) |>
-  plan_cells("{n:.0f} ({p:.1f%})") |>
-  plan_digits(rounding = "sas") |>
-  plan_stub(into = "row_label") |>
-  plan_paginate_group(show = FALSE) |>
-  plan_blanks(first = TRUE, last = TRUE) |>
-  plan_style(widths = c(5, rep(1, 4)), align_count_pct = TRUE) |>
+  tfl_plan_cells("{n:.0f} ({p:.1f%})") |>
+  tfl_plan_digits(rounding = "sas") |>
+  tfl_plan_stub(into = "row_label") |>
+  tfl_plan_paginate_group(show = FALSE) |>
+  tfl_plan_blanks(first = TRUE, last = TRUE) |>
+  tfl_plan_style(widths = c(5, rep(1, 4)), align_count_pct = TRUE) |>
   lb_header()
 
 # ---------------------------------------------------------------- PK
-pk_header <- function(p) plan_col_header(p, function(n, tbl) list(
+pk_header <- function(p) tfl_plan_col_header(p, function(n, tbl) list(
   list(col_cell(1, ""), col_cell(2, ""),
        col_cell(c(3, length(tbl)), "Scheduled Timepoint")),
   names(tbl)))
@@ -516,7 +516,7 @@ pk_cells <- do.call(tbl, lapply(names(pk_formats), function(st) list(
              as.character(pk_formats[[st]]$digits) else "",
   signif = if (!is.null(pk_formats[[st]]$signif))
              as.character(pk_formats[[st]]$signif) else "")))
-x <- unclass(specs$PK); x$cells <- pk_cells; specs$PK <- table_spec(x)
+x <- unclass(specs$PK); x$cells <- pk_cells; specs$PK <- tfl_table_spec(x)
 specs$PK <- with_pages(specs$PK,
   layout = tbl(list(output_id = "PK", group_collapse = "TRUE",
                     blank_where = "between_groups", blank_first = "TRUE",
@@ -536,23 +536,23 @@ specs$PK <- with_pages(specs$PK,
     hc("PK", 2, "Analyte", "Analyte"),
     hc("PK", 2, "Statistics", "Statistics"),
     hc("PK", 2, ".values", "{col}", span = "each")))
-pk_plan <- ard_normalize(ard_pk) |>
-  table_plan(cols  = "ATPT", rows = c(Analyte = "ANALYTE"),
+pk_plan <- tfl_ard_normalize(ard_pk) |>
+  tfl_plan(cols  = "ATPT", rows = c(Analyte = "ANALYTE"),
            label = c(Statistics = "stat_label"), stats = "rows",
            notes = FALSE) |>
-  plan_levels(Statistics = stat_levels, ATPT = TIMEPOINTS) |>
-  plan_digits(rounding = "sas") |>
-  plan_fmt(by = "Statistics", formats = pk_formats) |>
-  plan_row_group(collapse = TRUE) |>
-  plan_blanks(where = "between_groups", first = TRUE, last = TRUE) |>
-  plan_paginate_rows(max_rows = 21) |>
-  plan_style(widths = c(3, 3, 2), row_title = 1:2) |>
+  tfl_plan_levels(Statistics = stat_levels, ATPT = TIMEPOINTS) |>
+  tfl_plan_digits(rounding = "sas") |>
+  tfl_plan_fmt(by = "Statistics", formats = pk_formats) |>
+  tfl_plan_row_group(collapse = TRUE) |>
+  tfl_plan_blanks(where = "between_groups", first = TRUE, last = TRUE) |>
+  tfl_plan_paginate_rows(max_rows = 21) |>
+  tfl_plan_style(widths = c(3, 3, 2), row_title = 1:2) |>
   pk_header() |>
-  plan_after(function(x) {
+  tfl_plan_after(function(x) {
     d <- if (inherits(x, "rtftable")) x$data else x[[1L]]$data
     set_decimal_split(x, cols = setdiff(names(d), c("Analyte", "Statistics")))
   }) |>
-  plan_paginate_cols(every = 13, carry = 1:2)
+  tfl_plan_paginate_cols(every = 13, carry = 1:2)
 
 # ------------------------------------------------------ write and check
 # A `_README` sheet explains the columns to whoever opens the file.  The
@@ -563,7 +563,7 @@ readme <- utils::read.csv(file.path("data-raw", "ard-spec-examples",
                           stringsAsFactors = FALSE, fileEncoding = "UTF-8",
                           check.names = FALSE)
 write_book <- function(spec, path) {
-  write_table_spec(spec, path)
+  tfl_write_table_spec(spec, path)
   nms <- readxl::excel_sheets(path)
   sheets <- lapply(nms, function(s)
     as.data.frame(readxl::read_excel(path, sheet = s, col_types = "text")))
@@ -572,15 +572,15 @@ write_book <- function(spec, path) {
 }
 
 run_checks <- function(path_of) {
-  check("DM",  ard_normalize(ard_dm), path_of("DM"),  dm_code,  dm_plan,
+  check("DM",  tfl_ard_normalize(ard_dm), path_of("DM"),  dm_code,  dm_plan,
         dm_header)
   check("AE",  ae_n,                  path_of("AE"),  ae_code,  ae_plan,
         ae_header)
   check("ORR", orr_n,                 path_of("ORR"), orr_code, orr_plan,
         orr_header)
-  check("LB",  ard_normalize(ard_lb), path_of("LB"),  lb_code,  lb_plan,
+  check("LB",  tfl_ard_normalize(ard_lb), path_of("LB"),  lb_code,  lb_plan,
         lb_header, pages_n = lb_pages_n)
-  check("PK",  ard_normalize(ard_pk), path_of("PK"),  pk_code,  pk_plan,
+  check("PK",  tfl_ard_normalize(ard_pk), path_of("PK"),  pk_code,  pk_plan,
         pk_header)
 }
 
@@ -609,7 +609,7 @@ study_cells <- rbind(
   tbl(list(output_id = "", variable = "", context = "", row = "", when = "",
            template = default_tpl, digits = "", signif = "")),
   study_cells[!restates, , drop = FALSE])
-study <- table_spec(all_sheet("tables"), all_sheet("variables"), study_cells,
+study <- tfl_table_spec(all_sheet("tables"), all_sheet("variables"), study_cells,
                   study = c(rounding = "sas"), layout = all_sheet("layout"),
                   columns = all_sheet("columns"), style = all_sheet("style"),
                   col_header = all_sheet("col_header"))
@@ -626,7 +626,7 @@ cat("\nwritten to", normalizePath(out_dir), "\n")
 #
 #  A separate workbook for what surrounds the table -- the list of outputs,
 #  the page, the running header and footer, titles and footnotes -- read
-#  together with the table workbook: read_report_spec(c(report, study)).
+#  together with the table workbook: tfl_read_report_spec(c(report, study)).
 #  Each report is checked against the same document written as code, as
 #  RTF text, with the run time fixed.
 
@@ -692,7 +692,7 @@ for (id in names(rpt_titles)) {
     for (i in seq_along(nt)) ftr_rows[[length(ftr_rows) + 1L]] <- lnrow(id, i, nt[i])
   }
 }
-report_spec <- table_spec(
+report_spec <- tfl_table_spec(
   study = c(output_path = "output", program_dir = prog_dir),
   report = tbl(
     list(output_id = "",   type = "table", file = "{output_id}.rtf",
@@ -715,20 +715,20 @@ report_spec <- table_spec(
 report_book <- file.path(out_dir, "report.xlsx")
 write_book(report_spec, report_book)
 
-cat("\nThe report half: report.xlsx + study.xlsx -> rtf_report():\n")
+cat("\nThe report half: report.xlsx + study.xlsx -> tfl_report():\n")
 code_plans <- list(DM = dm_plan, AE = ae_plan, ORR = orr_plan, LB = lb_plan,
                    PK = pk_plan)
-pages_n <- list(DM = ard_normalize(ard_dm), AE = ae_n, ORR = orr_n,
-                LB = lb_pages_n, PK = ard_normalize(ard_pk))
+pages_n <- list(DM = tfl_ard_normalize(ard_dm), AE = ae_n, ORR = orr_n,
+                LB = lb_pages_n, PK = tfl_ard_normalize(ard_pk))
 tmp <- tempfile("rtf"); dir.create(tmp)
 for (id in names(code_plans)) {
-  sp <- read_report_spec(c(report_book, study_path), output_id = id)
-  p <- table_plan(pages_n[[id]], spec = sp, notes = FALSE)
+  sp <- tfl_read_report_spec(c(report_book, study_path), output_id = id)
+  p <- tfl_plan(pages_n[[id]], spec = sp, notes = FALSE)
   a <- file.path(tmp, "code.rtf"); b <- file.path(tmp, "spec.rtf")
   generate_rtfreport(code_doc(id, code_plans[[id]]), a, overwrite = TRUE)
-  generate_rtfreport(rtf_report(sp, p), b, overwrite = TRUE)
+  generate_rtfreport(tfl_report(sp, p), b, overwrite = TRUE)
   same <- identical(readLines(a, warn = FALSE), readLines(b, warn = FALSE))
   cat(sprintf("  %-4s -> %-14s identical RTF to the code: %s\n", id,
-              report_path(sp), if (same) "TRUE" else "FALSE  <-- MISMATCH"))
+              tfl_report_path(sp), if (same) "TRUE" else "FALSE  <-- MISMATCH"))
 }
 options(rtfreporter.render_time = NULL)

@@ -1,4 +1,4 @@
-test_that("plot_sunburst lays out nested arcs with attrition gaps", {
+test_that("tfl_plot_sunburst lays out nested arcs with attrition gaps", {
   paths <- data.frame(
     l1 = c("A", "A", "A", "B"),
     l2 = c("B", "A", NA, NA),
@@ -6,7 +6,7 @@ test_that("plot_sunburst lays out nested arcs with attrition gaps", {
     stringsAsFactors = FALSE
   )
 
-  p <- plot_sunburst(paths, path_cols = c("l1", "l2"), path_value = "n")
+  p <- tfl_plot_sunburst(paths, path_cols = c("l1", "l2"), path_value = "n")
   expect_s3_class(p, "ggplot")
 
   rect <- ggplot2::layer_data(p, 1)
@@ -27,14 +27,14 @@ test_that("plot_sunburst lays out nested arcs with attrition gaps", {
   expect_equal(ring2$xmax, c(2, 7), tolerance = 1e-8)
 })
 
-test_that("plot_sunburst sums duplicate paths and hides sliver labels", {
+test_that("tfl_plot_sunburst sums duplicate paths and hides sliver labels", {
   paths <- data.frame(
     l1 = c("A", "A", "B"),
     n = c(30, 60, 10),
     stringsAsFactors = FALSE
   )
 
-  p <- plot_sunburst(paths, path_cols = "l1", path_value = "n",
+  p <- tfl_plot_sunburst(paths, path_cols = "l1", path_value = "n",
                      label_min_frac = 0.2)
   rect <- ggplot2::layer_data(p, 1)
   expect_equal(nrow(rect), 2)
@@ -46,9 +46,9 @@ test_that("plot_sunburst sums duplicate paths and hides sliver labels", {
   expect_true(any(txt$label == ""))
 })
 
-test_that("plot_sunburst validates paths", {
+test_that("tfl_plot_sunburst validates paths", {
   expect_error(
-    plot_sunburst(
+    tfl_plot_sunburst(
       data.frame(l1 = "A", l2 = "B", n = -1, stringsAsFactors = FALSE),
       path_cols = c("l1", "l2")
     ),
@@ -57,7 +57,7 @@ test_that("plot_sunburst validates paths", {
 
   # A path may not resume after an NA ring.
   expect_error(
-    plot_sunburst(
+    tfl_plot_sunburst(
       data.frame(
         l1 = c("A", NA),
         l2 = c("B", "A"),
@@ -70,7 +70,7 @@ test_that("plot_sunburst validates paths", {
   )
 
   expect_error(
-    plot_sunburst(
+    tfl_plot_sunburst(
       data.frame(l1 = c("A", "B"), n = c(1, 1), stringsAsFactors = FALSE),
       path_cols = "l1",
       levels = "A"
@@ -79,14 +79,14 @@ test_that("plot_sunburst validates paths", {
   )
 })
 
-test_that("plot_sunburst honours palette, labels and center annotation", {
+test_that("tfl_plot_sunburst honours palette, labels and center annotation", {
   paths <- data.frame(
     l1 = c("A", "B"),
     n = c(6, 4),
     stringsAsFactors = FALSE
   )
 
-  p <- plot_sunburst(
+  p <- tfl_plot_sunburst(
     paths,
     path_cols = "l1", path_value = "n",
     palette = c(A = "#111111", B = "#222222"),

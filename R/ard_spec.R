@@ -11,8 +11,8 @@
 # trace it -- output_id, analysis_id, population_id -- and all of them are
 # bound into ONE ARD for the study (output/ard/ard.rds).
 #
-# The workbook is turned into R code (ard_spec_code()) and the ARD is made by
-# running that code (build_ard()), so the code a programmer can read, keep
+# The workbook is turned into R code (tfl_ard_code()) and the ARD is made by
+# running that code (tfl_build_ard()), so the code a programmer can read, keep
 # and rerun is exactly what made the ARD.
 #
 #   study        key / value: id (the subject key, USUBJID), output (where
@@ -24,7 +24,7 @@
 #                where, by, variables, statistics, formats, args, code
 #
 # The concepts are those of CDISC ARS (analysis set, data subset, grouping,
-# method), so an ard_spec can later be written as ARS metadata.
+# method), so an tfl_ard_spec can later be written as ARS metadata.
 
 .ard_spec_sheets <- list(
   study = c("key", "value"),
@@ -98,23 +98,23 @@
 #' Write an ARD definition to a workbook
 #'
 #' Writes the four sheets, a `_README`, and the catalogs the spec is checked
-#' against (`_methods`, `_statistics`) for reference; [read_ard_spec()]
+#' against (`_methods`, `_statistics`) for reference; [tfl_read_ard_spec()]
 #' takes one back.
 #'
-#' @param spec An ARD definition: an [ard_spec()], or a list of the sheets.
+#' @param spec An ARD definition: an [tfl_ard_spec()], or a list of the sheets.
 #' @param path The workbook to write.
-#' @param statistics,methods The catalogs ([ard_statistics()],
-#'   [ard_methods()]) to use instead of the current ones.
+#' @param statistics,methods The catalogs ([tfl_ard_statistics()],
+#'   [tfl_ard_methods()]) to use instead of the current ones.
 #' @return `path`, invisibly.
 #' @export
-write_ard_spec <- function(spec, path, statistics = NULL, methods = NULL) {
+tfl_write_ard_spec <- function(spec, path, statistics = NULL, methods = NULL) {
   old <- .set_catalogs(statistics, methods)
   on.exit(options(old), add = TRUE)
   a <- stats::setNames(lapply(names(.ard_spec_sheets), function(s)
     .normalize_ard_sheet(spec[[s]], s)), names(.ard_spec_sheets))
   writexl::write_xlsx(c(list(`_README` = .ard_readme()), a,
-                        list(`_methods` = ard_methods(),
-                             `_statistics` = ard_statistics())), path)
+                        list(`_methods` = tfl_ard_methods(),
+                             `_statistics` = tfl_ard_statistics())), path)
   invisible(path)
 }
 
@@ -148,10 +148,10 @@ write_ard_spec <- function(spec, path, statistics = NULL, methods = NULL) {
 #' @param path An `ard_spec.xlsx`.
 #' @param check `FALSE` reads a definition still being written without
 #'   refusing it.
-#' @inheritParams write_ard_spec
-#' @return An `ard_spec`: a list of the four sheets.
+#' @inheritParams tfl_write_ard_spec
+#' @return An `tfl_ard_spec`: a list of the four sheets.
 #' @export
-read_ard_spec <- function(path, check = TRUE, statistics = NULL,
+tfl_read_ard_spec <- function(path, check = TRUE, statistics = NULL,
                           methods = NULL) {
   sheets <- readxl::excel_sheets(path)
   out <- lapply(names(.ard_spec_sheets), function(s) {
@@ -174,8 +174,8 @@ read_ard_spec <- function(path, check = TRUE, statistics = NULL,
     d[rowSums(!is.na(d)) > 0, , drop = FALSE]
   })
   names(out) <- names(.ard_spec_sheets)
-  if (check) ard_spec(out, statistics = statistics, methods = methods) else
-    structure(out, class = "ard_spec")
+  if (check) tfl_ard_spec(out, statistics = statistics, methods = methods) else
+    structure(out, class = "tfl_ard_spec")
 }
 
 # a sheet as text, as it reads in Excel
@@ -185,13 +185,13 @@ read_ard_spec <- function(path, check = TRUE, statistics = NULL,
   as.data.frame(d, stringsAsFactors = FALSE, check.names = FALSE)
 }
 
-#' @rdname read_ard_spec
+#' @rdname tfl_read_ard_spec
 #' @param x A list of the sheets (data frames).
 #' @export
-ard_spec <- function(x, statistics = NULL, methods = NULL) {
+tfl_ard_spec <- function(x, statistics = NULL, methods = NULL) {
   old <- .set_catalogs(statistics, methods)
   on.exit(options(old), add = TRUE)
-  x <- structure(x, class = "ard_spec")
+  x <- structure(x, class = "tfl_ard_spec")
   a <- x$analyses
   err <- character()
   need <- c("output_id", "analysis_id", "method")
@@ -204,9 +204,9 @@ ard_spec <- function(x, statistics = NULL, methods = NULL) {
                                       paste(unique(paste(a$output_id, a$analysis_id)[dup]),
                                             collapse = ", ")))
   m <- stats::na.omit(a$method)
-  bad <- m[!m %in% ard_methods()$method & !grepl("^[A-Za-z.][A-Za-z0-9.]*::[A-Za-z._][A-Za-z0-9._]*$", m)]
+  bad <- m[!m %in% tfl_ard_methods()$method & !grepl("^[A-Za-z.][A-Za-z0-9.]*::[A-Za-z._][A-Za-z0-9._]*$", m)]
   if (length(bad)) err <- c(err, sprintf(
-    "unknown method(s): %s (a keyword of ard_methods(), or pkg::function)",
+    "unknown method(s): %s (a keyword of tfl_ard_methods(), or pkg::function)",
     paste(unique(bad), collapse = ", ")))
   miss <- setdiff(stats::na.omit(c(a$dataset, x$populations$dataset)),
                   x$datasets$dataset)
@@ -216,15 +216,15 @@ ard_spec <- function(x, statistics = NULL, methods = NULL) {
                   x$populations$population_id)
   if (length(miss)) err <- c(err, sprintf("population(s) not in `populations`: %s",
                                           paste(miss, collapse = ", ")))
-  keys <- ard_methods()
-  st <- ard_statistics()
+  keys <- tfl_ard_methods()
+  st <- tfl_ard_statistics()
   for (i in seq_len(nrow(a))) {
     k <- match(a$method[i], keys$method)
     s <- .split_bar(a$statistics[i])
     if (!is.na(k) && keys$kind[k] == "continuous") {
       bad <- setdiff(s, st$statistic[st$kind == "continuous"])
       if (length(bad)) err <- c(err, sprintf(
-        "%s / %s: no continuous statistic %s (see ard_statistics())",
+        "%s / %s: no continuous statistic %s (see tfl_ard_statistics())",
         a$output_id[i], a$analysis_id[i], paste(bad, collapse = ", ")))
     }
     f <- .parse_formats(a$formats[i])
@@ -293,7 +293,7 @@ ard_spec <- function(x, statistics = NULL, methods = NULL) {
 
 # the continuous statistics the ARD program computes (not cards)
 .computed_stats <- function() {
-  d <- ard_statistics("continuous")
+  d <- tfl_ard_statistics("continuous")
   d$statistic[!is.na(d$fun)]
 }
 
@@ -326,7 +326,7 @@ ard_spec <- function(x, statistics = NULL, methods = NULL) {
 # the helpers every ARD program starts with: the computed statistics it
 # uses, and stat_fmt
 .ard_helpers <- function(used) {
-  st <- ard_statistics()
+  st <- tfl_ard_statistics()
   cst <- st[st$kind == "continuous" & !is.na(st$fun) & st$statistic %in% used, ]
   dflt <- st[!duplicated(st$statistic) & !is.na(st$fmt), ]
   dflt <- stats::setNames(dflt$fmt, dflt$statistic)
@@ -389,24 +389,24 @@ ard_spec <- function(x, statistics = NULL, methods = NULL) {
 #' `stat_fmt` helpers; `"body"` is the analyses of `output_id`, ending in
 #' `ard` -- without a header or `saveRDS()`.
 #'
-#' @param spec An [ard_spec()] (or the path of one).
+#' @param spec An [tfl_ard_spec()] (or the path of one).
 #' @param output_id Only these outputs' analyses; `NULL` for all.
 #' @param save `FALSE` leaves out the final `saveRDS()`.
 #' @param part `"all"` (the whole program), `"setup"` or `"body"`.
-#' @inheritParams write_ard_spec
+#' @inheritParams tfl_write_ard_spec
 #' @return The code, one element per line.
 #' @export
-ard_spec_code <- function(spec, output_id = NULL, save = TRUE,
+tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
                           part = c("all", "setup", "body"),
                           statistics = NULL, methods = NULL) {
   part <- match.arg(part)
   old <- .set_catalogs(statistics, methods)
   on.exit(options(old), add = TRUE)
-  x <- if (is.character(spec)) read_ard_spec(spec) else spec
+  x <- if (is.character(spec)) tfl_read_ard_spec(spec) else spec
   a <- x$analyses
   if (!is.null(output_id)) a <- a[a$output_id %in% output_id, , drop = FALSE]
   if (part == "setup") {
-    st <- ard_statistics("continuous")
+    st <- tfl_ard_statistics("continuous")
     return(.ard_common_lines(st$statistic[!is.na(st$fun)]))
   }
   if (part == "body") return(.ard_body_lines(x, a))
@@ -426,7 +426,7 @@ ard_spec_code <- function(spec, output_id = NULL, save = TRUE,
               sprintf("dir.create(dirname(%s), recursive = TRUE, showWarnings = FALSE)",
                       encodeString(out, quote = "\"")),
               sprintf("saveRDS(ard, %s)", encodeString(out, quote = "\"")),
-              "# what was built, and from which definition (ard_spec_hash())",
+              "# what was built, and from which definition (tfl_ard_spec_hash())",
               "status <- data.frame(",
               sprintf("  output_id = c(%s),", q(ids)),
               sprintf("  definition = c(%s),", q(hashes)),
@@ -477,7 +477,7 @@ ard_spec_code <- function(spec, output_id = NULL, save = TRUE,
       .derive_code(obj, r$derive[1L]))
   }
   code <- c(code, "", "# ---- analyses", "ards <- list()")
-  keys <- ard_methods()
+  keys <- tfl_ard_methods()
   for (i in seq_len(nrow(a))) {
     r <- a[i, ]
     pid <- r$population_id
@@ -535,11 +535,11 @@ ard_spec_code <- function(spec, output_id = NULL, save = TRUE,
 #' populations and study keys they use.  An ARD built from a definition
 #' whose fingerprint differs from the one now is outdated.
 #'
-#' @param spec An [ard_spec()].
+#' @param spec An [tfl_ard_spec()].
 #' @param output_id The output.
 #' @return A single string.
 #' @export
-ard_spec_hash <- function(spec, output_id) .ard_output_hash(spec, output_id)
+tfl_ard_spec_hash <- function(spec, output_id) .ard_output_hash(spec, output_id)
 
 .ard_output_hash <- function(spec, output_id) {
   a <- spec$analyses[spec$analyses$output_id %in% output_id, , drop = FALSE]
@@ -560,18 +560,18 @@ ard_spec_hash <- function(spec, output_id) .ard_output_hash(spec, output_id)
 
 #' Make the study's ARD from its definition
 #'
-#' Runs [ard_spec_code()] from the study folder: the ARD is exactly what the
+#' Runs [tfl_ard_code()] from the study folder: the ARD is exactly what the
 #' code gives.
 #'
-#' @inheritParams ard_spec_code
+#' @inheritParams tfl_ard_code
 #' @param dir The study folder (the code's working directory).
 #' @return The ARD (with `output_id`, `analysis_id`, `population_id`),
 #'   invisibly; with `save`, also written where the study key `output`
 #'   says.
 #' @export
-build_ard <- function(spec, dir = ".", output_id = NULL, save = TRUE,
+tfl_build_ard <- function(spec, dir = ".", output_id = NULL, save = TRUE,
                       statistics = NULL, methods = NULL) {
-  code <- ard_spec_code(spec, output_id = output_id, save = save,
+  code <- tfl_ard_code(spec, output_id = output_id, save = save,
                         statistics = statistics, methods = methods)
   owd <- setwd(dir)
   on.exit(setwd(owd), add = TRUE)
@@ -582,12 +582,12 @@ build_ard <- function(spec, dir = ".", output_id = NULL, save = TRUE,
 
 #' One output's part of the study ARD
 #'
-#' @param ard The study ARD ([build_ard()]).
+#' @param ard The study ARD ([tfl_build_ard()]).
 #' @param output_id The output.
-#' @return Its rows, without the id columns: what [ard_normalize()]
+#' @return Its rows, without the id columns: what [tfl_ard_normalize()]
 #'   takes.
 #' @export
-ard_for <- function(ard, output_id) {
+tfl_ard_for <- function(ard, output_id) {
   d <- ard[ard$output_id == output_id, , drop = FALSE]
   d[setdiff(names(d), c("output_id", "analysis_id", "population_id"))]
 }

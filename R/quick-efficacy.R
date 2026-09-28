@@ -2,8 +2,8 @@
 #'
 #' Estimates by subgroup with a text column (N, estimate and 95% CI).
 #'
-#' @inheritParams pp_km
-#' @inheritParams pp_sankey
+#' @inheritParams tfl_fig_km
+#' @inheritParams tfl_fig_sankey
 #' @param key Subject key used to join ADSL.
 #' @param style `hr` (Cox hazard ratio from a time-to-event parameter), `or`
 #'   (odds ratio of response from logistic regression) or `estimates` (a data
@@ -16,7 +16,7 @@
 #' @param responders Values of `AVALC` counted as responders (`or`).
 #' @param theme Theme preset.
 #' @export
-pp_forest <- function(adam = NULL, style = c("hr", "or", "estimates"), param = NULL,
+tfl_fig_forest <- function(adam = NULL, style = c("hr", "or", "estimates"), param = NULL,
                       group = "TRT01P", subgroups = c("SEX", "AGEGR1"), pop = "FASFL", where = NULL,
                       data = NULL, responders = c("CR", "PR"), key = "USUBJID",
                       theme = "boxed", title = NULL, width = 8, height = 5, dpi = 300,
@@ -121,7 +121,7 @@ pp_forest <- function(adam = NULL, style = c("hr", "or", "estimates"), param = N
 
 #' Bar chart code for rates and category percentages
 #'
-#' @inheritParams pp_forest
+#' @inheritParams tfl_fig_forest
 #' @param style `rate_ci` (response rate by group with exact 95% CI),
 #'   `stacked` (100% stacked bars of a category by group) or `dodged`
 #'   (percentages of each category, groups side by side).
@@ -130,7 +130,7 @@ pp_forest <- function(adam = NULL, style = c("hr", "or", "estimates"), param = N
 #' @param palette Palette preset of the group (`rate_ci`, `dodged`) or of the
 #'   category (`stacked`, default `response`).
 #' @export
-pp_bar <- function(adam = NULL, style = c("rate_ci", "stacked", "dodged"), param = "BOR",
+tfl_fig_bar <- function(adam = NULL, style = c("rate_ci", "stacked", "dodged"), param = "BOR",
                    data = "ADRS", category = "AVALC", group = "TRT01P", pop = "FASFL", where = NULL,
                    responders = c("CR", "PR"), legend = NULL, palette = NULL, key = "USUBJID",
                    theme = "boxed", title = NULL, width = 7, height = 4.5, dpi = 300, units = "in",
@@ -180,7 +180,7 @@ pp_bar <- function(adam = NULL, style = c("rate_ci", "stacked", "dodged"), param
                sprintf(" %%>%%\n  mutate(%s = factor(%s, levels = rev(intersect(names(pal), %s))))", category, category, category)
              } else {
                sprintf(" %%>%%\n  # response categories in their usual order, other values after them\n  mutate(%s = factor(%s, levels = unique(c(intersect(%s, %s), sort(%s)))))",
-                       category, category, vec_code(names(pp_palettes()$response)), category, category)
+                       category, category, vec_code(names(tfl_fig_palettes()$response)), category, category)
              }))
     plot <- if (style == "stacked") {
       plus_code("p", c(list(

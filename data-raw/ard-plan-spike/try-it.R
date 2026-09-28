@@ -6,10 +6,10 @@
 #
 #      Rscript data-raw/ard-plan-spike/try-it.R
 #
-#  Left:  ard_normalize() |> ard_spread()          -- runs as it is called
-#  Right: table_plan() |> plan_*() |> apply_plan()   -- declarations, LAST WINS
+#  Left:  tfl_ard_normalize() |> tfl_ard_spread()          -- runs as it is called
+#  Right: tfl_plan() |> plan_*() |> tfl_apply_plan()   -- declarations, LAST WINS
 #
-#  Flattening is NOT deferred either way.  table_plan() takes the normalized
+#  Flattening is NOT deferred either way.  tfl_plan() takes the normalized
 #  frame and the ROLES -- which column goes across, which go down, which
 #  carries the row identity -- so the names it is given are names you can
 #  see, the way ggplot(data, aes(x, y)) works.
@@ -50,11 +50,11 @@ bar <- function(s) cat("\n", strrep("=", 72), "\n ", s, "\n",
                        strrep("=", 72), "\n", sep = "")
 
 # -- 1. the immediate form ---------------------------------------------------
-bar("1. ard_normalize() |> ard_spread()   (runs as it is called)")
+bar("1. tfl_ard_normalize() |> tfl_ard_spread()   (runs as it is called)")
 
 direct <- ard |>
-  ard_normalize() |>
-  ard_spread(
+  tfl_ard_normalize() |>
+  tfl_ard_spread(
     cols  = "TRT01P",
     rows  = c(group = "variable"),
     cells = list(
@@ -65,20 +65,20 @@ direct <- ard |>
 print(as.data.frame(direct))
 
 # -- 2. the same thing as a plan ---------------------------------------------
-bar("2. table_plan() |> plan_*() |> apply_plan()   (the roles, said once)")
+bar("2. tfl_plan() |> plan_*() |> tfl_apply_plan()   (the roles, said once)")
 
-nz <- ard_normalize(ard)        # run it, and look at it if you like
+nz <- tfl_ard_normalize(ard)        # run it, and look at it if you like
 
 p <- nz |>
-  table_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
-  plan_cells(continuous  = c("n"         = "{N:d}",
+  tfl_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
+  tfl_plan_cells(continuous  = c("n"         = "{N:d}",
                              "Mean (SD)" = "{mean} ({sd})"),
              categorical = "{n:d} ({p:%})") |>   # `{p:%}`: digits from the plan
-  plan_digits(2) |>
-  plan_digits(SEX = 1)          # same declarations as block 1
+  tfl_plan_digits(2) |>
+  tfl_plan_digits(SEX = 1)          # same declarations as block 1
 
 print(p)                            # the roles, the layers, and the columns
-planned <- apply_plan(p)
+planned <- tfl_apply_plan(p)
 print(as.data.frame(planned))
 
 cat("\nsame answer as the immediate form: ",
@@ -89,14 +89,14 @@ cat("\nsame answer as the immediate form: ",
 bar("3. now put AGE on 0 dp -- ONE more line, and it wins")
 
 tuned <- p |>
-  plan_digits(AGE = 0)
+  tfl_plan_digits(AGE = 0)
 
 # what the layers resolved to, before anything is computed
-cat("\nresolved `cells` (this is the argument ard_spread() will be given):\n")
-str(apply_plan(tuned, "args")$cells, max.level = 1, give.attr = FALSE)
+cat("\nresolved `cells` (this is the argument tfl_ard_spread() will be given):\n")
+str(tfl_apply_plan(tuned, "args")$cells, max.level = 1, give.attr = FALSE)
 
 cat("\n")
-print(as.data.frame(apply_plan(tuned)))
+print(as.data.frame(tfl_apply_plan(tuned)))
 
 # -- 4. dplyr, wherever it is needed -----------------------------------------
 bar("4. reaching in with dplyr -- before the plan, or inside it")
@@ -104,11 +104,11 @@ bar("4. reaching in with dplyr -- before the plan, or inside it")
 d <- nz[nz$variable != "BMIBL", ]      # the kind of edit no plan can declare
 
 reentered <- d |>
-  table_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
-  plan_cells(continuous = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
+  tfl_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
+  tfl_plan_cells(continuous = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
              categorical = "{n:d} ({p:%})") |>
-  plan_digits(1) |>
-  apply_plan()
+  tfl_plan_digits(1) |>
+  tfl_apply_plan()
 print(as.data.frame(reentered))
 
 # -- 5. a frame that never went near cards -----------------------------------
@@ -125,9 +125,9 @@ own <- data.frame(
   VALUE  = c(20, 31.245, 4.1, 6, 4, 18, 33.108, 5.3, 7, 5),
   stringsAsFactors = FALSE)
 
-print(as.data.frame(apply_plan(
+print(as.data.frame(tfl_apply_plan(
   own |>
-    table_plan(cols = "TRT", rows = c(param = "PARAM"),
+    tfl_plan(cols = "TRT", rows = c(param = "PARAM"),
              # every statistic is a row of its own, and WHICH COLUMN names
              # the row depends on the kind of row: a level for the
              # categorical ones, the statistic for the continuous ones.
@@ -140,22 +140,22 @@ print(as.data.frame(apply_plan(
 # -- 6. one house style, every study ----------------------------------------
 bar("6. a house style is an ordinary function")
 
-# The plan always holds its data -- that is what lets table_plan() check the
+# The plan always holds its data -- that is what lets tfl_plan() check the
 # role names where they are written.  A style shared between studies is
 # therefore a function, which is plain R and takes parameters.
 house <- function(d, digits = 1) {
   d |>
-    table_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
-    plan_cells(continuous  = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
+    tfl_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
+    tfl_plan_cells(continuous  = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
                categorical = "{n:d} ({p:%})") |>
-    plan_digits(digits)
+    tfl_plan_digits(digits)
 }
 
 p6 <- house(nz)
 print(p6)
-print(as.data.frame(apply_plan(p6)))
+print(as.data.frame(tfl_apply_plan(p6)))
 
 # and a layer still wins over the style, because it is just another layer
-print(as.data.frame(apply_plan(house(nz) |> plan_digits(AGE = 0))))
+print(as.data.frame(tfl_apply_plan(house(nz) |> tfl_plan_digits(AGE = 0))))
 
 bar("done")

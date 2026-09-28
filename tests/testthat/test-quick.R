@@ -1,56 +1,56 @@
 test_that("every style of the quick API generates runnable code", {
   skip_if_not_installed("ggsurvfit")
   skip_if_not_installed("patchwork")
-  adam <- pp_example_adam()
-  st <- pp_styles()
+  adam <- tfl_example_adam()
+  st <- tfl_fig_types()
   st <- st[st$type %in% c("km", "waterfall", "swimmer"), ]  # sankey / sunburst: test-sequence.R
   for (i in seq_len(nrow(st))) {
-    fun <- get(c(km = "pp_km", waterfall = "pp_waterfall", swimmer = "pp_swimmer")[[st$type[i]]])
+    fun <- get(c(km = "tfl_fig_km", waterfall = "tfl_fig_waterfall", swimmer = "tfl_fig_swimmer")[[st$type[i]]])
     for (use_adam in list(adam, NULL)) {
       code <- fun(use_adam, style = st$style[i])
-      expect_s3_class(code, "pp_code")
+      expect_s3_class(code, "tfl_code")
       expect_no_error(run_code(code), message = paste(st$type[i], st$style[i]))
     }
   }
 })
 
 test_that("legend presets map to legend types", {
-  adam <- pp_example_adam()
+  adam <- tfl_example_adam()
   for (lg in names(tflspec:::pp_quick_legends)) {
-    code <- pp_km(adam, legend = lg)
+    code <- tfl_fig_km(adam, legend = lg)
     type <- tflspec:::pp_quick_legends[[lg]][1]
     if (type == "manual") expect_match(code, "legend_panel(", fixed = TRUE)
     if (type == "none") expect_match(code, 'legend.position = "none"', fixed = TRUE)
   }
-  expect_error(pp_km(legend = "somewhere"), "legend")
+  expect_error(tfl_fig_km(legend = "somewhere"), "legend")
 })
 
 test_that("unknown options are reported", {
-  expect_error(pp_km(x_maxx = 3), "Unknown argument")
+  expect_error(tfl_fig_km(x_maxx = 3), "Unknown argument")
 })
 
 test_that("global options set data access and output path once", {
   withr_opts <- options(tflspec.data_expr = "adam_data${ds}")
   on.exit(options(withr_opts))
-  code <- pp_km()
+  code <- tfl_fig_km()
   expect_match(code, "adtte <- adam_data$adtte", fixed = TRUE)
 })
 
 test_that("swimmer events are named and ordered", {
-  code <- pp_swimmer(events = c(Death = "DTHADY", Discontinued = "EOSDY"))
+  code <- tfl_fig_swimmer(events = c(Death = "DTHADY", Discontinued = "EOSDY"))
   expect_match(code, 'event_shape  <- c("Death" = 25, "Discontinued" = 24)', fixed = TRUE)
-  expect_error(pp_swimmer(events = c("DTHADY")), "named")
+  expect_error(tfl_fig_swimmer(events = c("DTHADY")), "named")
 })
 
 test_that("plot list rows run through the quick API", {
   skip_if_not_installed("patchwork")
-  adam <- pp_example_adam()
+  adam <- tfl_example_adam()
   path <- tempfile(fileext = ".xlsx")
-  write_plot_list_template(path, adam)
+  tfl_fig_list_template(path, adam)
   expect_true(all(c("plots", "styles", "args") %in% openxlsx::getSheetNames(path)))
-  code <- plot_list_code(path, adam)
+  code <- tfl_fig_list_code(path, adam)
   expect_named(code, c("F-14.2.1", "F-14.2.2", "F-14.2.3"))
   for (cc in code) expect_no_error(run_code(cc))
   bad <- data.frame(plot_id = "x", type = "km", args = "x_max = ")
-  expect_error(plot_list_code(bad), "cannot read args")
+  expect_error(tfl_fig_list_code(bad), "cannot read args")
 })

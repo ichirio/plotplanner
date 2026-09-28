@@ -6,11 +6,11 @@
 # rtfreporter reads a plan the way it reads a gt table: rtf_tables(doc, plan)
 # and as_rtftables(plan) both work, because this method is registered on
 # rtfreporter's as_rtftables() generic.  rtfreporter itself never names
-# the table_plan class.
+# the tfl_plan class.
 
 #' @importFrom rtfreporter as_rtftables
 #' @export
-as_rtftables.table_plan <- function(x, ...) apply_plan(x, "pages")
+as_rtftables.tfl_plan <- function(x, ...) tfl_apply_plan(x, "pages")
 
 # The rounding family.  rtfreporter owns the rule (round_num() and the
 # `rtfreporter.rounding` option); these two only resolve and apply it, so a

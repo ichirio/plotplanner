@@ -17,8 +17,8 @@
 #'   - `link_filter`: expression string for `links` only (optional).
 #'   - `title`: plot title override (optional).
 #'   - `file_name`: output file name (optional).
-#' @param node_id,node_stage,node_label,node_value Node mapping columns passed to `plot_sankey()`.
-#' @param link_source,link_target,link_value Link mapping columns passed to `plot_sankey()`.
+#' @param node_id,node_stage,node_label,node_value Node mapping columns passed to `tfl_plot_sankey()`.
+#' @param link_source,link_target,link_value Link mapping columns passed to `tfl_plot_sankey()`.
 #' @param scale_strategy Scale strategy across subgroups:
 #'   `"shared_max"`, `"shared_first_stage"`, or `"first_stage_normalized"`.
 #' @param scale_reference_subgroup Reference subgroup name used when
@@ -30,14 +30,14 @@
 #' @param output_dir Optional output directory to save PNG files.
 #' @param save_png Whether to write PNG files.
 #' @param width,height,dpi,bg PNG rendering options for `ggsave()`.
-#' @param ... Additional arguments passed to `plot_sankey()`.
+#' @param ... Additional arguments passed to `tfl_plot_sankey()`.
 #'
 #' @return A list with:
 #'   - `plots`: named list of ggplot objects.
 #'   - `metadata`: data frame with subgroup, scales, multipliers, and output file names.
 #' @examples
 #' # The full analysis set is the same five-line, 200-patient cohort as the
-#' # plot_sankey() example; three subgroups of decreasing size (Age < 65,
+#' # tfl_plot_sankey() example; three subgroups of decreasing size (Age < 65,
 #' # Age >= 65, Biomarker positive) share its structure. Every cohort
 #' # follows the usual rules: about 30% of each line is "No Treatment", a
 #' # line's total N never exceeds the treated N of the previous line, there
@@ -142,7 +142,7 @@
 #' # 1) Shared scale: every plot uses the same axis span, so node heights
 #' #    are directly comparable across subgroups -- the smaller subgroups
 #' #    are drawn smaller.
-#' shared <- plot_sankey_subgroups_batch(
+#' shared <- tfl_plot_sankey_batch(
 #'   nodes, links, specs,
 #'   node_label = "label", node_value = "node_n",
 #'   scale_strategy = "shared_max",
@@ -157,7 +157,7 @@
 #' #    comparable, the absolute sizes are not. The magnification is capped
 #' #    by `first_stage_max_multiplier` (default 100); here the subgroups
 #' #    are scaled by about x1.7 / x2.5 / x10.
-#' norm <- plot_sankey_subgroups_batch(
+#' norm <- tfl_plot_sankey_batch(
 #'   nodes, links, specs,
 #'   node_label = "label", node_value = "node_n",
 #'   scale_strategy = "first_stage_normalized",
@@ -177,7 +177,7 @@
 #'   patchwork::wrap_plots(norm$plots, ncol = 2)
 #' }
 #' @export
-plot_sankey_subgroups_batch <- function(
+tfl_plot_sankey_batch <- function(
     nodes,
     links,
     subgroup_specs,
@@ -443,7 +443,7 @@ plot_sankey_subgroups_batch <- function(
       shared_scale_max = shared_max
     ), args_extra)
 
-    p <- do.call(plot_sankey, p_args)
+    p <- do.call(tfl_plot_sankey, p_args)
 
     title_i <- s$title
     if (!is.na(title_i) && nzchar(title_i)) {

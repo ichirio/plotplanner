@@ -199,7 +199,7 @@ pp_var_label_of <- function(ctx, ds, var) {
 # colours, labels); `values` is NULL when only known at run time.
 pp_scale_values <- function(ctx, obj, var, data_values, df_name, default_palette, palette = NULL) {
   pal_name <- palette %or% ctx$prow$palette %or% default_palette
-  pals <- pp_palettes()
+  pals <- tfl_fig_palettes()
   if (!pal_name %in% names(pals)) stop("Unknown palette: ", pal_name, call. = FALSE)
   pal <- pals[[pal_name]]
   fallback <- if (is.null(names(pal))) pal else pals$okabe_ito

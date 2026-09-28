@@ -11,7 +11,7 @@ pp_q_legends <- c("none", "right", "bottom", "top", "inside", "inside_tl", "insi
 
 # Theme terms of a preset (shared with the engine).
 pp_theme_lines <- function(theme = "boxed", base_size = NULL, opt = NULL) {
-  # sizes and line widths come from the figure style standard (fig_style()),
+  # sizes and line widths come from the figure style standard (tfl_fig_style()),
   # or from `opt(key)` -- a plot's own options -- when the caller has them
   if (is.null(opt)) {
     d <- pp_default_options()
@@ -152,7 +152,7 @@ pp_q_eval <- function(adam, data, conds = list(), adsl_vars = NULL, key = "USUBJ
 # Named colour vector for the values of `var`. Literal when `df` is known,
 # otherwise computed when the script runs from `df_name`.
 pp_q_pal <- function(obj, df, var, df_name, palette = "treatment", values = NULL) {
-  pals <- pp_palettes()
+  pals <- tfl_fig_palettes()
   if (!palette %in% names(pals)) stop("Unknown palette: ", palette, call. = FALSE)
   pal <- pals[[palette]]
   fallback <- if (is.null(names(pal))) pal else pals$okabe_ito

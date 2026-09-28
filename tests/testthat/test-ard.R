@@ -23,21 +23,21 @@ make_ard <- function() {
 }
 
 # ard_table() was withdrawn (#474): the one entry point is
-# ard_normalize() |> ard_spread().  These tests were written against the
+# tfl_ard_normalize() |> tfl_ard_spread().  These tests were written against the
 # collapsed call, so this helper does the split, routing each argument to the
 # step that owns it -- which also keeps them honest about where each belongs.
 ard_pipe <- function(ard, ...) {
   args <- list(...)
-  keep <- intersect(names(args), setdiff(names(formals(ard_normalize)), "ard"))
-  x <- do.call(ard_normalize, c(list(ard = ard), args[keep]))
-  do.call(ard_spread, c(list(x = x), args[setdiff(names(args), keep)]))
+  keep <- intersect(names(args), setdiff(names(formals(tfl_ard_normalize)), "ard"))
+  x <- do.call(tfl_ard_normalize, c(list(ard = ard), args[keep]))
+  do.call(tfl_ard_spread, c(list(x = x), args[setdiff(names(args), keep)]))
 }
 
-# ------------------------------------------------------------ ard_normalize
+# ------------------------------------------------------------ tfl_ard_normalize
 
-test_that("ard_normalize() keys the group pairs by name and flattens list-cols", {
+test_that("tfl_ard_normalize() keys the group pairs by name and flattens list-cols", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
 
   expect_true(is.data.frame(d))
   expect_true("TRT" %in% names(d))
@@ -54,7 +54,7 @@ test_that("ard_normalize() keys the group pairs by name and flattens list-cols",
   expect_true(any(!is.na(d$stat_fmt)))
 })
 
-test_that("ard_normalize() reads nothing from the object's attributes", {
+test_that("tfl_ard_normalize() reads nothing from the object's attributes", {
   skip_if_no_cards()
   ard <- make_ard()
   stripped <- as.data.frame(ard)
@@ -64,10 +64,10 @@ test_that("ard_normalize() reads nothing from the object's attributes", {
   expect_null(attr(stripped, "args", exact = TRUE))
   # identical output, including stat_fmt: with cards' class gone the package
   # applies the ARD's own `fmt_fun` column itself
-  expect_equal(ard_normalize(stripped), ard_normalize(ard))
+  expect_equal(tfl_ard_normalize(stripped), tfl_ard_normalize(ard))
 })
 
-test_that("ard_normalize() folds a hierarchy and records the depth", {
+test_that("tfl_ard_normalize() folds a hierarchy and records the depth", {
   skip_if_no_cards()
   adsl <- cards::ADSL
   adsl$TRT <- as.character(adsl$ARM)
@@ -77,7 +77,7 @@ test_that("ard_normalize() folds a hierarchy and records the depth", {
     adae, variables = c(AESOC, AETERM), by = TRT,
     denominator = adsl, id = USUBJID)
 
-  d <- ard_normalize(ard, hierarchy = c("AESOC", "AETERM"))
+  d <- tfl_ard_normalize(ard, hierarchy = c("AESOC", "AETERM"))
   expect_true(all(c("AESOC", "AETERM", ".depth", ".label") %in% names(d)))
   # a SOC summary row: AESOC filled from variable_level, AETERM still missing
   soc <- d[d$variable == "AESOC", , drop = FALSE]
@@ -89,7 +89,7 @@ test_that("ard_normalize() folds a hierarchy and records the depth", {
   expect_identical(pt$.label, pt$AETERM)
 })
 
-test_that("ard_normalize() labels the hierarchical overall rows on request", {
+test_that("tfl_ard_normalize() labels the hierarchical overall rows on request", {
   skip_if_no_cards()
   adsl <- cards::ADSL
   adsl$TRT <- as.character(adsl$ARM)
@@ -99,16 +99,16 @@ test_that("ard_normalize() labels the hierarchical overall rows on request", {
     adae, variables = c(AESOC, AETERM), by = TRT,
     denominator = adsl, id = USUBJID, over_variables = TRUE)
 
-  d <- ard_normalize(ard, hierarchy = c("AESOC", "AETERM"),
+  d <- tfl_ard_normalize(ard, hierarchy = c("AESOC", "AETERM"),
                      overall = "Any TEAE")
   expect_true(any(d$AESOC == "Any TEAE", na.rm = TRUE))
   expect_true(all(is.na(d$AETERM[d$.overall])))
   # without `overall` the sentinel rows are dropped rather than left dangling
-  d2 <- ard_normalize(ard, hierarchy = c("AESOC", "AETERM"))
+  d2 <- tfl_ard_normalize(ard, hierarchy = c("AESOC", "AETERM"))
   expect_false(any(d2$variable == "..ard_hierarchical_overall.."))
 })
 
-# ------------------------------------- ard_normalize() |> ard_spread()
+# ------------------------------------- tfl_ard_normalize() |> tfl_ard_spread()
 
 test_that("the pipe builds the demographics shape", {
   skip_if_no_cards()
@@ -279,7 +279,7 @@ test_that("cells match an ARD whose context cards has never used", {
 
 test_that("the structural kind is read from the rows, not from the context", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   expect_true(".kind" %in% names(d))
   # a variable with levels to enumerate is categorical; one without is not
   expect_identical(unique(d$.kind[d$variable == "AGE"]), "continuous")
@@ -289,13 +289,13 @@ test_that("the structural kind is read from the rows, not from the context", {
   scrambled <- as.data.frame(make_ard())
   scrambled$context[!scrambled$context %in% c("attributes", "total_n")] <-
     "who knows"
-  d2 <- ard_normalize(scrambled)
+  d2 <- tfl_ard_normalize(scrambled)
   expect_identical(d2$.kind, d$.kind)
 })
 
-test_that("ard_keys() reports the stable kind next to the context", {
+test_that("tfl_ard_keys() reports the stable kind next to the context", {
   skip_if_no_cards()
-  out <- utils::capture.output(k <- ard_keys(make_ard()))
+  out <- utils::capture.output(k <- tfl_ard_keys(make_ard()))
   expect_true(any(grepl("Structural kinds", out)))
   expect_false(is.null(k$kinds))
   expect_identical(k$kinds$kind[k$kinds$variable == "AGE"], "continuous")
@@ -390,11 +390,11 @@ test_that("reading a position deliberately, with its name column, is quiet", {
     "variable column too")
 })
 
-# ------------------------------------------------------------- ard_pull ---
+# ------------------------------------------------------------- tfl_ard_pull ---
 
-test_that("ard_pull() reads the header denominators, keyed like the columns", {
+test_that("tfl_ard_pull() reads the header denominators, keyed like the columns", {
   skip_if_no_cards()
-  n <- ard_pull(make_ard(), cols = "TRT")
+  n <- tfl_ard_pull(make_ard(), cols = "TRT")
   expect_named(n)
   expect_setequal(names(n), c("Placebo", "Xanomeline High Dose",
                               "Xanomeline Low Dose"))
@@ -403,11 +403,11 @@ test_that("ard_pull() reads the header denominators, keyed like the columns", {
 
   # the order can be made to match the table's columns
   lv <- c("Xanomeline Low Dose", "Placebo", "Xanomeline High Dose")
-  expect_identical(names(ard_pull(make_ard(), cols = "TRT",
+  expect_identical(names(tfl_ard_pull(make_ard(), cols = "TRT",
                                   levels = list(TRT = lv))), lv)
 })
 
-test_that("ard_pull() keys a crossed header exactly like the spread columns", {
+test_that("tfl_ard_pull() keys a crossed header exactly like the spread columns", {
   skip_if_no_cards()
   adsl <- cards::ADSL
   adsl$TRT   <- as.character(adsl$ARM)
@@ -417,7 +417,7 @@ test_that("ard_pull() keys a crossed header exactly like the spread columns", {
   ard <- cards::ard_stack(adsl, .by = c(TRT, SEX),
                           cards::ard_tabulate(variables = AGEGR,
                                               statistic = ~ c("n", "N", "p")))
-  n   <- ard_pull(ard, cols = c("TRT", "SEX"))
+  n   <- tfl_ard_pull(ard, cols = c("TRT", "SEX"))
   tbl <- ard_pipe(ard, cols = c("TRT", "SEX"), rows = c(group = "variable"),
                    cells = "{n:.0f} ({p:.1f%})")
   # every spread column has a denominator, under the identical name
@@ -425,10 +425,10 @@ test_that("ard_pull() keys a crossed header exactly like the spread columns", {
   expect_equal(sum(n), 254)
 })
 
-test_that("ard_pull() says what to do when the statistic is not there", {
+test_that("tfl_ard_pull() says what to do when the statistic is not there", {
   skip_if_no_cards()
-  expect_error(ard_pull(make_ard(), cols = "NOPE"), "no key 'NOPE'")
-  expect_error(ard_pull(make_ard(), cols = "TRT", stat = "nonesuch"),
+  expect_error(tfl_ard_pull(make_ard(), cols = "NOPE"), "no key 'NOPE'")
+  expect_error(tfl_ard_pull(make_ard(), cols = "TRT", stat = "nonesuch"),
                "No 'nonesuch' found")
 })
 
@@ -566,7 +566,7 @@ make_factor_ard <- function() {
 
 test_that("a factor level keeps its label, not its integer code", {
   skip_if_no_cards()
-  d <- ard_normalize(make_factor_ard())
+  d <- tfl_ard_normalize(make_factor_ard())
   expect_setequal(stats::na.omit(unique(d$variable_level[d$variable == "AGEGR"])),
                   c("<65", "65-74", ">=75"))
   expect_setequal(stats::na.omit(unique(d$variable_level[d$variable == "SEX"])),
@@ -612,7 +612,7 @@ test_that("the keyed columns are plain factors, not ordered ones", {
   expect_identical(as.character(tbl$label[tbl$group == "SEX"]),
                    c("Male", "Female"))
   # the argument that used to ask for the ordered class is gone
-  expect_false("ordered" %in% names(formals(ard_spread)))
+  expect_false("ordered" %in% names(formals(tfl_ard_spread)))
 })
 
 # ------------------------------------------------- stat versus stat_fmt ---
@@ -667,17 +667,17 @@ test_that("a bare token falls back to stat, but stat_fmt demanded is an error", 
   ard <- cards::ard_stack(adsl, .by = TRT,
                           cards::ard_continuous(variables = AGE))
   ard$fmt_fun <- NULL                       # an ARD carrying no formatting
-  d <- ard_normalize(ard)
+  d <- tfl_ard_normalize(ard)
   expect_true(all(is.na(d$stat_fmt)))
-  bare <- ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+  bare <- tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                      cells = "{mean}", notes = FALSE)
   expect_false(is.na(bare$Placebo[1]))       # fell back to `stat`
-  expect_error(ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+  expect_error(tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                           cells = "{mean:stat_fmt}", notes = FALSE),
                "no `stat_fmt` value")
 })
 
-# ------------------------------------------------------- ard_overall(from) ---
+# ------------------------------------------------------- tfl_ard_overall(from) ---
 
 make_bound_ae <- function() {
   adsl <- cards::ADSL
@@ -712,7 +712,7 @@ test_that("an overall block built by binding is found when named", {
 
   # named, it becomes the overall row, with the key read from variable_level
   with <- ard_pipe(ard, cols = "TRT", hierarchy = "AESOC",
-                    overall = ard_overall("Any TEAE", from = "TRT"),
+                    overall = tfl_ard_overall("Any TEAE", from = "TRT"),
                     label = c(soc = "AESOC"), cells = "{n:.0f} ({p:.1f%})",
                     sort = c(".overall", "soc"), notes = FALSE)
   expect_identical(as.character(with$soc)[1], "Any TEAE")
@@ -735,16 +735,16 @@ test_that("a bare string still means the cards sentinel", {
                  label = c(term = "AETERM"), cells = "{n:.0f} ({p:.1f%})",
                  notes = FALSE)
   b <- ard_pipe(ard, cols = "TRT", hierarchy = c("AESOC", "AETERM"),
-                 overall = ard_overall("Any TEAE"), rows = c(soc = "AESOC"),
+                 overall = tfl_ard_overall("Any TEAE"), rows = c(soc = "AESOC"),
                  label = c(term = "AETERM"), cells = "{n:.0f} ({p:.1f%})",
                  notes = FALSE)
   expect_equal(a, b)
   expect_true("Any TEAE" %in% as.character(a$soc))
 })
 
-test_that("ard_overall() refuses a missing label", {
-  expect_error(ard_overall(), "`label` is required")
-  expect_error(ard_overall(c("a", "b")), "one string")
+test_that("tfl_ard_overall() refuses a missing label", {
+  expect_error(tfl_ard_overall(), "`label` is required")
+  expect_error(tfl_ard_overall(c("a", "b")), "one string")
 })
 
 # ------------------------------------------------------------ the notes ----
@@ -791,35 +791,35 @@ test_that("the middle stage survives being rebuilt", {
                 categorical = "{n:.0f} ({p:.1f%})")
   ref <- ard_pipe(ard, cols = "TRT", cells = cells, notes = FALSE)
 
-  d <- ard_normalize(ard)
+  d <- tfl_ard_normalize(ard)
   # the attributes are conveniences, not requirements
   bare <- d
   for (a in c("ard_factor_levels", "ard_ignored", "ard_hierarchy")) {
     attr(bare, a) <- NULL
   }
-  got <- ard_spread(bare, cols = "TRT", cells = cells, notes = FALSE)
+  got <- tfl_ard_spread(bare, cols = "TRT", cells = cells, notes = FALSE)
   expect_identical(lapply(got, as.character), lapply(ref, as.character))
 
   # a one-pipe middle stage works, `mutate()` and all
   piped <- ard |>
-    ard_normalize() |>
+    tfl_ard_normalize() |>
     dplyr::filter(!is.na(.data$stat)) |>
     dplyr::mutate(.marker = 1L) |>
-    ard_spread(cols = "TRT", cells = cells, notes = FALSE)
+    tfl_ard_spread(cols = "TRT", cells = cells, notes = FALSE)
   expect_identical(lapply(piped, as.character), lapply(ref, as.character))
 
   # ... and the label column's declared order survives it too, because the
   # order rides in the `.label_order` column rather than an attribute.
-  fd <- ard_normalize(make_factor_ard())
+  fd <- tfl_ard_normalize(make_factor_ard())
   fc <- list(continuous = c("Mean" = "{mean:.1f}"), categorical = "{n:.0f}")
   expect_true(".label_order" %in% names(fd))
   expect_true(any(!is.na(fd$.label_order)))
-  ref_lab <- ard_spread(fd, cols = "TRT", cells = fc, notes = FALSE)$label
+  ref_lab <- tfl_ard_spread(fd, cols = "TRT", cells = fc, notes = FALSE)$label
   expect_s3_class(ref_lab, "factor")
   for (rebuilt in list(dplyr::mutate(fd, .marker = 1L),
                        dplyr::filter(fd, !is.na(.data$stat)),
                        fd[!is.na(fd$stat), , drop = FALSE])) {
-    got <- ard_spread(rebuilt, cols = "TRT", cells = fc, notes = FALSE)$label
+    got <- tfl_ard_spread(rebuilt, cols = "TRT", cells = fc, notes = FALSE)$label
     expect_s3_class(got, "factor")
     expect_identical(levels(got), levels(ref_lab))
   }
@@ -827,7 +827,7 @@ test_that("the middle stage survives being rebuilt", {
   # a caller who relabels a level keeps that level's position
   indented <- dplyr::mutate(fd, .label = ifelse(.data$.label == "Female",
                                                 "  Female", .data$.label))
-  lab <- ard_spread(indented, cols = "TRT", cells = fc, notes = FALSE)$label
+  lab <- tfl_ard_spread(indented, cols = "TRT", cells = fc, notes = FALSE)$label
   expect_true("  Female" %in% levels(lab))
   expect_lt(match("  Female", levels(lab)), match("Male", levels(lab)))
 
@@ -838,12 +838,12 @@ test_that("the middle stage survives being rebuilt", {
   expect_false(is.null(attr(d, "ard_ignored", exact = TRUE)))
 
   # "is there a hierarchy?" is a column question now, so it survives too
-  expect_true(all(is.na(ard_normalize(ard)$.depth)))
+  expect_true(all(is.na(tfl_ard_normalize(ard)$.depth)))
   adsl <- cards::ADSL
   adsl$TRT <- as.character(adsl$ARM)
   adae <- merge(cards::ADAE[, c("USUBJID", "AESOC")],
                 adsl[, c("USUBJID", "TRT")], by = "USUBJID")
-  h <- ard_normalize(
+  h <- tfl_ard_normalize(
     cards::ard_stack_hierarchical(adae, variables = AESOC, by = TRT,
                                   denominator = adsl, id = USUBJID),
     hierarchy = "AESOC")
@@ -852,14 +852,14 @@ test_that("the middle stage survives being rebuilt", {
 
 test_that("passing the raw ARD says so", {
   skip_if_no_cards()
-  err <- tryCatch(ard_spread(cards::ADSL, cols = "ARM"),
+  err <- tryCatch(tfl_ard_spread(cards::ADSL, cols = "ARM"),
                   error = function(e) conditionMessage(e))
-  expect_match(err, "does not look like an ard_normalize")
+  expect_match(err, "does not look like an tfl_ard_normalize")
   expect_match(err, "Pass the ARD through")
   # but a rebuilt frame without the class is still accepted
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   class(d) <- "data.frame"
-  expect_s3_class(ard_spread(d, cols = "TRT", cells = "{n:.0f} ({p:.1f%})",
+  expect_s3_class(tfl_ard_spread(d, cols = "TRT", cells = "{n:.0f} ({p:.1f%})",
                              notes = FALSE), "data.frame")
 })
 
@@ -912,19 +912,19 @@ test_that("sort_stat totals a statistic across the spread columns", {
 
 test_that("rounding = 'r' reaches the cells", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   d <- d[d$variable == "AGE" & d$stat_name == "mean", ]
   d$stat <- 0.5
-  sas <- ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+  sas <- tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                     cells = "{mean:.0f}", rounding = "sas")
-  r   <- ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+  r   <- tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                     cells = "{mean:.0f}", rounding = "r")
   expect_identical(sas$Placebo, "1")
   expect_identical(r$Placebo, "0")
 })
 
 test_that("the pipe refuses an input that is not an ARD", {
-  expect_error(ard_normalize(data.frame(a = 1)), "cards ARD")
+  expect_error(tfl_ard_normalize(data.frame(a = 1)), "cards ARD")
   skip_if_no_cards()
   expect_error(ard_pipe(make_ard(), cols = "NOPE"), "no column 'NOPE'")
 })
@@ -945,16 +945,16 @@ test_that("naming the analysed variable says where its levels went", {
 
 # ----------------------------------------------------------------- the spec
 
-# A definition is read by table_plan(spec = ), which lives in the plan spike;
+# A definition is read by tfl_plan(spec = ), which lives in the plan spike;
 # these tests skip once that file is deleted.
 spec_table <- function(d, spec, ...) {
-  testthat::skip_if_not(exists("table_plan", mode = "function"),
+  testthat::skip_if_not(exists("tfl_plan", mode = "function"),
                         "the plan spike is not here")
-  apply_plan(table_plan(d, spec = spec, notes = FALSE, ...), "table")
+  tfl_apply_plan(tfl_plan(d, spec = spec, notes = FALSE, ...), "table")
 }
 
 dm_spec <- function(output_id = NA) {
-  table_spec(
+  tfl_table_spec(
     study = c(rounding = "sas"),
     tables = data.frame(output_id = output_id, cols = "TRT",
                         rows = "group = variable",
@@ -978,14 +978,14 @@ dm_spec <- function(output_id = NA) {
 test_that("a three-sheet spec supplies the roles as well as the cells", {
   skip_if_no_cards()
   sp <- dm_spec()
-  expect_s3_class(sp, "table_spec")
+  expect_s3_class(sp, "tfl_table_spec")
   expect_identical(names(sp), c("study", "tables", "variables", "cells",
                                 "layout", "columns", "style", "col_header",
                                 "report", "page", "header", "footer",
                                 "titles", "footnotes"))
 
   # no cols / rows in the call: the `tables` sheet says them
-  tbl <- spec_table(ard_normalize(make_ard()), sp)
+  tbl <- spec_table(tfl_ard_normalize(make_ard()), sp)
   expect_identical(as.character(unique(tbl$group)),
                    c("Age (years)", "Age group", "Sex"))
   age <- tbl[tbl$group == "Age (years)", ]
@@ -996,7 +996,7 @@ test_that("a three-sheet spec supplies the roles as well as the cells", {
   expect_identical(as.character(gr$label), c("<65", "65-74", ">=75"))
 
   # the same table as the arguments written out
-  ref <- ard_spread(ard_normalize(make_ard()), cols = "TRT",
+  ref <- tfl_ard_spread(tfl_ard_normalize(make_ard()), cols = "TRT",
                     rows = c(group = "variable"), rounding = "sas",
                     labels = c(AGE = "Age (years)", AGEGR = "Age group",
                                SEX = "Sex"),
@@ -1010,7 +1010,7 @@ test_that("a three-sheet spec supplies the roles as well as the cells", {
 
 test_that("an argument given in the call wins over the spec", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   tbl <- spec_table(d, dm_spec(), rows = c(block = "variable"))
   expect_true("block" %in% names(tbl))
   expect_false("group" %in% names(tbl))
@@ -1019,31 +1019,31 @@ test_that("an argument given in the call wins over the spec", {
 test_that("the workbook round-trips, and nothing but a workbook is one", {
   skip_if_no_cards()
   sp <- dm_spec("DM")
-  expect_error(write_table_spec(sp, tempfile(fileext = ".csv")), ".xlsx workbook")
-  expect_error(write_table_spec(sp, tempfile()), ".xlsx workbook")
-  expect_error(read_table_spec("spec.csv"), ".xlsx workbook")
+  expect_error(tfl_write_table_spec(sp, tempfile(fileext = ".csv")), ".xlsx workbook")
+  expect_error(tfl_write_table_spec(sp, tempfile()), ".xlsx workbook")
+  expect_error(tfl_read_table_spec("spec.csv"), ".xlsx workbook")
 
   skip_if_not_installed("writexl")
   skip_if_not_installed("readxl")
   f <- tempfile(fileext = ".xlsx")
   on.exit(unlink(f), add = TRUE)
-  write_table_spec(sp, f)
+  tfl_write_table_spec(sp, f)
   expect_true(all(c("study", "about") %in% readxl::excel_sheets(f)))
-  back <- read_table_spec(f, output_id = "DM")
+  back <- tfl_read_table_spec(f, output_id = "DM")
   expect_identical(attr(back, "output_id"), "DM")
   expect_identical(tflspec:::.ard_spec_study_value(back, "rounding"), "sas")
   expect_equal(back$cells$template, sp$cells$template)
   expect_equal(back$variables$levels, sp$variables$levels)
-  a <- spec_table(ard_normalize(make_ard()), f)
-  b <- spec_table(ard_normalize(make_ard()), sp)
+  a <- spec_table(tfl_ard_normalize(make_ard()), f)
+  b <- spec_table(tfl_ard_normalize(make_ard()), sp)
   expect_equal(a, b)
 })
 
 test_that("rows with the same key are one chain, and `when` guards one", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   d$stat[d$stat_name == "n" & d$variable == "SEX" & d$.label == "F"] <- 0
-  sp <- table_spec(
+  sp <- tfl_table_spec(
     tables = data.frame(cols = "TRT", rows = "group = variable"),
     cells = data.frame(variable = c("SEX", "SEX"),
                        when     = c("n == 0", NA),
@@ -1052,12 +1052,12 @@ test_that("rows with the same key are one chain, and `when` guards one", {
   sex <- tbl[tbl$group == "SEX", ]
   expect_identical(unname(unlist(sex[sex$label == "F", "Placebo"])), "none")
   expect_false(any(sex$Placebo[sex$label == "M"] == "none"))
-  expect_error(tflspec:::.ard_spec_cells(table_spec(cells = data.frame(
+  expect_error(tflspec:::.ard_spec_cells(tfl_table_spec(cells = data.frame(
     variable = "SEX", when = "n ==", template = "x"))), "not valid R")
 })
 
 test_that("quoted values in `rows` are constant headings; NA drops the label", {
-  a <- tflspec:::.ard_spec_table_args(table_spec(tables = data.frame(
+  a <- tflspec:::.ard_spec_table_args(tfl_table_spec(tables = data.frame(
     cols = "BASEGR", rows = 'LBTOX_LBL | group1 = "Worst Post-Baseline"',
     label = "NA", sort = ".overall | group1 | -n")))
   expect_identical(a$cols, "BASEGR")
@@ -1067,52 +1067,52 @@ test_that("quoted values in `rows` are constant headings; NA drops the label", {
   expect_s3_class(a$rows[[2L]], "formula")
   expect_true(is.na(a$label))
   expect_identical(a$sort, c(".overall", "group1", "-n"))
-  b <- tflspec:::.ard_spec_table_args(table_spec(tables = data.frame(
+  b <- tflspec:::.ard_spec_table_args(tfl_table_spec(tables = data.frame(
     cols = "TR01AG1 | SEROSTAT", label = "label = AEDECOD", sort = "false")))
   expect_identical(b$cols, c("TR01AG1", "SEROSTAT"))
   expect_identical(b$label, c(label = "AEDECOD"))
   expect_false(b$sort)
 })
 
-test_that("table_spec() refuses what it would otherwise quietly ignore", {
-  expect_error(table_spec(tables = data.frame(cols = "TRT", colz = "x")),
+test_that("tfl_table_spec() refuses what it would otherwise quietly ignore", {
+  expect_error(tfl_table_spec(tables = data.frame(cols = "TRT", colz = "x")),
                "does not read")
   # a column that belongs on another sheet says which
-  expect_error(table_spec(tables = data.frame(cols = "TRT", levels = "a | b")),
+  expect_error(tfl_table_spec(tables = data.frame(cols = "TRT", levels = "a | b")),
                "a `variables` column")
-  expect_error(table_spec(study = c(rounding = "banker")), "must be")
+  expect_error(tfl_table_spec(study = c(rounding = "banker")), "must be")
   # rounding is one per study: on `tables` it is refused, pointing at `study`
-  expect_error(table_spec(tables = data.frame(cols = "TRT", rounding = "sas")),
+  expect_error(tfl_table_spec(tables = data.frame(cols = "TRT", rounding = "sas")),
                "`study` sheet")
-  expect_error(table_spec(study = c(font = "Arial")), "does not read")
-  expect_error(table_spec(study = data.frame(key = c("rounding", "rounding"),
+  expect_error(tfl_table_spec(study = c(font = "Arial")), "does not read")
+  expect_error(tfl_table_spec(study = data.frame(key = c("rounding", "rounding"),
                                            value = c("r", "sas"))), "twice")
-  expect_error(table_spec(cells = data.frame(variable = "AGE", row = "n")),
+  expect_error(tfl_table_spec(cells = data.frame(variable = "AGE", row = "n")),
                "no `template`")
-  expect_error(table_spec(tables = data.frame(output_id = c("T1", "T1"),
+  expect_error(tfl_table_spec(tables = data.frame(output_id = c("T1", "T1"),
                                             cols = "TRT")), "two rows")
-  expect_error(table_spec(variables = data.frame(variable = c("AGE", "AGE"))),
+  expect_error(tfl_table_spec(variables = data.frame(variable = c("AGE", "AGE"))),
                "two rows")
   # `note` is for people and always allowed
-  expect_s3_class(table_spec(tables = data.frame(cols = "TRT", note = "hi")),
-                  "table_spec")
+  expect_s3_class(tfl_table_spec(tables = data.frame(cols = "TRT", note = "hi")),
+                  "tfl_table_spec")
   # the one-sheet layout names where its columns went
-  expect_error(table_spec(data.frame(variable = "AGE", template = "{mean}")),
+  expect_error(tfl_table_spec(data.frame(variable = "AGE", template = "{mean}")),
                "one-sheet layout")
 })
 
 test_that("`cols` has to come from somewhere", {
   skip_if_no_cards()
-  expect_error(spec_table(ard_normalize(make_ard()),
-                          table_spec(cells = data.frame(
+  expect_error(spec_table(tfl_ard_normalize(make_ard()),
+                          tfl_table_spec(cells = data.frame(
                             variable = "AGE", template = "{mean}"))),
                "`cols` is required")
 })
 
-test_that("table_spec_template() scaffolds the three sheets", {
+test_that("tfl_table_spec_template() scaffolds the three sheets", {
   skip_if_no_cards()
-  sp <- table_spec_template(make_ard(), cols = "TRT", output_id = "DM")
-  expect_s3_class(sp, "table_spec")
+  sp <- tfl_table_spec_template(make_ard(), cols = "TRT", output_id = "DM")
+  expect_s3_class(sp, "tfl_table_spec")
   expect_identical(sp$tables$cols, "TRT")
   expect_identical(sp$tables$output_id, "DM")
   expect_true(all(c("AGE", "AGEGR", "SEX") %in% sp$variables$variable))
@@ -1122,14 +1122,14 @@ test_that("table_spec_template() scaffolds the three sheets", {
   lv <- sp$variables$levels[sp$variables$variable == "AGEGR"]
   expect_setequal(strsplit(lv, " | ", fixed = TRUE)[[1]], c("<65", "65-74", ">=75"))
   # and it runs as written
-  tbl <- spec_table(ard_normalize(make_ard()), sp)
+  tbl <- spec_table(tfl_ard_normalize(make_ard()), sp)
   expect_true(all(c("Placebo") %in% names(tbl)))
 })
 
 # --------------------------------------------- one shared spec, many reports
 
 test_that("output_id: a report's own row replaces the default, per sheet", {
-  sp <- table_spec(
+  sp <- tfl_table_spec(
     tables = data.frame(output_id = c(NA, "T14-3-1"),
                         cols = c("TRT", NA), na = c("-", "NE")),
     variables = data.frame(output_id = c(NA, "T14-3-1"),
@@ -1151,24 +1151,24 @@ test_that("output_id: a report's own row replaces the default, per sheet", {
 })
 
 test_that("several reports and no output_id is refused, naming them", {
-  sp <- table_spec(tables = data.frame(output_id = c("DM", "AE"), cols = "TRT"))
+  sp <- tfl_table_spec(tables = data.frame(output_id = c("DM", "AE"), cols = "TRT"))
   expect_error(tflspec:::.ard_spec_scope(sp), "defines 2 reports")
   expect_identical(attr(tflspec:::.ard_spec_scope(sp, "AE"), "output_id"),
                    "AE")
-  one <- table_spec(tables = data.frame(output_id = "DM", cols = "TRT"))
+  one <- tfl_table_spec(tables = data.frame(output_id = "DM", cols = "TRT"))
   expect_identical(attr(tflspec:::.ard_spec_scope(one), "output_id"), "DM")
 })
 
 test_that("output_id against a spec that cannot honour it is an error", {
-  only <- table_spec(tables = data.frame(output_id = "T1", cols = "TRT"))
+  only <- tfl_table_spec(tables = data.frame(output_id = "T1", cols = "TRT"))
   expect_error(tflspec:::.ard_spec_scope(only, "T9"), "nothing would apply")
   # a file of defaults serves any report, quietly
-  defaults <- table_spec(tables = data.frame(cols = "TRT"))
+  defaults <- tfl_table_spec(tables = data.frame(cols = "TRT"))
   expect_silent(tflspec:::.ard_spec_scope(defaults, "T9"))
 })
 
 test_that("an unnamed report falls back to the defaults, and says so", {
-  sp <- table_spec(cells = data.frame(output_id = c(NA, "T1"),
+  sp <- tfl_table_spec(cells = data.frame(output_id = c(NA, "T1"),
                                     variable = c("AGE", "SEX"),
                                     template = c("{mean}", "{n}")))
   expect_message(tflspec:::.ard_spec_scope(sp, "T9"),
@@ -1199,14 +1199,14 @@ test_that("the workbook's sheets: reserved ones are reported, unknown refused", 
 
 test_that("notes = 'applied' names the template and its guard", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   d$stat[d$stat_name == "n" & d$variable == "SEX"] <- 0
   expect_message(
-    ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+    tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                cells = c(n == 0 ~ "none", "{n:.0f}"), notes = "applied"),
     "templates produced")
   msgs <- capture_messages(
-    ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+    tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                cells = c(n == 0 ~ "none", "{n:.0f}"), notes = "applied"))
   joined <- paste(msgs, collapse = "")
   expect_match(joined, "when n == 0", fixed = TRUE)
@@ -1216,9 +1216,9 @@ test_that("notes = 'applied' names the template and its guard", {
 
 test_that("an unguarded recipe reports its template with no guard", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   joined <- paste(capture_messages(
-    ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+    tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                cells = "{n:.0f}", notes = "applied")), collapse = "")
   expect_match(joined, "{n:.0f}", fixed = TRUE)
   expect_false(grepl("when", joined, fixed = TRUE))
@@ -1226,36 +1226,36 @@ test_that("an unguarded recipe reports its template with no guard", {
 
 test_that("notes = 'applied' stays quiet for stats = 'rows'", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   d <- d[d$variable == "AGE", , drop = FALSE]
   joined <- paste(capture_messages(
-    ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+    tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                stats = "rows", notes = "applied")), collapse = "")
   expect_false(grepl("templates produced", joined, fixed = TRUE))
 })
 
 test_that("the rounding family: argument > spec > option > R's own", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   d <- d[d$variable == "AGE" & d$stat_name == "mean", ]
   d$stat <- 0.25
   cell <- function(...) {
-    ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+    tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                cells = "{mean:.1f}", notes = FALSE, ...)$Placebo[1]
   }
-  sp <- table_spec(study = c(rounding = "sas"),
+  sp <- tfl_table_spec(study = c(rounding = "sas"),
                  cells = data.frame(variable = "AGE", template = "{mean:.1f}"))
 
   expect_identical(cell(), "0.2")                         # R's own, the default
   expect_identical(cell(rounding = "sas"), "0.3")         # the argument
   from_spec <- function(p) {
-    apply_plan(p, "table")$Placebo[1]
+    tfl_apply_plan(p, "table")$Placebo[1]
   }
-  if (exists("table_plan", mode = "function")) {
-    p <- table_plan(d, spec = sp, cols = "TRT", rows = c(group = "variable"),
+  if (exists("tfl_plan", mode = "function")) {
+    p <- tfl_plan(d, spec = sp, cols = "TRT", rows = c(group = "variable"),
                   notes = FALSE)
     expect_identical(from_spec(p), "0.3")                        # the spec
-    expect_identical(from_spec(p |> plan_digits(rounding = "r")), "0.2")
+    expect_identical(from_spec(p |> tfl_plan_digits(rounding = "r")), "0.2")
   }
 
   old <- options(rtfreporter.rounding = "sas")            # the package's one
@@ -1273,10 +1273,10 @@ test_that("a named rounding is passed on and leaves the spec alone", {
               cells = "{mean:.0f}", notes = FALSE, ...)$Placebo[1]
   }
   # AGE's mean is not a tie here, so compare the two families on one that is
-  d <- ard_normalize(a)
+  d <- tfl_ard_normalize(a)
   d <- d[d$variable == "AGE" & d$stat_name == "mean", ]
   d$stat <- 0.5
-  f <- function(...) ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+  f <- function(...) tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                                 cells = "{mean:.0f}", notes = FALSE, ...)$Placebo[1]
   expect_identical(f(rounding = "sas"), "1")
   expect_identical(f(rounding = "r"), "0")
@@ -1295,7 +1295,7 @@ test_that("a variable the hierarchy does not cover keeps its own level", {
     cards::ard_categorical(adsl, by = TRT, variables = c(SEX, R1)),
     cards::ard_categorical(adsl[adsl$R1 == "A", ], by = c(TRT, R1),
                            variables = R2))
-  d <- ard_normalize(ard, hierarchy = c("R1", "R2"))
+  d <- tfl_ard_normalize(ard, hierarchy = c("R1", "R2"))
   # the nested pair keeps its depths ...
   expect_setequal(unique(d$.depth[d$variable == "R1"]), 1L)
   expect_setequal(unique(d$.depth[d$variable == "R2"]), 2L)
@@ -1307,18 +1307,18 @@ test_that("a variable the hierarchy does not cover keeps its own level", {
   expect_setequal(unique(sex$.label), c("F", "M"))
 })
 
-test_that("ard_template() puts keys outside `cols` into `rows`", {
+test_that("tfl_ard_template() puts keys outside `cols` into `rows`", {
   skip_if_no_cards()
   adsl <- cards::ADSL
   adsl$TRT <- as.character(adsl$ARM)
   adsl$SEX <- as.character(adsl$SEX)
   adsl$GRP <- rep(c("X", "Y"), length.out = nrow(adsl))
   ard <- cards::ard_categorical(adsl, by = c(TRT, GRP), variables = SEX)
-  code <- paste(capture.output(ard_template(ard, cols = "TRT")), collapse = "
+  code <- paste(capture.output(tfl_ard_template(ard, cols = "TRT")), collapse = "
 ")
   expect_match(code, 'rows  = c(GRP = "GRP")', fixed = TRUE)
   # and the generated call runs, keeping GRP as a column of the result
-  txt <- ard_template(ard, cols = "TRT")
+  txt <- tfl_ard_template(ard, cols = "TRT")
   e <- new.env(); assign("ard", ard, e)
   invisible(capture.output(
     eval(parse(text = paste(txt[!startsWith(txt, "#")], collapse = "
@@ -1326,7 +1326,7 @@ test_that("ard_template() puts keys outside `cols` into `rows`", {
   expect_true("GRP" %in% names(get("tbl_df", e)))
 })
 
-test_that("ard_template() spells the hierarchical case so that it runs", {
+test_that("tfl_ard_template() spells the hierarchical case so that it runs", {
   skip_if_no_cards()
   adsl <- cards::ADSL
   adsl$TRT <- as.character(adsl$ARM)
@@ -1335,7 +1335,7 @@ test_that("ard_template() spells the hierarchical case so that it runs", {
   ard <- cards::ard_stack_hierarchical(
     adae, variables = c(AESOC, AEDECOD), by = TRT, denominator = adsl,
     id = USUBJID, over_variables = TRUE)
-  txt <- ard_template(ard, cols = "TRT", hierarchy = c("AESOC", "AEDECOD"))
+  txt <- tfl_ard_template(ard, cols = "TRT", hierarchy = c("AESOC", "AEDECOD"))
   code <- paste(txt, collapse = "
 ")
   expect_match(code, 'hierarchy = c("AESOC", "AEDECOD")', fixed = TRUE)
@@ -1349,7 +1349,7 @@ test_that("ard_template() spells the hierarchical case so that it runs", {
   expect_true(any(out[[1]] == "Any event"))       # the overall block is there
 })
 
-test_that("ard_template() takes its decimal places from the ARD", {
+test_that("tfl_ard_template() takes its decimal places from the ARD", {
   skip_if_no_cards()
   adsl <- cards::ADSL
   adsl$TRT <- as.character(adsl$ARM)
@@ -1360,13 +1360,13 @@ test_that("ard_template() takes its decimal places from the ARD", {
     adsl, by = TRT, variables = AGE,
     statistic = ~ cards::continuous_summary_fns(c("N", "mean", "sd")),
     fmt_fun = AGE ~ list(mean = 2, sd = 3))
-  h <- paste(capture.output(ard_template(house, cols = "TRT")), collapse = "")
-  s <- paste(capture.output(ard_template(study, cols = "TRT")), collapse = "")
+  h <- paste(capture.output(tfl_ard_template(house, cols = "TRT")), collapse = "")
+  s <- paste(capture.output(tfl_ard_template(study, cols = "TRT")), collapse = "")
   expect_match(h, "{mean:.1f} ({sd:.1f})", fixed = TRUE)   # cards' own default
   expect_match(s, "{mean:.2f} ({sd:.3f})", fixed = TRUE)   # the study's
 })
 
-test_that("ard_template() offers the full row set and trims what is absent", {
+test_that("tfl_ard_template() offers the full row set and trims what is absent", {
   skip_if_no_cards()
   adsl <- cards::ADSL
   adsl$TRT <- as.character(adsl$ARM)
@@ -1377,15 +1377,15 @@ test_that("ard_template() offers the full row set and trims what is absent", {
   thin <- cards::ard_continuous(
     adsl, by = TRT, variables = AGE,
     statistic = ~ cards::continuous_summary_fns(c("mean")))
-  f <- paste(capture.output(ard_template(full, cols = "TRT")), collapse = "")
-  t <- paste(capture.output(ard_template(thin, cols = "TRT")), collapse = "")
+  f <- paste(capture.output(tfl_ard_template(full, cols = "TRT")), collapse = "")
+  t <- paste(capture.output(tfl_ard_template(thin, cols = "TRT")), collapse = "")
   expect_match(f, "Q1, Q3", fixed = TRUE)
   expect_match(f, "Min, Max", fixed = TRUE)
   expect_false(grepl("Q1, Q3", t, fixed = TRUE))   # no p25/p75 in this ARD
   expect_false(grepl("Min, Max", t, fixed = TRUE))
 })
 
-test_that("ard_template() writes a script that reaches rtftables", {
+test_that("tfl_ard_template() writes a script that reaches rtftables", {
   skip_if_no_cards()
   adsl <- cards::ADSL
   adsl$TRT <- as.character(adsl$ARM)
@@ -1396,12 +1396,12 @@ test_that("ard_template() writes a script that reaches rtftables", {
       variables = AGE,
       statistic = ~ cards::continuous_summary_fns(c("N", "mean", "sd"))),
     cards::ard_categorical(variables = SEX), .total_n = TRUE)
-  txt <- capture.output(ard_template(ard, cols = "TRT"))
+  txt <- capture.output(tfl_ard_template(ard, cols = "TRT"))
   code <- paste(txt, collapse = "
 ")
   expect_match(code, "as_rtftables(", fixed = TRUE)
   expect_match(code, 'stub_vars  = c("group", "label")', fixed = TRUE)
-  expect_match(code, "ard_pull(ard, cols =", fixed = TRUE)
+  expect_match(code, "tfl_ard_pull(ard, cols =", fixed = TRUE)
   # the whole script runs, and ends in an rtftables object
   e <- new.env(); assign("ard", ard, e)
   suppressMessages(
@@ -1419,7 +1419,7 @@ test_that("with more than one column key the header is left to header_sep", {
   adsl$GRP <- rep(c("X", "Y"), length.out = nrow(adsl))
   ard <- cards::ard_categorical(adsl, by = c(TRT, GRP), variables = SEX)
   code <- paste(capture.output(
-    ard_template(ard, cols = c("TRT", "GRP"))), collapse = "
+    tfl_ard_template(ard, cols = c("TRT", "GRP"))), collapse = "
 ")
   expect_match(code, "header_sep", fixed = TRUE)
   expect_false(grepl("col_header = col_header", code, fixed = TRUE))
@@ -1427,12 +1427,12 @@ test_that("with more than one column key the header is left to header_sep", {
 
 test_that("label = NA separates the rows without printing them", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   d <- d[d$variable == "AGE", , drop = FALSE]
   cells <- c("1" = "{mean:.1f}", "2" = "{sd:.2f}")
-  shown <- ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+  shown <- tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                       label = c(row = ".label"), cells = cells, notes = FALSE)
-  hidden <- ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+  hidden <- tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                        label = NA, cells = cells, notes = FALSE)
   expect_true("row" %in% names(shown))
   expect_false("row" %in% names(hidden))
@@ -1440,18 +1440,18 @@ test_that("label = NA separates the rows without printing them", {
   expect_identical(nrow(hidden), nrow(shown))
   expect_identical(hidden$Placebo, shown$Placebo)
   # and dropping the column outright still collides, which is why NA exists
-  expect_error(ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+  expect_error(tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                           label = NULL, cells = cells, notes = FALSE),
                "same cell")
 })
 
 test_that("a label template indents by rule instead of by paste0()", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   d <- d[d$variable == "AGEGR", , drop = FALSE]
-  plain <- ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+  plain <- tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                       cells = "{n:.0f}", notes = FALSE)
-  tpl <- ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+  tpl <- tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                     label = c(.label == "65-74" ~ "  {.label}", ~ "{.label}"),
                     cells = "{n:.0f}", notes = FALSE)
   expect_true("  65-74" %in% as.character(tpl$label))
@@ -1464,15 +1464,15 @@ test_that("a label template indents by rule instead of by paste0()", {
 
 test_that("a rows template writes a constant heading without a mutate", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
-  z <- ard_spread(d, cols = "TRT",
+  d <- tfl_ard_normalize(make_ard())
+  z <- tfl_ard_spread(d, cols = "TRT",
                   rows = c(grp = ~ "Baseline Characteristics",
                            group = "variable"),
                   cells = "{n:.0f}", notes = FALSE)
   expect_true("grp" %in% names(z))
   expect_setequal(unique(as.character(z$grp)), "Baseline Characteristics")
   # a bare string still means a column, so nothing already written changes
-  y <- ard_spread(d, cols = "TRT", rows = c(group = "variable"),
+  y <- tfl_ard_spread(d, cols = "TRT", rows = c(group = "variable"),
                   cells = "{n:.0f}", notes = FALSE)
   expect_identical(z$Placebo, y$Placebo)
 })
@@ -1492,8 +1492,8 @@ test_that("`labels` can be scoped to one column, like `levels`", {
 
   one <- function(labels) {
     suppressMessages(
-      ard |> ard_normalize() |>
-        ard_spread(cols = "BASE", rows = c(WORST = "variable_level"),
+      ard |> tfl_ard_normalize() |>
+        tfl_ard_spread(cols = "BASE", rows = c(WORST = "variable_level"),
                    label = NA, labels = labels, cells = "{n:d}"))
   }
 
@@ -1528,8 +1528,8 @@ test_that("a scope and a plain value can be mixed, and are told apart", {
     cards::ard_categorical(variables = c(SEX, RACE),
                            statistic = ~ c("n")))
   out <- suppressMessages(
-    ard |> ard_normalize() |>
-      ard_spread(cols = "BASE", cells = "{n:d}",
+    ard |> tfl_ard_normalize() |>
+      tfl_ard_spread(cols = "BASE", cells = "{n:d}",
                  labels = list(SEX  = "Sex [n]",
                                BASE = c("0" = "Baseline 0",
                                         "1" = "Baseline 1"))))
@@ -1556,7 +1556,7 @@ test_that("the default moves no row a declared order did not move", {
     stat_name = "n", stat_label = "n", stat = c(1, 2, 3, 4),
     .label = "L", .kind = "categorical",
     stringsAsFactors = FALSE)
-  out <- ard_spread(d, cols = "TRT", rows = c(PARAM = "PARAM"),
+  out <- tfl_ard_spread(d, cols = "TRT", rows = c(PARAM = "PARAM"),
                     label = c(label = ".label"), cells = "{n:.0f}",
                     notes = FALSE)
   expect_identical(as.character(out$PARAM), c("B", "A"))
@@ -1573,7 +1573,7 @@ test_that("a declared order applies even though nothing asked to sort", {
     stat_name = "n", stat_label = "n", stat = c(1, 2, 3, 4),
     .label = "L", .kind = "categorical",
     stringsAsFactors = FALSE)
-  out <- ard_spread(d, cols = "TRT", rows = c(PARAM = "PARAM"),
+  out <- tfl_ard_spread(d, cols = "TRT", rows = c(PARAM = "PARAM"),
                     label = c(label = ".label"), cells = "{n:.0f}",
                     levels = list(PARAM = c("A", "B")), notes = FALSE)
   expect_identical(as.character(out$PARAM), c("A", "B"))
@@ -1595,7 +1595,7 @@ test_that("a plain key keeps its blocks; TRUE clusters them", {
     stat_name = "n", stat_label = "n", stat = 1:3,
     .label = "L", .kind = "categorical",
     stringsAsFactors = FALSE)
-  run <- function(...) ard_spread(d, cols = "TRT",
+  run <- function(...) tfl_ard_spread(d, cols = "TRT",
                                   rows = c(GRP = "GRP", SUB = "SUB"),
                                   label = c(label = ".label"),
                                   cells = "{n:.0f}", notes = FALSE, ...)
@@ -1615,7 +1615,7 @@ test_that("a declared order sorts WITHIN a plain key's block", {
     stat_name = "n", stat_label = "n", stat = 1:4,
     .label = c("hi", "lo", "hi", "lo"), .kind = "categorical",
     stringsAsFactors = FALSE)
-  out <- ard_spread(d, cols = "TRT", rows = c(PARAM = "PARAM"),
+  out <- tfl_ard_spread(d, cols = "TRT", rows = c(PARAM = "PARAM"),
                     label = c(label = ".label"), cells = "{n:.0f}",
                     levels = list(label = c("lo", "hi")), notes = FALSE)
   expect_identical(as.character(out$PARAM), c("B", "B", "A", "A"))
@@ -1640,25 +1640,25 @@ fct_order <- c("Xanomeline Low Dose", "Placebo", "Xanomeline High Dose")
 
 test_that("a factor key keeps the order it declared, however the rows move", {
   skip_if_no_cards()
-  d <- ard_normalize(make_fct_ard())
+  d <- tfl_ard_normalize(make_fct_ard())
   expect_true(is.factor(d$TRT))
   expect_identical(levels(d$TRT), fct_order)
 
   moved <- rbind(d[d$TRT %in% "Placebo", ], d[!d$TRT %in% "Placebo", ])
   expect_identical(
-    names(ard_spread(moved, cols = "TRT", cells = fct_cells,
+    names(tfl_ard_spread(moved, cols = "TRT", cells = fct_cells,
                      notes = FALSE))[-(1:2)], fct_order)
   bound <- dplyr::bind_rows(d[d$TRT %in% "Placebo", ],
                             d[!d$TRT %in% "Placebo", ])
   expect_identical(
-    names(ard_spread(bound, cols = "TRT", cells = fct_cells,
+    names(tfl_ard_spread(bound, cols = "TRT", cells = fct_cells,
                      notes = FALSE))[-(1:2)], fct_order)
   # the header agrees with the body
-  expect_identical(names(ard_pull(moved, cols = "TRT")), fct_order)
+  expect_identical(names(tfl_ard_pull(moved, cols = "TRT")), fct_order)
   # an explicit `levels` still wins
   rev_order <- rev(fct_order)
   expect_identical(
-    names(ard_spread(moved, cols = "TRT", cells = fct_cells,
+    names(tfl_ard_spread(moved, cols = "TRT", cells = fct_cells,
                      levels = list(TRT = rev_order), notes = FALSE))[-(1:2)],
     rev_order)
 })
@@ -1670,39 +1670,39 @@ test_that("the declared order is read off the ARD, unused levels included", {
                      c("Xanomeline Low Dose", "Placebo",
                        "Xanomeline High Dose", "Not Dosed"))
   ard <- cards::ard_categorical(adsl, by = TRT, variables = SEX)
-  expect_identical(levels(ard_normalize(ard)$TRT),
+  expect_identical(levels(tfl_ard_normalize(ard)$TRT),
                    c("Xanomeline Low Dose", "Placebo",
                      "Xanomeline High Dose", "Not Dosed"))
-  # normalizing twice (what ard_pull() does to a plan's frame) keeps it
-  expect_identical(levels(ard_normalize(ard_normalize(ard))$TRT),
-                   levels(ard_normalize(ard)$TRT))
+  # normalizing twice (what tfl_ard_pull() does to a plan's frame) keeps it
+  expect_identical(levels(tfl_ard_normalize(tfl_ard_normalize(ard))$TRT),
+                   levels(tfl_ard_normalize(ard)$TRT))
 })
 
 test_that("a character key stays character", {
   skip_if_no_cards()
-  d <- ard_normalize(make_ard())
+  d <- tfl_ard_normalize(make_ard())
   expect_type(d$TRT, "character")
 })
 
 test_that("a key variable's own rows are kept, marked, and left out of the body", {
   skip_if_no_cards()
-  d <- ard_normalize(make_fct_ard())
+  d <- tfl_ard_normalize(make_fct_ard())
   expect_true(any(d$.key_own))
   expect_true(all(d$variable[d$.key_own] == "TRT"))
-  tbl <- ard_spread(d, cols = "TRT", cells = fct_cells, notes = FALSE)
+  tbl <- tfl_ard_spread(d, cols = "TRT", cells = fct_cells, notes = FALSE)
   expect_false("TRT" %in% tbl$group)
 
   # flipping the mark spreads them after all
   d2 <- d
   d2$.key_own <- FALSE
-  tbl2 <- ard_spread(d2, cols = "TRT", cells = fct_cells, notes = FALSE)
+  tbl2 <- tfl_ard_spread(d2, cols = "TRT", cells = fct_cells, notes = FALSE)
   expect_true("TRT" %in% tbl2$group)
 
   # drop_key_variables = TRUE removes them outright, and still reports it
-  gone <- ard_normalize(make_fct_ard(), drop_key_variables = TRUE)
+  gone <- tfl_ard_normalize(make_fct_ard(), drop_key_variables = TRUE)
   expect_false("TRT" %in% gone$variable)
   expect_false(any(gone$.key_own))
-  expect_equal(ard_spread(gone, cols = "TRT", cells = fct_cells,
+  expect_equal(tfl_ard_spread(gone, cols = "TRT", cells = fct_cells,
                           notes = FALSE), tbl)
 })
 
@@ -1711,7 +1711,7 @@ test_that(".kind is decided per summary, not per variable", {
   adsl <- cards::ADSL
   adsl$TRT <- as.character(adsl$ARM)
   adsl$DEC <- round(adsl$AGE / 10)
-  d <- ard_normalize(cards::ard_stack(
+  d <- tfl_ard_normalize(cards::ard_stack(
     adsl, .by = TRT,
     cards::ard_continuous(variables = DEC),
     cards::ard_categorical(variables = DEC)))
@@ -1727,19 +1727,19 @@ test_that("the example workbooks shipped with the package still read and run", {
   dir <- system.file("extdata", "ard-spec", package = "tflspec")
   skip_if(!nzchar(dir), "examples not installed")
   for (id in c("DM", "AE", "ORR", "LB", "PK")) {
-    sp <- read_table_spec(file.path(dir, paste0(id, ".xlsx")))
+    sp <- tfl_read_table_spec(file.path(dir, paste0(id, ".xlsx")))
     expect_identical(attr(tflspec:::.ard_spec_scope(sp), "output_id"), id)
-    expect_s3_class(read_table_spec(file.path(dir, "study.xlsx"),
-                                  output_id = id), "table_spec")
+    expect_s3_class(tfl_read_table_spec(file.path(dir, "study.xlsx"),
+                                  output_id = id), "tfl_table_spec")
   }
-  whole <- read_table_spec(file.path(dir, "study.xlsx"))     # the study, whole
+  whole <- tfl_read_table_spec(file.path(dir, "study.xlsx"))     # the study, whole
   expect_setequal(unique(whole$tables$output_id), c("DM", "AE", "ORR", "LB", "PK"))
   expect_error(tflspec:::.ard_spec_scope(whole), "defines 5 reports")
 })
 
 # ------------------------------------------------ the report half
 
-rep_spec <- function() table_spec(
+rep_spec <- function() tfl_table_spec(
   study = c(output_path = "out", program_dir = "C:\\tfl"),
   report = data.frame(output_id = c(NA, "T2"), page_footer = c(NA, "FALSE")),
   page = data.frame(output_id = "T2", orientation = "portrait",
@@ -1758,12 +1758,12 @@ render_lines <- function(doc) {
   readLines(f, warn = FALSE)
 }
 
-test_that("rtf_report() is the document the same code would build", {
+test_that("tfl_report() is the document the same code would build", {
   old <- options(rtfreporter.render_time = as.POSIXct("2026-01-01 09:00"))
   on.exit(options(old), add = TRUE)
   pages <- as_rtftables(data.frame(A = "a", B = "b"))
   sp <- tflspec:::.ard_spec_scope(rep_spec(), "T1")
-  by_spec <- rtf_report(sp, pages)
+  by_spec <- tfl_report(sp, pages)
   by_code <- rtf_document(program = "C:\\tfl\\T1") |>
     rtf_section(secinfo = list(
       header = rtf_header(list(c("SPONSOR"), c("PROTOCOL", "Page {PAGE} of {TOTAL_PAGES}"),
@@ -1775,13 +1775,13 @@ test_that("rtf_report() is the document the same code would build", {
   expect_identical(render_lines(by_spec), render_lines(by_code))
   expect_true(any(grepl("C:\\\\tfl\\\\T1  01Jan2026  09:00", render_lines(by_spec),
                         fixed = TRUE)))
-  expect_identical(report_path(sp), file.path("out", "T1.rtf"))
+  expect_identical(tfl_report_path(sp), file.path("out", "T1.rtf"))
 })
 
 test_that("a report can drop the running footer and use the page sheet", {
   pages <- as_rtftables(data.frame(A = "a"))
   sp <- suppressMessages(tflspec:::.ard_spec_scope(rep_spec(), "T2"))
-  doc <- rtf_report(sp, pages)
+  doc <- tfl_report(sp, pages)
   expect_null(doc$sections[[1L]]$footer)
   expect_identical(doc$document$page$orientation, "portrait")
   expect_identical(doc$document$page$margin_left_in, 0.5)
@@ -1792,27 +1792,27 @@ test_that("a definition can be split over workbooks, and a sheet said once", {
   skip_if_not_installed("writexl"); skip_if_not_installed("readxl")
   a <- tempfile(fileext = ".xlsx"); b <- tempfile(fileext = ".xlsx")
   on.exit(unlink(c(a, b)), add = TRUE)
-  write_table_spec(rep_spec(), a)
-  write_table_spec(table_spec(study = c(rounding = "sas"),
+  tfl_write_table_spec(rep_spec(), a)
+  tfl_write_table_spec(tfl_table_spec(study = c(rounding = "sas"),
                               tables = data.frame(output_id = "T1",
                                                   cols = "TRT")), b)
-  sp <- read_report_spec(c(a, b), output_id = "T1")
+  sp <- tfl_read_report_spec(c(a, b), output_id = "T1")
   expect_identical(tflspec:::.ard_spec_study_value(sp, "rounding"), "sas")
   expect_identical(tflspec:::.ard_spec_study_value(sp, "output_path"), "out")
   expect_identical(sp$tables$cols, "TRT")
   expect_identical(nrow(sp$header), 4L)
   # the same sheet with rows in both is refused
-  write_table_spec(table_spec(header = data.frame(line = 1, left = "x")), b)
-  expect_error(read_report_spec(c(a, b)), "has rows in both")
+  tfl_write_table_spec(tfl_table_spec(header = data.frame(line = 1, left = "x")), b)
+  expect_error(tfl_read_report_spec(c(a, b)), "has rows in both")
 })
 
 test_that("the line is the key: a report's line replaces the default one", {
-  sp <- table_spec(footer = data.frame(output_id = c(NA, NA, "T1"),
+  sp <- tfl_table_spec(footer = data.frame(output_id = c(NA, NA, "T1"),
                                        line = c(1, 99, 99),
                                        left = c("house", "run", "mine")))
   t1 <- tflspec:::.ard_spec_scope(sp, "T1")
   expect_identical(t1$footer$left[order(as.numeric(t1$footer$line))],
                    c("house", "mine"))
-  expect_error(table_spec(header = data.frame(line = c(1, 1), left = "x")),
+  expect_error(tfl_table_spec(header = data.frame(line = c(1, 1), left = "x")),
                "two rows")
 })

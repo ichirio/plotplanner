@@ -1,4 +1,4 @@
-test_that("plot_sankey_subgroups_batch applies shared scale across subgroups", {
+test_that("tfl_plot_sankey_batch applies shared scale across subgroups", {
   nodes <- data.frame(
     id = c("A", "B"),
     stage = c("L1", "L2"),
@@ -19,7 +19,7 @@ test_that("plot_sankey_subgroups_batch applies shared scale across subgroups", {
     stringsAsFactors = FALSE
   )
 
-  res <- plot_sankey_subgroups_batch(
+  res <- tfl_plot_sankey_batch(
     nodes = nodes,
     links = links,
     subgroup_specs = specs,
@@ -41,7 +41,7 @@ test_that("plot_sankey_subgroups_batch applies shared scale across subgroups", {
   expect_equal(h_sub / h_full, 0.5, tolerance = 1e-8)
 })
 
-test_that("plot_sankey_subgroups_batch supports first-stage normalization with cap", {
+test_that("tfl_plot_sankey_batch supports first-stage normalization with cap", {
   nodes <- data.frame(
     id = c("A", "B"),
     stage = c("L1", "L2"),
@@ -62,7 +62,7 @@ test_that("plot_sankey_subgroups_batch supports first-stage normalization with c
     stringsAsFactors = FALSE
   )
 
-  res_cap <- plot_sankey_subgroups_batch(
+  res_cap <- tfl_plot_sankey_batch(
     nodes = nodes,
     links = links,
     subgroup_specs = specs,
@@ -77,7 +77,7 @@ test_that("plot_sankey_subgroups_batch supports first-stage normalization with c
   mul_sub_cap <- res_cap$metadata$multiplier[res_cap$metadata$subgroup == "sub"]
   expect_equal(mul_sub_cap, 2)
 
-  res_nocap <- plot_sankey_subgroups_batch(
+  res_nocap <- tfl_plot_sankey_batch(
     nodes = nodes,
     links = links,
     subgroup_specs = specs,
@@ -93,11 +93,11 @@ test_that("plot_sankey_subgroups_batch supports first-stage normalization with c
   expect_equal(mul_sub_nocap, 5)
 })
 
-test_that("plot_sankey_subgroups_batch caps first-stage magnification at 100 by default", {
-  expect_equal(formals(plot_sankey_subgroups_batch)$first_stage_max_multiplier, 100)
+test_that("tfl_plot_sankey_batch caps first-stage magnification at 100 by default", {
+  expect_equal(formals(tfl_plot_sankey_batch)$first_stage_max_multiplier, 100)
 })
 
-test_that("plot_sankey_subgroups_batch supports shared first-stage reference scale", {
+test_that("tfl_plot_sankey_batch supports shared first-stage reference scale", {
   nodes <- data.frame(
     id = c("A", "B", "A", "B"),
     stage = c("L1", "L2", "L1", "L2"),
@@ -121,7 +121,7 @@ test_that("plot_sankey_subgroups_batch supports shared first-stage reference sca
     stringsAsFactors = FALSE
   )
 
-  res <- plot_sankey_subgroups_batch(
+  res <- tfl_plot_sankey_batch(
     nodes = nodes,
     links = links,
     subgroup_specs = specs,

@@ -158,7 +158,7 @@ if (getRversion() >= "2.15.1") {
 #' # Links use the default single light grey; set
 #' # `use_link_color_by_source = TRUE` to color the ribbons by their source
 #' # node instead.
-#' plot_sankey(
+#' tfl_plot_sankey(
 #'   nodes = nodes,
 #'   links = links,
 #'   node_id = "id",
@@ -178,7 +178,7 @@ if (getRversion() >= "2.15.1") {
 #' )
 #' @export
 #' @importFrom rlang .data
-plot_sankey <- function(
+tfl_plot_sankey <- function(
     nodes,
     links,
     node_id = "id",

@@ -65,7 +65,7 @@ pp_glyphs <- c("point", "line", "rect")
 #' unnamed palettes are assigned to values in order.
 #' @return A named list of character vectors.
 #' @export
-pp_palettes <- function() .fs_palettes()
+tfl_fig_palettes <- function() .fs_palettes()
 
 # Shape names accepted in the spec, mapped to ggplot2 point shapes.
 pp_shape_names <- c(
@@ -75,7 +75,7 @@ pp_shape_names <- c(
 )
 
 # Default option values: the generator's own, then the figure style
-# standard's (fig_style(); a type's rows over the blank-type rows).
+# standard's (tfl_fig_style(); a type's rows over the blank-type rows).
 # `{plot_id}` / `{ds}` are substituted at generation.
 pp_default_options <- function(type = NA) {
   base <- list(

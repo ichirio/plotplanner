@@ -1,15 +1,15 @@
 #' Generate ggplot2 code from a plot spec
 #'
-#' @param spec A spec from [read_plot_spec()] or [plot_spec()].
+#' @param spec A spec from [tfl_read_fig_spec()] or [tfl_fig_spec()].
 #' @param plot_id Plot id(s); `NULL` = all plots.
-#' @param adam Optional ADaM data ([read_adam()]). When given, codelist values
+#' @param adam Optional ADaM data ([tfl_read_adam()]). When given, codelist values
 #'   (colours, factor levels, legend items) are resolved from the data and
 #'   written literally into the code; variable labels become axis labels.
 #' @return A named character vector of R scripts (one per plot).
 #' @export
-plot_code <- function(spec, plot_id = NULL, adam = NULL) {
+tfl_fig_code <- function(spec, plot_id = NULL, adam = NULL) {
   spec <- pp_normalize_spec(spec)
-  if (!is.null(adam)) adam <- read_adam(adam)
+  if (!is.null(adam)) adam <- tfl_read_adam(adam)
   ids <- plot_id %or% spec$plots$plot_id
   miss <- setdiff(ids, spec$plots$plot_id)
   if (length(miss)) stop("Unknown plot_id: ", paste(miss, collapse = ", "), call. = FALSE)
@@ -20,12 +20,12 @@ plot_code <- function(spec, plot_id = NULL, adam = NULL) {
 
 #' Write generated code to `.R` files
 #'
-#' @inheritParams plot_code
+#' @inheritParams tfl_fig_code
 #' @param dir Output folder; files are named `<plot_id>.R`.
 #' @return File paths, invisibly.
 #' @export
-write_plot_code <- function(spec, dir, plot_id = NULL, adam = NULL) {
-  code <- plot_code(spec, plot_id, adam)
+tfl_write_fig_code <- function(spec, dir, plot_id = NULL, adam = NULL) {
+  code <- tfl_fig_code(spec, plot_id, adam)
   dir.create(dir, showWarnings = FALSE, recursive = TRUE)
   paths <- file.path(dir, paste0(pp_file_name(names(code)), ".R"))
   for (i in seq_along(code)) writeLines(code[[i]], paths[i], useBytes = TRUE)
@@ -128,13 +128,13 @@ pp_plot_code1 <- function(spec, pid, adam) {
 #' Reports unknown plot types / layers / presets, missing required roles,
 #' variables not in the datasets and codelist values not in the data.
 #'
-#' @inheritParams plot_code
+#' @inheritParams tfl_fig_code
 #' @return A data frame of issues (`plot_id`, `sheet`, `message`), invisibly.
 #'   Issues are also printed.
 #' @export
-check_plot_spec <- function(spec, adam = NULL) {
+tfl_check_fig_spec <- function(spec, adam = NULL) {
   spec <- pp_normalize_spec(spec)
-  if (!is.null(adam)) adam <- read_adam(adam)
+  if (!is.null(adam)) adam <- tfl_read_adam(adam)
   types <- pp_types()
   issues <- list()
   add <- function(pid, sheet, ...) issues[[length(issues) + 1]] <<- data.frame(plot_id = pid, sheet = sheet, message = paste0(...))
@@ -149,7 +149,7 @@ check_plot_spec <- function(spec, adam = NULL) {
     else if (!is.null(adam) && is.null(adam[[p$dataset]])) add(pid, "plots", "dataset ", p$dataset, " not in ADaM data")
     layers <- split_list(p$layers)
     for (l in setdiff(layers, names(def$layers))) add(pid, "plots", "unknown layer '", l, "' for ", p$plot_type)
-    chk <- list(theme = pp_themes, palette = names(pp_palettes()), legend_type = pp_legend_types, legend_pos = pp_legend_positions)
+    chk <- list(theme = pp_themes, palette = names(tfl_fig_palettes()), legend_type = pp_legend_types, legend_pos = pp_legend_positions)
     for (k in names(chk)) if (!is.na(p[[k]]) && !p[[k]] %in% chk[[k]]) add(pid, "plots", k, " '", p[[k]], "' is not one of: ", paste(chk[[k]], collapse = ", "))
 
     r <- spec$roles[spec$roles$plot_id %in% pid, , drop = FALSE]

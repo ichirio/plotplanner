@@ -10,7 +10,7 @@
 #' parent's start angle and nest inside the parent's span; whatever remains of
 #' the parent's span stays **empty** -- those are the patients with no further
 #' treatment line (attrition), the same idea as the unlinked part of a
-#' `plot_sankey()` node.
+#' `tfl_plot_sankey()` node.
 #'
 #' The input is a **path table**: one row per treatment sequence, with one
 #' column per ring (`path_cols`) and a count column (`path_value`). `NA` (or
@@ -49,7 +49,7 @@
 #' @return A `ggplot` object.
 #' @examples
 #' # One shared dataset, two views. This path table is the first three lines
-#' # of the plot_sankey() example's 200-patient cohort: one row per treatment
+#' # of the tfl_plot_sankey() example's 200-patient cohort: one row per treatment
 #' # sequence (C = Chemo, IO = Immunotherapy, T = Targeted, N = No
 #' # Treatment), `n` patients per path (L1 200 -> L2 120 -> L3 70, about 30%
 #' # "No Treatment" per line, no same-treatment transitions). A name like
@@ -83,7 +83,7 @@
 #' # The SAME paths feed a sankey: per-line totals give the node sizes
 #' # (including the link-less "L1: No Treatment" node) and consecutive-line
 #' # transitions give the links -- exactly the L1-L3 slice of the
-#' # plot_sankey() example's node and link tables.
+#' # tfl_plot_sankey() example's node and link tables.
 #' ring <- c("line1", "line2", "line3")
 #' nodes <- do.call(rbind, lapply(1:3, function(k) {
 #'   data.frame(
@@ -112,7 +112,7 @@
 #' }))
 #'
 #' # Transition view: who moves where between lines.
-#' plot_sankey(
+#' tfl_plot_sankey(
 #'   nodes = nodes,
 #'   links = links,
 #'   node_id = "id",
@@ -134,7 +134,7 @@
 #' # Path view of the very same data: each ring is a treatment line, arc
 #' # length is patients, and the empty remainder of a parent arc is the
 #' # attrition (the sunburst counterpart of the sankey's unlinked node span).
-#' plot_sunburst(
+#' tfl_plot_sunburst(
 #'   paths,
 #'   path_cols = ring,
 #'   path_value = "n",
@@ -145,7 +145,7 @@
 #' )
 #' @export
 #' @importFrom rlang .data
-plot_sunburst <- function(
+tfl_plot_sunburst <- function(
     paths,
     path_cols = NULL,
     path_value = "n",

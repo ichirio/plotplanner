@@ -1,7 +1,7 @@
 #' Sankey / sunburst input from treatment-line data
 #'
 #' Turn one-row-per-subject-per-line data (e.g. lines of therapy) into the
-#' inputs of [plot_sankey()] and [plot_sunburst()].
+#' inputs of [tfl_plot_sankey()] and [tfl_plot_sunburst()].
 #'
 #' @param data Data frame with one row per subject and stage (line).
 #' @param id Subject variable.
@@ -13,9 +13,9 @@
 #' @param levels Optional order of the categories (default: order of first
 #'   appearance, stage by stage).
 #' @param stage_prefix Prefix of the node labels (`"L"` gives `"L1: Chemo"`).
-#' @return `sankey_data()`: a list with `nodes` (`id`, `stage`, `category`,
+#' @return `tfl_sankey_data()`: a list with `nodes` (`id`, `stage`, `category`,
 #'   `label`, `n`, and `grp` when `by` is given) and `links` (`source`,
-#'   `target`, `value`, `grp`). `sunburst_data()`: a data frame with one
+#'   `target`, `value`, `grp`). `tfl_sunburst_data()`: a data frame with one
 #'   column per stage (`L1`, `L2`, ...) and the subject count `n`.
 #' @examples
 #' lot <- data.frame(
@@ -23,12 +23,12 @@
 #'   LINE    = c(1, 2, 1, 1, 2, 3),
 #'   TRT     = c("Chemo", "IO", "Chemo", "IO", "Chemo", "Targeted")
 #' )
-#' sk <- sankey_data(lot, stage = "LINE", category = "TRT")
-#' plot_sankey(sk$nodes, sk$links, node_label = "label", node_value = "n",
+#' sk <- tfl_sankey_data(lot, stage = "LINE", category = "TRT")
+#' tfl_plot_sankey(sk$nodes, sk$links, node_label = "label", node_value = "n",
 #'             node_treatment = "category")
-#' plot_sunburst(sunburst_data(lot, stage = "LINE", category = "TRT"))
+#' tfl_plot_sunburst(tfl_sunburst_data(lot, stage = "LINE", category = "TRT"))
 #' @export
-sankey_data <- function(data, id = "USUBJID", stage = "LINE", category = "TRT",
+tfl_sankey_data <- function(data, id = "USUBJID", stage = "LINE", category = "TRT",
                         by = NULL, levels = NULL, stage_prefix = "L") {
   d <- pp_seq_prepare(data, id, stage, category, levels)
   groups <- list(ALL = d)
@@ -76,9 +76,9 @@ sankey_data <- function(data, id = "USUBJID", stage = "LINE", category = "TRT",
   lapply(out, function(x) { rownames(x) <- NULL; x })
 }
 
-#' @rdname sankey_data
+#' @rdname tfl_sankey_data
 #' @export
-sunburst_data <- function(data, id = "USUBJID", stage = "LINE", category = "TRT",
+tfl_sunburst_data <- function(data, id = "USUBJID", stage = "LINE", category = "TRT",
                           levels = NULL, stage_prefix = "L") {
   d <- pp_seq_prepare(data, id, stage, category, levels)
   n_stage <- max(d$.stage_i)

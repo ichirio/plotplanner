@@ -4,7 +4,7 @@ pp_list_cols <- c("plot_id", "type", "style", "title", "param", "group", "pop", 
 
 # type -> quick function, from the catalogue
 pp_quick_fun_list <- function() {
-  x <- pp_catalog("implemented")
+  x <- tfl_fig_catalog("implemented")
   x <- x[!duplicated(x$type), ]
   as.list(stats::setNames(x$fun, x$type))
 }
@@ -24,7 +24,7 @@ pp_quick_fun_list <- function() {
 #' @param n_rows Rows prepared with drop-downs.
 #' @return `path`, invisibly.
 #' @export
-write_plot_list_template <- function(path, adam = NULL, rows = NULL, n_rows = 300) {
+tfl_fig_list_template <- function(path, adam = NULL, rows = NULL, n_rows = 300) {
   adam <- pp_prep_adam(adam)
   rows <- rows %or% data.frame(
     plot_id = c("F-14.2.1", "F-14.2.2", "F-14.2.3"),
@@ -44,7 +44,7 @@ write_plot_list_template <- function(path, adam = NULL, rows = NULL, n_rows = 30
   openxlsx::freezePane(wb, "plots", firstRow = TRUE)
   openxlsx::setColWidths(wb, "plots", seq_along(pp_list_cols), widths = c(12, 11, 13, 30, 10, 10, 8, 13, 45))
 
-  st <- pp_styles()
+  st <- tfl_fig_types()
   openxlsx::addWorksheet(wb, "styles")
   openxlsx::writeData(wb, "styles", st, headerStyle = hdr)
   openxlsx::setColWidths(wb, "styles", 1:4, widths = c(11, 13, 9, 90))
@@ -105,13 +105,13 @@ write_plot_list_template <- function(path, adam = NULL, rows = NULL, n_rows = 30
 
 #' Generate code for every row of a plot list
 #'
-#' @param x Path to a plot list `.xlsx` ([write_plot_list_template()]) or a
+#' @param x Path to a plot list `.xlsx` ([tfl_fig_list_template()]) or a
 #'   data frame with the same columns.
 #' @param adam Optional ADaM data.
 #' @param dir If given, write `<plot_id>.R` files here.
 #' @return A named character vector of scripts (invisibly when `dir` is given).
 #' @export
-plot_list_code <- function(x, adam = NULL, dir = NULL) {
+tfl_fig_list_code <- function(x, adam = NULL, dir = NULL) {
   if (is.character(x)) x <- openxlsx::read.xlsx(x, sheet = "plots", na.strings = c("", "NA"))
   x <- as.data.frame(x, stringsAsFactors = FALSE)
   for (cc in setdiff(pp_list_cols, names(x))) x[[cc]] <- NA
