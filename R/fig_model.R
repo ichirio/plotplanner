@@ -1,0 +1,1059 @@
+# The figure model: a figure as four parts, each a list of small, named
+# pieces a GUI can list, add, remove and edit one by one.
+#
+#   data    the steps from ADaM to the plot's data `df`: read a dataset,
+#           join ADSL, keep a PARAMCD or an analysis set, derive a
+#           variable, change a time's unit, order a variable's values,
+#           rank rows ... and, for what has no step, the user's own code;
+#   stats   what is computed from `df`: a Kaplan-Meier fit (survfit2), the
+#           summary statistics by group and visit ... or code;
+#   plot    the figure-wide settings: title, axes, colours, theme, legend,
+#           size;
+#   layers  what is drawn, in order: a KM curve, censor marks, lines,
+#           points, error bars, bars, reference lines, text; panels below
+#           (number at risk, n); any ggplot2 geom by name; or code.
+#
+# A template (tfl_fig_template()) fills the four parts at once for a kind
+# of figure (KM with the number at risk, mean over time, waterfall ...),
+# after which each piece is edited on its own.  tfl_fig_parts() describes
+# every piece and its fields; tfl_fig_design_code() writes the script.
+
+# ---- the pieces ------------------------------------------------------------
+
+# a field of a piece
+.ff <- function(field, kind, label, default = NA, choices = NA, help = "",
+                required = FALSE, of = NA) {
+  data.frame(field = field, kind = kind, label = label,
+             default = as.character(default),
+             choices = if (length(choices) > 1L || !is.na(choices[1L]))
+               paste(choices, collapse = " | ") else NA_character_,
+             help = help, required = required, of = of,
+             stringsAsFactors = FALSE)
+}
+
+.fig_units <- c(days = 1, weeks = 7, months = 30.4375, years = 365.25)
+.fig_legends <- c("none", "right", "bottom", "top", "inside", "inside_tl",
+                  "inside_br", "inside_bl")
+
+# every piece: its section, label, help and fields
+.fig_pieces <- function() {
+  pal <- names(tfl_fig_palettes())
+  shapes <- names(pp_shape_names)
+  lty <- c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash")
+  c(list(
+    # ---- data
+    read = list(section = "data", label = "Read a dataset",
+      help = "The dataset the figure starts from: `df`.",
+      fields = rbind(.ff("dataset", "dataset", "Dataset", "ADSL", required = TRUE))),
+    join = list(section = "data", label = "Join variables",
+      help = "Variables of another dataset (e.g. ADSL's treatment, ADRS's best response), one row a subject.",
+      fields = rbind(
+        .ff("dataset", "dataset", "Dataset", "ADSL", required = TRUE),
+        .ff("where", "expr", "Its rows (R)", help = "e.g. PARAMCD == \"BOR\""),
+        .ff("vars", "variables", "Variables", required = TRUE, of = "dataset",
+            help = "NAME = VAR renames, e.g. BOR = AVALC."),
+        .ff("by", "variable", "By", "USUBJID"))),
+    param = list(section = "data", label = "Keep a parameter",
+      help = "The rows of one (or more) PARAMCD.",
+      fields = rbind(
+        .ff("value", "param", "PARAMCD", required = TRUE),
+        .ff("variable", "variable", "Variable", "PARAMCD"))),
+    flag = list(section = "data", label = "Keep an analysis set",
+      help = "The rows whose flag is \"Y\" (FASFL, SAFFL, ANL01FL ...).",
+      fields = rbind(
+        .ff("variable", "flag", "Flag", "SAFFL", required = TRUE),
+        .ff("value", "text", "Value", "Y"))),
+    filter = list(section = "data", label = "Keep rows (condition)",
+      help = "Any condition, in R.",
+      fields = rbind(.ff("expr", "expr", "Condition (R)", required = TRUE,
+                         help = "e.g. AVISITN > 0 & !is.na(AVAL)"))),
+    derive = list(section = "data", label = "Derive a variable",
+      help = "A new (or changed) variable, in R.",
+      fields = rbind(
+        .ff("variable", "text", "Variable", required = TRUE),
+        .ff("expr", "expr", "Value (R)", required = TRUE, help = "e.g. AVAL / 7"))),
+    time_unit = list(section = "data", label = "Change a time's unit",
+      help = "A time in days, shown in weeks, months or years.",
+      fields = rbind(
+        .ff("variable", "variable", "Time variable", "AVAL", required = TRUE),
+        .ff("unit", "choice", "Unit", "months", names(.fig_units)[-1L]))),
+    levels = list(section = "data", label = "Order a variable's values",
+      help = "The order of groups or visits on the axis and in the legend: by another variable (AVISIT by AVISITN), or listed.",
+      fields = rbind(
+        .ff("variable", "variable", "Variable", required = TRUE),
+        .ff("order_by", "variable", "Order by", help = "e.g. AVISITN"),
+        .ff("levels", "text", "Values, in order", help = "| between them"),
+        .ff("labels", "text", "Their labels", help = "| between them"))),
+    rank = list(section = "data", label = "Rank rows",
+      help = "A row number after sorting, e.g. the bars of a waterfall.",
+      fields = rbind(
+        .ff("by", "variable", "Sort by", "AVAL", required = TRUE),
+        .ff("descending", "logical", "Descending", "TRUE"),
+        .ff("variable", "text", "New variable", "INDEX"))),
+    data_code = list(section = "data", label = "R code",
+      help = "What no step does: code that changes `df` (the datasets are there by their lower-case names).",
+      fields = rbind(.ff("code", "code", "Code", required = TRUE))),
+    # ---- stats
+    survfit = list(section = "stats", label = "Kaplan-Meier fit",
+      help = "survfit2(Surv(time, censor == 0) ~ group).",
+      fields = rbind(
+        .ff("name", "text", "Name", "fit"),
+        .ff("time", "variable", "Time", "AVAL", required = TRUE),
+        .ff("censor", "variable", "Censor (1 = censored)", "CNSR", required = TRUE),
+        .ff("by", "variable", "Group", help = "Empty = one curve"),
+        .ff("conf_type", "choice", "Confidence interval", "log",
+            c("log", "log-log", "plain")))),
+    summary = list(section = "stats", label = "Summary statistics",
+      help = "n, mean, SD, SE and an interval (lo, hi) of a value, by group and visit.",
+      fields = rbind(
+        .ff("name", "text", "Name", "sm"),
+        .ff("value", "variable", "Value", "AVAL", required = TRUE),
+        .ff("by", "variables", "By", required = TRUE),
+        .ff("interval", "choice", "Interval (lo, hi)", "se", c("se", "sd", "ci")))),
+    stats_code = list(section = "stats", label = "R code",
+      help = "Code that computes what the layers draw, from `df`.",
+      fields = rbind(.ff("code", "code", "Code", required = TRUE))),
+    # ---- layers
+    km_curve = list(section = "layers", label = "KM curves", base = TRUE,
+      help = "The Kaplan-Meier curves (ggsurvfit); the first layer.",
+      fields = rbind(
+        .ff("fit", "object", "Fit", "fit"),
+        .ff("linewidth", "number", "Line width", 0.3))),
+    km_ci = list(section = "layers", label = "KM confidence bands",
+      help = "The curves' confidence intervals.",
+      fields = rbind(.ff("alpha", "number", "Transparency", 0.2))),
+    censor_mark = list(section = "layers", label = "Censor marks",
+      help = "A mark where a subject is censored.",
+      fields = rbind(
+        .ff("shape", "choice", "Shape", "x", shapes),
+        .ff("size", "number", "Size", 3),
+        .ff("stroke", "number", "Stroke", 0.6))),
+    ref_label = list(section = "layers", label = "Reference line labels",
+      help = "Labels right of the panel at reference lines, e.g. 20% and -30%.",
+      fields = rbind(
+        .ff("y", "values", "At y", required = TRUE, help = "Several: 20, -30"),
+        .ff("label", "text", "Label", "{y}", help = "{y} = the value, e.g. {y}%"),
+        .ff("size", "number", "Size", 3.5))),
+    risk_table = list(section = "layers", label = "Number at risk (panel)",
+      panel = TRUE,
+      help = "The number at risk below the curves, at the x axis's breaks.",
+      fields = rbind(
+        .ff("fit", "object", "Fit", "fit"),
+        .ff("title", "text", "Title", "Number of Patients at Risk"),
+        .ff("size", "number", "Text size", 3),
+        .ff("height", "number", "Height (share)", 0.167))),
+    n_table = list(section = "layers", label = "n by visit (panel)",
+      panel = TRUE, help = "The n of each group at each x, below the plot.",
+      fields = rbind(
+        .ff("data", "object", "Data", "sm"),
+        .ff("x", "variable", "X", required = TRUE, of = "data"),
+        .ff("group", "variable", "Group", required = TRUE, of = "data"),
+        .ff("label", "variable", "Value", "n", of = "data"),
+        .ff("title", "text", "Title", "n"),
+        .ff("height", "number", "Height (share)", 0.18))),
+    geom = list(section = "layers", label = "Any ggplot2 layer",
+      help = "Any geom or stat by name, with its aesthetics and settings.",
+      fields = rbind(
+        .ff("geom", "text", "Function", "geom_point", required = TRUE,
+            help = "e.g. geom_area, stat_ecdf, ggrepel::geom_text_repel"),
+        .ff("data", "object", "Data", "df"),
+        .ff("aes", "named", "Aesthetics", help = "x = AVAL | y = CHG | colour = TRT01A"),
+        .ff("params", "named", "Settings (R)", help = "alpha = 0.3 | size = 2"))),
+    layer_code = list(section = "layers", label = "R code",
+      help = "Code that adds to the plot `p` (e.g. p <- p + annotate(...)).",
+      fields = rbind(.ff("code", "code", "Code", required = TRUE))),
+    figure = list(section = "layers", label = "Whole figure (type)",
+      help = "A figure type not yet in parts: its script as tfl_fig_<type>() writes it; the other parts are then unused.",
+      fields = rbind(
+        .ff("type", "choice", "Type", required = TRUE),
+        .ff("style", "text", "Style"),
+        .ff("args", "named", "Arguments")))
+  ), .fig_geom_pieces())
+}
+
+# the figure-wide settings
+.fig_plot_fields <- function() {
+  rbind(
+    .ff("title", "text", "Title"),
+    .ff("x_label", "text", "X label"),
+    .ff("y_label", "text", "Y label"),
+    .ff("x_min", "number", "X min"),
+    .ff("x_max", "number", "X max"),
+    .ff("x_by", "number", "X step"),
+    .ff("x_text", "logical", "X axis text", "TRUE"),
+    .ff("y_min", "number", "Y min"),
+    .ff("y_max", "number", "Y max"),
+    .ff("y_by", "number", "Y step"),
+    .ff("colour_by", "variable", "Colours by", help = "The variable the palette's colours go to (groups, responses)."),
+    .ff("palette", "choice", "Palette", "treatment", names(tfl_fig_palettes())),
+    .ff("dodge", "number", "Dodge width", 0.3),
+    .ff("theme", "choice", "Theme", "boxed", pp_themes),
+    .ff("base_size", "number", "Base font size", 10),
+    .ff("legend", "choice", "Legend", "bottom", .fig_legends),
+    .ff("width", "number", "Width", 7.5),
+    .ff("height", "number", "Height", 4.5),
+    .ff("units", "choice", "Units", "in", c("in", "cm", "px")),
+    .ff("dpi", "number", "DPI", 300))
+}
+
+#' The pieces of a figure design
+#'
+#' Every piece a figure design ([tfl_fig_design()]) is made of -- the data
+#' steps, the statistics, the figure-wide settings and the layers -- with
+#' its fields: what a GUI lists, adds and edits one by one.
+#'
+#' @return A data frame: `section` (`data`, `stats`, `plot`, `layers`),
+#'   `piece`, `piece_label`, `piece_help`, `field`, `kind` (`dataset`,
+#'   `variable`, `variables`, `flag`, `param`, `object` (the data or a
+#'   statistic by name), `choice`, `number`, `logical`, `text`, `expr` (R),
+#'   `code`, `named` (`name = value | ...`)), `label`, `default`,
+#'   `choices` (`|` between them), `help`, `required`, `of`.
+#' @export
+tfl_fig_parts <- function() {
+  p <- .fig_pieces()
+  rows <- lapply(names(p), function(k) {
+    f <- p[[k]]$fields
+    if (k == "figure") {
+      f$choices[f$field == "type"] <- paste(tfl_fig_types_implemented(), collapse = " | ")
+    }
+    cbind(section = p[[k]]$section, piece = k, piece_label = p[[k]]$label,
+          piece_help = p[[k]]$help %||% "", f, stringsAsFactors = FALSE)
+  })
+  pl <- cbind(section = "plot", piece = "plot", piece_label = "Figure",
+              piece_help = "The figure-wide settings.", .fig_plot_fields(),
+              stringsAsFactors = FALSE)
+  out <- do.call(rbind, c(rows, list(pl)))
+  rownames(out) <- NULL
+  out
+}
+
+tfl_fig_types_implemented <- function() {
+  cat <- tfl_fig_catalog()
+  unique(cat$type[cat$status == "implemented"])
+}
+
+# ---- the design -------------------------------------------------------------
+
+#' A figure design
+#'
+#' A figure as four parts (see [tfl_fig_parts()] for every piece):
+#'
+#' * `data`: the steps from ADaM to the plot's data `df` -- each a list with
+#'   `step` (`read`, `join`, `param`, `flag`, `filter`, `derive`,
+#'   `time_unit`, `levels`, `rank`, `data_code`) and its fields;
+#' * `stats`: what is computed from `df` (`survfit`, `summary`,
+#'   `stats_code`), each with its `name`;
+#' * `plot`: the figure-wide settings (title, axes, colours, theme, legend,
+#'   size);
+#' * `layers`: what is drawn, in order -- each a list with `layer`
+#'   (`km_curve`, `km_ci`, `censor_mark`, `risk_table`, `n_table`,
+#'   `ref_label`; any layer of the geom catalog -- `line`, `point`,
+#'   `errorbar`, `col`, `text`, `hline`, `ribbon`, `boxplot` ... see
+#'   [tfl_fig_add_layer()]; `geom` (any function by name), `layer_code`, or
+#'   `figure`: a figure type's whole script) and its fields.
+#'
+#' [tfl_fig_template()] makes one for a kind of figure; it is kept as one
+#' YAML file per figure (`tfl_write_fig_design()` / `tfl_read_fig_design()`)
+#' and `tfl_fig_design_code()` writes its script.
+#'
+#' ```yaml
+#' template: km_risk_table
+#' data:
+#' - {step: read, dataset: ADTTE}
+#' - {step: param, value: OS}
+#' - {step: flag, variable: FASFL}
+#' - {step: time_unit, variable: AVAL, unit: months}
+#' stats:
+#' - {step: survfit, name: fit, time: AVAL, censor: CNSR, by: TRT01A}
+#' plot: {x_label: Time (Months), y_label: Survival Probability, colour_by: TRT01A,
+#'   legend: inside, x_min: 0, y_min: 0, y_max: 1, y_by: 0.2}
+#' layers:
+#' - {layer: km_curve}
+#' - {layer: censor_mark, shape: x}
+#' - {layer: hline, yintercept: 0.5, linetype: twodash}
+#' - {layer: risk_table}
+#' ```
+#'
+#' @param data,stats,layers Lists of pieces (each a named list).
+#' @param plot A named list of the figure-wide settings.
+#' @param template The template it was made from (a note).
+#' @param design A `tfl_fig_design`.
+#' @param path A `.yml` file.
+#' @param plot_id The figure's ID: the PNG's name.
+#' @return `tfl_fig_design()` and `tfl_read_fig_design()`: a
+#'   `tfl_fig_design`; `tfl_write_fig_design()`: `path`, invisibly;
+#'   `tfl_fig_design_code()`: the script (a `tfl_code`).
+#' @export
+tfl_fig_design <- function(data = list(), stats = list(), plot = list(),
+                           layers = list(), template = NULL) {
+  clean <- function(x) lapply(x, function(p) as.list(p)[!vapply(p, is.null, logical(1))])
+  structure(list(template = template, data = clean(data),
+                 stats = clean(stats),
+                 plot = as.list(plot)[!vapply(plot, is.null, logical(1))],
+                 layers = clean(layers)),
+            class = "tfl_fig_design")
+}
+
+#' @export
+print.tfl_fig_design <- function(x, ...) {
+  cat(yaml::as.yaml(.fig_design_list(x)))
+  invisible(x)
+}
+
+.fig_design_list <- function(design) {
+  x <- unclass(design)
+  x <- x[c("template", "data", "stats", "plot", "layers")]
+  x[!vapply(x, function(v) is.null(v) || !length(v), logical(1))]
+}
+
+#' @rdname tfl_fig_design
+#' @export
+tfl_write_fig_design <- function(design, path) {
+  writeLines(enc2utf8(yaml::as.yaml(.fig_design_list(design))), path,
+             useBytes = TRUE)
+  invisible(path)
+}
+
+#' @rdname tfl_fig_design
+#' @export
+tfl_read_fig_design <- function(path) {
+  x <- yaml::read_yaml(path)
+  .fig_design_from_list(x)
+}
+
+.fig_design_from_list <- function(x) {
+  # a design of type / style / args (tflspec 0.0.12): one whole-figure layer
+  if (!is.null(x$type)) {
+    return(tfl_fig_design(layers = list(list(
+      layer = "figure", type = x$type, style = x$style, args = x$args %||% list()))))
+  }
+  tfl_fig_design(x$data %||% list(), x$stats %||% list(), x$plot %||% list(),
+                 x$layers %||% list(), x$template)
+}
+
+# ---- the code ---------------------------------------------------------------
+
+# a piece's field, else its default ("" / NA = not set)
+.fv <- function(piece, field, kind) {
+  v <- piece[[field]]
+  if (!is.null(v) && length(v) && !(length(v) == 1L && (is.na(v) || identical(v, "")))) {
+    return(v)
+  }
+  defs <- .fig_pieces()[[kind]]$fields
+  d <- defs$default[defs$field == field]
+  if (!length(d) || is.na(d)) NULL else d
+}
+.pv <- function(plot, field) {
+  v <- plot[[field]]
+  if (!is.null(v) && length(v) && !(length(v) == 1L && (is.na(v) || identical(v, "")))) {
+    return(v)
+  }
+  f <- .fig_plot_fields()
+  d <- f$default[f$field == field]
+  if (!length(d) || is.na(d)) NULL else d
+}
+.lgl <- function(v) isTRUE(as.logical(v))
+.split_vals <- function(v) {
+  if (is.null(v)) return(character())
+  v <- unlist(strsplit(as.character(v), "\\s*[|,]\\s*"))
+  trimws(v[nzchar(trimws(v))])
+}
+# "a = 1 | b = x" or a named list -> c(a = "1", b = "x")
+.named <- function(v) {
+  if (is.null(v)) return(character())
+  if (is.list(v) || !is.null(names(v))) {
+    v <- unlist(v)
+    return(stats::setNames(as.character(v), names(v)))
+  }
+  parts <- .split_vals(gsub(",", "\u0001", v))
+  parts <- gsub("\u0001", ",", parts)
+  parts <- parts[grepl("=", parts, fixed = TRUE)]
+  stats::setNames(trimws(sub("^[^=]*=", "", parts)), trimws(sub("=.*$", "", parts)))
+}
+.args_code <- function(x) {
+  x <- x[!vapply(x, is.null, logical(1))]
+  if (!length(x)) return("")
+  paste(paste(names(x), "=", unlist(x)), collapse = ", ")
+}
+
+# the data part: `df`, and the datasets it reads
+.fig_data_code <- function(steps) {
+  out <- character()
+  pipe <- character()
+  reads <- character()
+  flush <- function() {
+    if (length(pipe)) {
+      out <<- c(out, paste0("df <- ", paste(pipe, collapse = " %>%\n  ")), "")
+      pipe <<- character()
+    }
+  }
+  for (s in steps) {
+    k <- s$step
+    v <- function(f) .fv(s, f, k)
+    add <- function(x) pipe <<- c(if (!length(pipe)) "df" else pipe, x)
+    switch(k,
+      read = {
+        flush()
+        ds <- toupper(v("dataset"))
+        reads <- c(reads, ds)
+        pipe <- pp_ds_name(ds)
+      },
+      join = {
+        ds <- toupper(v("dataset"))
+        reads <- c(reads, ds)
+        vars <- .split_vals(v("vars"))
+        by <- v("by")
+        w <- v("where")
+        sel <- paste(c(by, vars), collapse = ", ")
+        add(paste0("left_join(\n    ", pp_ds_name(ds),
+                   if (!is.null(w)) paste0(" %>% filter(", w, ")"),
+                   " %>% select(", sel, "),\n    by = ", q(by), "\n  )"))
+      },
+      param = {
+        vals <- .split_vals(v("value"))
+        add(if (length(vals) == 1L) sprintf("filter(%s == %s)", v("variable"), q(vals))
+            else sprintf("filter(%s %%in%% %s)", v("variable"), vec_code(vals)))
+      },
+      flag = add(sprintf("filter(%s == %s)", v("variable"), q(v("value")))),
+      filter = add(sprintf("filter(%s)", v("expr"))),
+      derive = add(sprintf("mutate(%s = %s)", v("variable"), v("expr"))),
+      time_unit = add(sprintf("mutate(%s = %s / %s)   # days -> %s", v("variable"),
+                              v("variable"), format(.fig_units[[v("unit")]]), v("unit"))),
+      levels = {
+        var <- v("variable")
+        lv <- .split_vals(v("levels"))
+        lb <- .split_vals(v("labels"))
+        ob <- v("order_by")
+        add(if (length(lv)) {
+          sprintf("mutate(%s = factor(%s, levels = %s%s))", var, var, vec_code(lv),
+                  if (length(lb) == length(lv)) paste0(", labels = ", vec_code(lb)) else "")
+        } else if (!is.null(ob)) {
+          sprintf("mutate(%s = reorder(factor(%s), %s))", var, var, ob)
+        } else sprintf("mutate(%s = factor(%s))", var, var))
+      },
+      rank = {
+        by <- v("by")
+        add(c(sprintf("arrange(%s)", if (.lgl(v("descending"))) sprintf("desc(%s)", by) else by),
+              sprintf("mutate(%s = row_number())", v("variable"))))
+      },
+      data_code = {
+        flush()
+        out <- c(out, "# your code", s$code, "")
+      },
+      stop("Unknown data step: ", k, call. = FALSE))
+  }
+  flush()
+  list(code = out, reads = unique(reads))
+}
+
+.fig_stats_code <- function(steps) {
+  out <- character()
+  libs <- character()
+  for (s in steps) {
+    k <- s$step
+    v <- function(f) .fv(s, f, k)
+    switch(k,
+      survfit = {
+        libs <- c(libs, "ggsurvfit")
+        ct <- v("conf_type")
+        out <- c(out, sprintf("%s <- survfit2(Surv(%s, %s == 0) ~ %s, data = df%s)",
+                              v("name"), v("time"), v("censor"), v("by") %||% "1",
+                              if (!identical(ct, "log")) paste0(", conf.type = ", q(ct)) else ""),
+                 "")
+      },
+      summary = {
+        by <- .split_vals(v("by"))
+        val <- v("value")
+        iv <- v("interval")
+        lohi <- switch(iv,
+          se = c("mean - se", "mean + se"),
+          sd = c("mean - sd", "mean + sd"),
+          ci = c("mean - qt(0.975, n - 1) * se", "mean + qt(0.975, n - 1) * se"))
+        out <- c(out, paste0(v("name"), " <- df %>%\n",
+          sprintf("  filter(!is.na(%s)) %%>%%\n", val),
+          sprintf("  group_by(%s) %%>%%\n", paste(by, collapse = ", ")),
+          sprintf("  summarise(n = n(), mean = mean(%s), sd = sd(%s), .groups = \"drop\") %%>%%\n", val, val),
+          sprintf("  mutate(se = sd / sqrt(n), lo = %s, hi = %s)", lohi[1], lohi[2])), "")
+      },
+      stats_code = out <- c(out, "# your code", s$code, ""),
+      stop("Unknown statistics step: ", k, call. = FALSE))
+  }
+  list(code = out, libs = libs)
+}
+
+# aes(...) of a layer: its variable fields (NULL ones left out)
+.aes <- function(...) {
+  a <- list(...)
+  a <- a[!vapply(a, is.null, logical(1))]
+  if (!length(a)) return(NULL)
+  sprintf("aes(%s)", paste(names(a), "=", unlist(a), collapse = ", "))
+}
+
+.fig_layer_code <- function(l, i, plot) {
+  k <- l$layer
+  v <- function(f) .fv(l, f, k)
+  dodge <- if (.lgl(v("dodge"))) "position = pd"
+  num <- function(f) v(f)
+  term <- function(fn, ...) {
+    a <- c(...)
+    a <- a[!vapply(a, is.null, logical(1)) & nzchar(a)]
+    sprintf("%s(%s)", fn, paste(a, collapse = ", "))
+  }
+  kv <- function(name, val) if (!is.null(val)) paste(name, "=", val)
+  lbl <- function(title) paste0("# ---- layer ", i, ": ", title, " ----")
+  switch(k,
+    km_curve = list(base = sprintf("p <- ggsurvfit(%s, linewidth = %s%s)", v("fit"), num("linewidth"),
+                                   if (is.null(plot$colour_by)) ", colour = pal[[1]]" else "")),
+    km_ci = list(code = c(lbl("KM confidence bands"),
+      sprintf("p <- p + add_confidence_interval(alpha = %s%s)", num("alpha"),
+              if (is.null(plot$colour_by)) ", fill = pal[[1]]" else ""))),
+    censor_mark = list(code = c(lbl("censor marks"),
+      sprintf("p <- p + add_censor_mark(shape = %s, size = %s, stroke = %s%s)",
+              pp_shape_code(v("shape"), "x"), num("size"), num("stroke"),
+              if (is.null(plot$colour_by)) ", colour = pal[[1]]" else ""))),
+    ref_label = {
+      ys <- .split_vals(v("y"))
+      yc <- if (length(ys) == 1L) ys else sprintf("c(%s)", paste(ys, collapse = ", "))
+      parts <- strsplit(v("label"), "{y}", fixed = TRUE)[[1L]]
+      if (endsWith(v("label"), "{y}")) parts <- c(parts, "")
+      lab <- if (length(parts) > 1L) {
+        sprintf("paste0(%s)", paste(q(parts), collapse = sprintf(", %s, ", yc)))
+      } else q(v("label"))
+      list(code = c(lbl("reference line labels"),
+        sprintf("p <- p + annotate(\"text\", x = Inf, y = %s, label = %s, hjust = -0.3, size = %s)",
+                yc, lab, num("size"))),
+        # room right of the panel, after the theme (which would reset it)
+        after = "p <- p + theme(plot.margin = margin(5.5, 50, 5.5, 5.5))   # room for the labels",
+        clip_off = TRUE)
+    },
+    risk_table = {
+      fit <- v("fit")
+      single <- is.null(plot$colour_by)
+      list(panel = list(name = "p_risk", height = as.numeric(v("height"))), libs = "patchwork",
+        code = c(lbl("number at risk (a panel below)"),
+          sprintf("sr <- summary(%s, times = x_breaks, extend = TRUE)", fit),
+          paste0("risk_df <- data.frame(\n",
+                 "  time   = sr$time,\n",
+                 if (single) "  strata = names(pal)[1],\n"
+                 else "  strata = sub(\"^[^=]*=\", \"\", as.character(sr$strata)),\n",
+                 "  n_risk = sr$n.risk\n)"),
+          "risk_df$strata <- factor(risk_df$strata, levels = rev(names(pal)))",
+          plus_code("p_risk", list(
+            "ggplot(risk_df, aes(x = time, y = strata, label = n_risk, colour = strata))",
+            sprintf("geom_text(size = %s)", num("size")),
+            'scale_colour_manual(values = pal, guide = "none")',
+            "scale_x_continuous(breaks = x_breaks, expand = expansion(mult = c(0.02, 0.02)))",
+            'coord_cartesian(xlim = range(x_breaks), clip = "off")',
+            sprintf("labs(title = %s, x = NULL, y = NULL)", q(v("title"))),
+            sprintf("theme_void(base_size = %s)", .pv(plot, "base_size")),
+            paste0("theme(\n",
+                   "  plot.title          = element_text(hjust = 0, size = rel(0.9)),\n",
+                   "  plot.title.position = \"plot\",\n",
+                   "  axis.text.y         = element_text(hjust = 1, margin = margin(r = 5))\n)")))))
+    },
+    n_table = list(panel = list(name = paste0("p_n", i), height = as.numeric(v("height"))), libs = "patchwork",
+      code = c(lbl("n (a panel below)"),
+        plus_code(paste0("p_n", i), list(
+          sprintf("ggplot(%s, aes(x = %s, y = factor(%s, levels = rev(names(pal))), label = %s, colour = %s))",
+                  v("data"), v("x"), v("group"), v("label"), v("group")),
+          "geom_text(size = 3)",
+          'scale_colour_manual(values = pal, guide = "none")',
+          sprintf("labs(title = %s, x = NULL, y = NULL)", q(v("title"))),
+          sprintf("theme_void(base_size = %s)", .pv(plot, "base_size")),
+          "theme(axis.text.y = element_text(hjust = 1, margin = margin(r = 5)), plot.title = element_text(size = rel(0.9)))")))),
+    geom = {
+      a <- .named(v("aes"))
+      pr <- .named(v("params"))
+      list(code = c(lbl(v("geom")), paste0("p <- p + ", term(v("geom"),
+        kv("data", v("data")),
+        if (length(a)) sprintf("aes(%s)", paste(names(a), "=", a, collapse = ", ")),
+        if (length(pr)) paste(names(pr), "=", pr, collapse = ", ")))),
+        libs = if (grepl("::", v("geom"), fixed = TRUE)) character() else NULL)
+    },
+    layer_code = list(code = c(lbl("your code"), l$code)),
+    {
+      g <- .fig_pieces()[[k]]$geom
+      if (is.null(g)) stop("Unknown layer: ", k, call. = FALSE)
+      .fig_geom_code(l, k, g, lbl(.fig_pieces()[[k]]$label))
+    })
+}
+
+.fig_axis_code <- function(plot, has_risk, fit, clip = FALSE) {
+  n <- function(f) { x <- .pv(plot, f); if (is.null(x)) NULL else as.numeric(x) }
+  x_min <- n("x_min"); x_max <- n("x_max"); x_by <- n("x_by")
+  y_min <- n("y_min"); y_max <- n("y_max"); y_by <- n("y_by")
+  pre <- character()
+  terms <- list()
+  x_breaks <- FALSE
+  if (!is.null(x_max) && !is.null(x_by)) {
+    pre <- sprintf("x_breaks <- seq(%s, %s, by = %s)", x_min %||% 0, x_max, x_by)
+    x_breaks <- TRUE
+  } else if (has_risk) {
+    pre <- if (!is.null(x_by)) {
+      sprintf("x_breaks <- seq(%s, max(%s$time), by = %s)", x_min %||% 0, fit, x_by)
+    } else sprintf("x_breaks <- pretty(c(%s, %s))", x_min %||% 0,
+                   if (!is.null(x_max)) x_max else sprintf("max(%s$time)", fit))
+    x_breaks <- TRUE
+  }
+  if (x_breaks) {
+    terms <- c(terms, "scale_x_continuous(breaks = x_breaks, expand = expansion(mult = c(0.02, 0.02)))")
+  } else if (!is.null(x_by)) {
+    terms <- c(terms, sprintf("scale_x_continuous(breaks = scales::breaks_width(%s))", x_by))
+  }
+  if (!is.null(y_by) && !is.null(y_min) && !is.null(y_max)) {
+    terms <- c(terms, sprintf("scale_y_continuous(breaks = seq(%s, %s, by = %s))", y_min, y_max, y_by))
+  } else if (!is.null(y_by)) {
+    terms <- c(terms, sprintf("scale_y_continuous(breaks = scales::breaks_width(%s))", y_by))
+  }
+  xl <- if (x_breaks) "range(x_breaks)" else if (!is.null(x_min) && !is.null(x_max)) sprintf("c(%s, %s)", x_min, x_max)
+  yl <- if (!is.null(y_min) && !is.null(y_max)) sprintf("c(%s, %s)", y_min, y_max)
+  if (!is.null(xl) || !is.null(yl) || clip) {
+    terms <- c(terms, sprintf("coord_cartesian(%s)", paste(c(
+      if (!is.null(xl)) paste("xlim =", xl), if (!is.null(yl)) paste("ylim =", yl),
+      if (clip) "clip = \"off\""), collapse = ", ")))
+  }
+  list(pre = pre, terms = terms)
+}
+
+.fig_palette_code <- function(plot, reads_df = TRUE) {
+  pname <- .pv(plot, "palette")
+  pal <- tfl_fig_palettes()[[pname]]
+  if (is.null(pal)) stop("Unknown palette: ", pname, call. = FALSE)
+  by <- plot$colour_by
+  if (!is.null(names(pal))) {
+    return(c(sprintf("# the %s palette: a colour for each value", pname),
+             sprintf("pal <- %s", vec_code(pal))))
+  }
+  if (is.null(by)) {
+    return(sprintf("pal <- c(All = %s)", q(pal[[1]])))
+  }
+  c(sprintf("# the %s palette, a colour for each %s", pname, by),
+    sprintf("pal_lv <- if (is.factor(df$%s)) levels(droplevels(df$%s)) else sort(unique(as.character(df$%s)))", by, by, by),
+    sprintf("pal <- setNames(%s[seq_along(pal_lv)], pal_lv)", vec_code(unname(pal))))
+}
+
+#' @rdname tfl_fig_design
+#' @export
+tfl_fig_design_code <- function(design, plot_id = "fig") {
+  design <- if (inherits(design, "tfl_fig_design")) design else .fig_design_from_list(design)
+  whole <- Filter(function(l) identical(l$layer, "figure"), design$layers)
+  if (length(whole)) {
+    w <- whole[[1L]]
+    fn <- getExportedValue("tflspec", .fig_fun(w$type))
+    args <- lapply(w$args %||% list(), function(v) if (is.list(v)) unlist(v) else v)
+    return(do.call(fn, c(list(style = w$style %||% NULL, plot_id = plot_id), args)))
+  }
+  plot <- design$plot
+  d <- .fig_data_code(design$data)
+  s <- .fig_stats_code(design$stats)
+  layers <- design$layers
+  kinds <- vapply(layers, function(l) l$layer %||% "", "")
+  fit_of <- function() {
+    r <- layers[kinds == "risk_table"]
+    if (length(r)) .fv(r[[1L]], "fit", "risk_table") else "fit"
+  }
+  lc <- lapply(seq_along(layers), function(i) .fig_layer_code(layers[[i]], i, plot))
+  clip <- any(vapply(lc, function(x) isTRUE(x$clip_off), logical(1)))
+  ax <- .fig_axis_code(plot, any(kinds == "risk_table"), fit_of(), clip)
+  base <- if (length(lc) && !is.null(lc[[1L]]$base)) lc[[1L]]$base else "p <- ggplot()"
+  panels <- Filter(Negate(is.null), lapply(lc, `[[`, "panel"))
+  libs <- unique(c("dplyr", "ggplot2", s$libs, unlist(lapply(lc, `[[`, "libs"))))
+  # a catalog layer of another package is called as pkg::fn; it must be there
+  needs <- setdiff(unique(unlist(lapply(lc, `[[`, "package"))), "ggplot2")
+  if (any(kinds %in% c("km_curve", "km_ci", "censor_mark"))) libs <- unique(c(libs, "ggsurvfit"))
+  uses_pd <- any(vapply(layers, function(l) .lgl(l$dodge), logical(1)))
+  lab <- function(f) { x <- .pv(plot, f); if (!is.null(x)) q(x) }
+  labs_args <- c(if (!is.null(lab("x_label"))) paste("x =", lab("x_label")),
+                 if (!is.null(lab("y_label"))) paste("y =", lab("y_label")),
+                 if (!is.null(lab("title"))) paste("title =", lab("title")))
+  # the palette's scales, for the aesthetics a layer maps
+  pieces <- .fig_pieces()
+  maps <- function(aes) any(vapply(layers, function(l) {
+    g <- pieces[[l$layer %||% ""]]$geom
+    if (!is.null(g)) return(aes %in% g$aes && !is.null(l[[aes]]))
+    if (identical(l$layer, "geom")) return(aes %in% names(.named(l$aes)))
+    identical(l$layer, "n_table") && aes == "colour"
+  }, logical(1)))
+  scales <- if (!is.null(plot$colour_by)) list(
+    if (maps("colour") || any(kinds == "km_curve"))
+      "scale_colour_manual(values = pal, breaks = names(pal))",
+    if (maps("fill") || any(kinds == "km_ci"))
+      "scale_fill_manual(values = pal, breaks = names(pal), na.value = \"grey80\")")
+  finish <- c(scales, ax$terms,
+    if (length(labs_args)) sprintf("labs(%s)", paste(labs_args, collapse = ", ")),
+    as.list(pp_theme_lines(.pv(plot, "theme"), .pv(plot, "base_size"))),
+    if (!.lgl(.pv(plot, "x_text"))) "theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())",
+    as.list(pp_q_legend(.pv(plot, "legend"))))
+  body_layers <- unlist(lapply(lc, function(x) if (is.null(x$panel)) x$code))
+  panel_code <- unlist(lapply(lc, function(x) if (!is.null(x$panel)) x$code))
+  assemble <- if (length(panels)) {
+    h <- vapply(panels, `[[`, numeric(1), "height")
+    sprintf("fig <- %s + plot_layout(heights = %s)",
+            paste(c("p", vapply(panels, `[[`, "", "name")), collapse = " / "),
+            vec_code(round(c(1 - sum(h), h), 3)))
+  } else "fig <- p"
+  n <- function(f) .pv(plot, f)
+  code <- c(
+    sprintf("# %s: %s", plot_id, design$template %||% "figure design"),
+    sprintf("# Generated by tflspec %s from the figure's design.",
+            utils::packageVersion("tflspec")),
+    "",
+    paste0("library(", libs, ")"),
+    if (length(needs)) sprintf("# also needs: %s (called as pkg::fn)", paste(needs, collapse = ", ")),
+    "",
+    section("Step1: Preparing Analysis Data"),
+    sprintf("# Input data frames: %s", paste(pp_ds_name(d$reads), collapse = ", ")),
+    "",
+    d$code,
+    s$code,
+    .fig_palette_code(plot),
+    "",
+    ax$pre,
+    if (uses_pd) sprintf("pd <- position_dodge(width = %s)", n("dodge")),
+    "",
+    section("Step2: Making a figure"),
+    base,
+    body_layers,
+    "# ---- the figure's settings ----",
+    plus_code("p", finish, append = TRUE),
+    unlist(lapply(lc, `[[`, "after")),
+    panel_code,
+    "",
+    "# ---- assemble ----",
+    assemble,
+    "fig",
+    "",
+    section("Step3: Saving the figure"),
+    sprintf("fig_path   <- file.path(\"output\", %s)", q(paste0(pp_file_name(plot_id), ".png"))),
+    sprintf("fig_width  <- %s", n("width")),
+    sprintf("fig_height <- %s", n("height")),
+    sprintf("fig_dpi    <- %s", n("dpi")),
+    sprintf("fig_units  <- %s", q(n("units"))),
+    "",
+    "dir.create(dirname(fig_path), showWarnings = FALSE, recursive = TRUE)",
+    "ggsave(",
+    "  filename = fig_path,",
+    "  plot     = fig,",
+    "  width    = fig_width,",
+    "  height   = fig_height,",
+    "  dpi      = fig_dpi,",
+    "  units    = fig_units",
+    ")")
+  code <- unlist(strsplit(paste(code, collapse = "\n"), "\n", fixed = TRUE))
+  structure(code, class = "tfl_code")
+}
+
+# ---- the checks -------------------------------------------------------------
+
+#' @rdname tfl_fig_design
+#' @param adam The data ([tfl_read_adam()]): the variables and PARAMCDs the
+#'   design names are looked for in it.
+#' @return `tfl_check_fig_design()`: a data frame of the problems
+#'   (`part`, `field`, `problem`; `part` is e.g. `data[2] join`); no rows
+#'   when there are none.
+#' @export
+tfl_check_fig_design <- function(design, adam = NULL) {
+  out <- data.frame(part = character(), field = character(), problem = character(),
+                    stringsAsFactors = FALSE)
+  add <- function(p, f, x) out[nrow(out) + 1L, ] <<- list(p, f, x)
+  adam <- if (!is.null(adam)) pp_prep_adam(adam)
+  pieces <- .fig_pieces()
+  ds <- function(nm) if (!is.null(adam) && !is.null(nm)) adam[[toupper(nm)]]
+  cols <- NULL          # the columns of df, as far as known
+  objects <- list()     # stats objects: their columns (NULL = unknown)
+  check_fields <- function(p, part, kind) {
+    f <- pieces[[kind]]$fields
+    for (i in seq_len(nrow(f))) {
+      v <- p[[f$field[i]]]
+      set <- !is.null(v) && length(v) && !all(is.na(v)) && !identical(v, "")
+      if (f$required[i] && !set && is.na(f$default[i])) add(part, f$field[i], "is required")
+      if (!set) next
+      if (f$kind[i] == "choice" && !is.na(f$choices[i]) && kind != "figure") {
+        ch <- strsplit(f$choices[i], " | ", fixed = TRUE)[[1L]]
+        if (!all(as.character(v) %in% ch)) add(part, f$field[i], paste0("'", v, "' is not one of ", paste(ch, collapse = ", ")))
+      }
+      if (f$kind[i] == "number" && suppressWarnings(anyNA(as.numeric(v)))) add(part, f$field[i], "is not a number")
+    }
+    unknown <- setdiff(names(p), c(f$field, "step", "layer"))
+    for (u in unknown) add(part, u, paste0("is not a field of ", kind))
+  }
+  need_var <- function(part, field, vars, where = cols, what = "df") {
+    if (is.null(where)) return()
+    miss <- setdiff(vars, where)
+    if (length(miss)) add(part, field, paste0("no variable ", paste(miss, collapse = ", "), " in ", what))
+  }
+  for (i in seq_along(design$data)) {
+    s <- design$data[[i]]
+    k <- s$step %||% ""
+    part <- sprintf("data[%d] %s", i, k)
+    if (!k %in% names(pieces) || pieces[[k]]$section != "data") {
+      add(part, "step", "unknown data step")
+      next
+    }
+    check_fields(s, part, k)
+    v <- function(f) .fv(s, f, k)
+    switch(k,
+      read = {
+        d <- ds(v("dataset"))
+        if (!is.null(adam) && is.null(d)) add(part, "dataset", paste0("no dataset ", v("dataset")))
+        cols <- if (!is.null(d)) names(d)
+      },
+      join = {
+        d <- ds(v("dataset"))
+        if (!is.null(adam) && is.null(d)) add(part, "dataset", paste0("no dataset ", v("dataset")))
+        vars <- .split_vals(v("vars"))
+        src <- sub("^.*=\\s*", "", vars)
+        new <- sub("\\s*=.*$", "", vars)
+        if (!is.null(d)) need_var(part, "vars", c(src, v("by")), names(d), toupper(v("dataset")))
+        if (!is.null(cols)) cols <- union(cols, new)
+      },
+      param = {
+        need_var(part, "variable", v("variable"))
+        if (!is.null(cols) && !is.null(adam) && !is.null(s$value)) {
+          d <- ds(Filter(function(x) identical(x$step, "read"), design$data)[[1L]]$dataset %||% "")
+          if (!is.null(d) && v("variable") %in% names(d)) {
+            miss <- setdiff(.split_vals(s$value), unique(d[[v("variable")]]))
+            if (length(miss)) add(part, "value", paste0("no ", v("variable"), " ", paste(miss, collapse = ", ")))
+          }
+        }
+      },
+      flag = need_var(part, "variable", v("variable")),
+      time_unit = need_var(part, "variable", v("variable")),
+      levels = need_var(part, "variable", c(v("variable"), v("order_by"))),
+      rank = {
+        need_var(part, "by", v("by"))
+        if (!is.null(cols)) cols <- union(cols, v("variable"))
+      },
+      derive = if (!is.null(cols)) cols <- union(cols, v("variable")),
+      data_code = cols <- NULL)
+  }
+  objects$df <- cols
+  for (i in seq_along(design$stats)) {
+    s <- design$stats[[i]]
+    k <- s$step %||% ""
+    part <- sprintf("stats[%d] %s", i, k)
+    if (!k %in% names(pieces) || pieces[[k]]$section != "stats") {
+      add(part, "step", "unknown statistics step")
+      next
+    }
+    check_fields(s, part, k)
+    v <- function(f) .fv(s, f, k)
+    switch(k,
+      survfit = {
+        need_var(part, "time", c(v("time"), v("censor"), v("by")))
+        objects[[v("name")]] <- character()
+      },
+      summary = {
+        by <- .split_vals(v("by"))
+        need_var(part, "by", c(v("value"), by))
+        objects[[v("name")]] <- c(by, "n", "mean", "sd", "se", "lo", "hi")
+      },
+      stats_code = objects["?"] <- list(NULL))
+  }
+  f <- .fig_plot_fields()
+  for (nm in names(design$plot)) {
+    r <- f[f$field == nm, , drop = FALSE]
+    if (!nrow(r)) { add("plot", nm, "is not a figure setting"); next }
+    v <- design$plot[[nm]]
+    if (r$kind == "choice" && !is.na(r$choices) &&
+        !as.character(v) %in% strsplit(r$choices, " | ", fixed = TRUE)[[1L]]) {
+      add("plot", nm, paste0("'", v, "' is not one of ", r$choices))
+    }
+    if (r$kind == "number" && suppressWarnings(anyNA(as.numeric(v)))) add("plot", nm, "is not a number")
+  }
+  if (!is.null(design$plot$colour_by)) need_var("plot", "colour_by", design$plot$colour_by)
+  kinds <- vapply(design$layers, function(l) l$layer %||% "", "")
+  for (i in seq_along(design$layers)) {
+    l <- design$layers[[i]]
+    k <- kinds[i]
+    part <- sprintf("layers[%d] %s", i, k)
+    if (!k %in% names(pieces) || pieces[[k]]$section != "layers") {
+      add(part, "layer", "unknown layer")
+      next
+    }
+    check_fields(l, part, k)
+    if (isTRUE(pieces[[k]]$base) && i != 1L) add(part, "layer", "must be the first layer")
+    if (k %in% c("km_ci", "censor_mark") && !"km_curve" %in% kinds) add(part, "layer", "needs the KM curves layer")
+    fl <- pieces[[k]]$fields
+    obj <- NULL
+    if ("data" %in% fl$field) {
+      obj <- .fv(l, "data", k)
+      if (!obj %in% names(objects) && !"?" %in% names(objects)) {
+        add(part, "data", paste0("no data or statistics named ", obj))
+      }
+    }
+    if ("fit" %in% fl$field) {
+      fit <- .fv(l, "fit", k)
+      if (!fit %in% names(objects) && !"?" %in% names(objects)) add(part, "fit", paste0("no fit named ", fit))
+    }
+    if (!is.null(obj) && obj %in% names(objects)) {
+      for (vf in fl$field[fl$kind == "variable"]) {
+        x <- .fv(l, vf, k)
+        if (!is.null(x)) need_var(part, vf, x, objects[[obj]], obj)
+      }
+    }
+  }
+  out
+}
+
+# ---- templates --------------------------------------------------------------
+
+.fig_templates <- function() {
+  data.frame(
+    template = c("km_risk_table", "km_simple", "km_ci", "km_single_arm",
+                 "mean_se", "mean_sd", "mean_ci", "mean_se_n",
+                 "waterfall_response", "waterfall_plain"),
+    kind = c(rep("km", 4), rep("mean", 4), rep("waterfall", 2)),
+    label = c("KM curves + number at risk", "KM curves", "KM curves + confidence bands + number at risk",
+              "One KM curve + number at risk",
+              "Mean +/- SE by visit", "Mean +/- SD by visit", "Mean (95% CI) by visit",
+              "Mean +/- SE by visit + n",
+              "Waterfall, bars by best response", "Waterfall"),
+    stringsAsFactors = FALSE)
+}
+
+#' Figure templates
+#'
+#' A template fills a figure design's four parts at once -- its data steps,
+#' statistics, settings and layers -- for a kind of figure; each piece is
+#' then edited on its own ([tfl_fig_design()]).  Sizes, line widths and
+#' colours come from the figure style standard ([tfl_fig_style()]).
+#'
+#' @param template One of `tfl_fig_templates()$template`.
+#' @param data,param,pop,group The dataset, its PARAMCD, the analysis set
+#'   flag and the group variable (joined from ADSL when `join_adsl`).
+#' @param time,censor,time_unit KM: the time, the censor variable, the axis's
+#'   unit.
+#' @param value,visit,visit_label Mean: the value and the visit (number and
+#'   label).
+#' @param response_data,response Waterfall: the best response's dataset and
+#'   PARAMCD.
+#' @param join_adsl Join `group` (and `pop`) from ADSL (`TRUE` for mean;
+#'   KM and waterfall read them from their own dataset).
+#' @param title The figure's title.
+#' @return `tfl_fig_templates()`: a data frame (`template`, `kind`,
+#'   `label`); `tfl_fig_template()`: a `tfl_fig_design`.
+#' @export
+tfl_fig_templates <- function() .fig_templates()
+
+#' @rdname tfl_fig_templates
+#' @export
+tfl_fig_template <- function(template, data = NULL, param = NULL, pop = NULL,
+                             group = NULL, time = "AVAL", censor = "CNSR",
+                             time_unit = "months", value = "AVAL",
+                             visit = "AVISITN", visit_label = "AVISIT",
+                             response_data = "ADRS", response = "BOR",
+                             join_adsl = NULL, title = NULL) {
+  tp <- .fig_templates()
+  if (!template %in% tp$template) {
+    stop("Unknown template '", template, "': one of ",
+         paste(tp$template, collapse = ", "), call. = FALSE)
+  }
+  kind <- tp$kind[tp$template == template]
+  o <- pp_default_options(kind)
+  opt <- function(k, d) { x <- o[[k]]; if (is.null(x) || identical(x, "")) d else x }
+  size <- list(width = as.numeric(opt("width", 7.5)), height = as.numeric(opt("height", 4.5)),
+               dpi = as.numeric(opt("dpi", 300)), units = opt("units", "in"),
+               base_size = as.numeric(opt("base_size", 10)), theme = opt("theme", "boxed"))
+  switch(kind,
+    km = {
+      single <- template == "km_single_arm"
+      data <- data %||% "ADTTE"
+      param <- param %||% "OS"
+      pop <- pop %||% "FASFL"
+      group <- if (single) NULL else group %||% "TRT01P"
+      join <- isTRUE(join_adsl)
+      tfl_fig_design(
+        template = template,
+        data = c(list(list(step = "read", dataset = data)),
+                 if (join) list(list(step = "join", dataset = "ADSL",
+                                     vars = paste(c(group, pop), collapse = ", "))),
+                 list(list(step = "param", value = param)),
+                 if (!is.null(pop)) list(list(step = "flag", variable = pop)),
+                 list(list(step = "time_unit", variable = time, unit = time_unit))),
+        stats = list(list(step = "survfit", name = "fit", time = time, censor = censor,
+                          by = group)),
+        plot = c(list(title = title,
+                      x_label = sprintf("Time (%s)", tools::toTitleCase(time_unit)),
+                      y_label = "Survival Probability", colour_by = group,
+                      palette = "treatment", legend = if (single) "none" else "inside",
+                      x_min = 0, y_min = 0, y_max = 1, y_by = as.numeric(opt("y_by", 0.2))),
+                 size),
+        layers = c(
+          list(list(layer = "km_curve", linewidth = as.numeric(opt("line_width", 0.3)))),
+          if (template == "km_ci") list(list(layer = "km_ci")),
+          list(list(layer = "censor_mark", shape = opt("censor_shape", "x"),
+                    size = as.numeric(opt("censor_size", 3)),
+                    stroke = as.numeric(opt("censor_stroke", 0.6)))),
+          if (template != "km_simple") list(list(layer = "hline", yintercept = 0.5,
+                    linetype = opt("median_linetype", "twodash"),
+                    colour = opt("median_colour", "grey50"),
+                    linewidth = as.numeric(opt("median_line_width", 0.3)))),
+          if (template != "km_simple") list(list(layer = "risk_table",
+                    title = opt("risk_title", "Number of Patients at Risk"),
+                    size = as.numeric(opt("text_size", 3)),
+                    height = as.numeric(opt("risk_height", 0.167))))))
+    },
+    mean = {
+      data <- data %||% "ADLB"
+      param <- param %||% "ALT"
+      pop <- pop %||% "SAFFL"
+      group <- group %||% "TRT01A"
+      join <- join_adsl %||% TRUE
+      iv <- switch(template, mean_sd = "sd", mean_ci = "ci", "se")
+      ylab <- paste0(switch(iv, se = "Mean (+/- SE)", sd = "Mean (+/- SD)", ci = "Mean (95% CI)"),
+                     " ", if (value == "AVAL") "" else paste0(value, " of "), param)
+      change <- value %in% c("CHG", "PCHG")
+      tfl_fig_design(
+        template = template,
+        data = c(list(list(step = "read", dataset = data)),
+                 list(list(step = "param", value = param)),
+                 if (join) list(list(step = "join", dataset = "ADSL",
+                                     vars = paste(c(group, pop), collapse = ", "))),
+                 if (!is.null(pop)) list(list(step = "flag", variable = pop)),
+                 list(list(step = "filter", expr = sprintf("!is.na(%s) & !is.na(%s)", value, visit))),
+                 list(list(step = "levels", variable = visit_label, order_by = visit))),
+        stats = list(list(step = "summary", name = "sm", value = value,
+                          by = paste(c(group, visit, visit_label), collapse = ", "),
+                          interval = iv)),
+        plot = c(list(title = title, x_label = "Visit", y_label = ylab, colour_by = group,
+                      palette = "treatment", legend = "bottom", dodge = 0.3), size),
+        layers = c(
+          if (change) list(list(layer = "hline", yintercept = 0, linetype = "solid", colour = "grey60")),
+          list(
+            list(layer = "line", data = "sm", x = visit_label, y = "mean", colour = group, dodge = TRUE),
+            list(layer = "point", data = "sm", x = visit_label, y = "mean", colour = group, dodge = TRUE),
+            list(layer = "errorbar", data = "sm", x = visit_label, colour = group, dodge = TRUE)),
+          if (template == "mean_se_n") list(list(layer = "n_table", data = "sm",
+                                                 x = visit_label, group = group))))
+    },
+    waterfall = {
+      data <- data %||% "ADTR"
+      param <- param %||% "BPCHG"
+      pop <- pop %||% "FASFL"
+      resp <- template == "waterfall_response"
+      tfl_fig_design(
+        template = template,
+        data = c(list(list(step = "read", dataset = data)),
+                 list(list(step = "param", value = param)),
+                 if (!is.null(pop)) list(list(step = "flag", variable = pop)),
+                 if (resp) list(list(step = "join", dataset = response_data,
+                                     where = sprintf("PARAMCD == %s", q(response)),
+                                     vars = "BOR = AVALC")),
+                 list(list(step = "filter", expr = sprintf("!is.na(%s)", value))),
+                 list(list(step = "rank", by = value, descending = TRUE, variable = "INDEX")),
+                 if (resp) list(list(step = "levels", variable = "BOR",
+                                     levels = "CR | PR | SD | PD | NE"))),
+        plot = c(list(title = title, x_label = "Patients",
+                      y_label = "Best % Change in Sum of Target Lesion Diameters",
+                      colour_by = if (resp) "BOR", palette = if (resp) "response" else "treatment",
+                      legend = if (resp) "inside" else "none", x_text = FALSE,
+                      y_min = -100, y_max = 100, y_by = 20), size),
+        layers = list(
+          list(layer = "col", data = "df", x = "INDEX", y = value, fill = if (resp) "BOR"),
+          list(layer = "hline", yintercept = 0, linetype = "solid", colour = "black", linewidth = 0.5),
+          list(layer = "hline", yintercept = "20, -30", linetype = "dashed", colour = "grey",
+               linewidth = 0.5),
+          list(layer = "ref_label", y = "20, -30", label = "{y}%")))
+    })
+}

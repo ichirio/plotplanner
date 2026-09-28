@@ -1,3 +1,33 @@
+# tflspec 0.0.14
+
+* **Figure designs are now parts and layers** (#20): a design is four
+  lists of small pieces a GUI lists, adds and edits one by one --
+  - `data`: the steps from ADaM to the plot's data (`read`, `join`, `param`,
+    `flag`, `filter`, `derive`, `time_unit`, `levels`, `rank`, and
+    `data_code`: your own code for what no step does);
+  - `stats`: `survfit` (survfit2), `summary` (n, mean, SD, SE, interval by
+    group and visit), `stats_code`;
+  - `plot`: title, axes, colours, theme, legend, size;
+  - `layers`, in order: KM curves / bands / censor marks, the number at risk
+    and n panels, reference line labels, **any layer of the geom catalog**,
+    `geom` (any function by name), `layer_code`, or `figure` (a figure
+    type's whole script, for the types not yet in parts).
+* **The geom catalog** (`inst/fig/geoms.csv`, `inst/fig/geom_fields.csv`):
+  ggplot2's common geoms and ggrepel's text, each with the aesthetics it
+  maps and the settings it takes; one generic writer makes the code, so a
+  geom is added by adding rows.  `tfl_fig_add_layer()` adds one for the
+  session (another package's geom, a company's own layer).
+* **Templates**: `tfl_fig_template()` fills the four parts at once --
+  `km_risk_table`, `km_simple`, `km_ci`, `km_single_arm`, `mean_se`,
+  `mean_sd`, `mean_ci`, `mean_se_n`, `waterfall_response`,
+  `waterfall_plain` (`tfl_fig_templates()`); sizes and line widths from the
+  figure style standard.
+* `tfl_fig_parts()` describes every piece and its fields;
+  `tfl_check_fig_design()` checks a design against them and the data
+  (variables through the steps, PARAMCDs, the layers' data, the order of
+  layers).  `tfl_fig_design()` now takes the four parts; a 0.0.12 design
+  file (`type` / `style` / `args`) reads as a `figure` layer.
+
 # tflspec 0.0.13
 
 * `tfl_read_data_code()`: a dataset the data catalog has not gives
