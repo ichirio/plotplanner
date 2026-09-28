@@ -17,6 +17,7 @@
 \alias{tfl_plan_paginate_rows}
 \alias{tfl_plan_style}
 \alias{tfl_plan_col_header}
+\alias{tfl_plan_columns}
 \alias{tfl_plan_listing}
 \alias{tfl_plan_titles}
 \alias{tfl_plan_footnotes}
@@ -69,6 +70,8 @@ tfl_plan_paginate_rows(
 tfl_plan_style(plan, border = NULL, widths = NULL, ...)
 
 tfl_plan_col_header(plan, header = NULL, n = NULL, values = NULL)
+
+tfl_plan_columns(plan, widths = NULL, decimal = NULL)
 
 tfl_plan_listing(
   plan,
@@ -204,13 +207,19 @@ value split (the \strong{group} axis) is \code{tfl_plan_paginate_group()},
 and the \strong{column} axis is \code{tfl_plan_paginate_cols()}.}
 
 \item{border, widths}{For \code{tfl_plan_style()}: the border set and the relative
-column widths (\code{col_rel_width}).  Anything else \code{\link[rtfreporter:rtftable]{rtfreporter::rtftable()}}
-understands goes through \code{...}.}
+column widths (\code{col_rel_width}), one a column in order.  Anything else
+\code{\link[rtfreporter:rtftable]{rtfreporter::rtftable()}} understands goes through \code{...}.  For \code{tfl_plan_columns()},
+\code{widths} is \strong{named by column} instead (\code{c(row_label = 5, .values = 2)},
+\code{.values} for every value column), so a reordered table keeps them ---
+the \code{columns} sheet's \code{width}.}
 
 \item{header}{For \code{tfl_plan_col_header()}: the header, built with the same
 \code{\link[rtfreporter:rtf_col_header]{rtfreporter::rtf_col_header()}} as everywhere else --- or a \strong{function} of the
 resolved \code{n} (and, with two arguments, the finished table) when it
-has to be computed.  The plan adds two things to a header it is
+has to be computed --- or a \strong{data frame of cells}, one row a cell,
+with the \code{col_header} sheet's columns (\code{line}, \code{cols}, \code{span}, \code{text},
+borders ...), placed on each page's columns when it is made; this is
+how \code{\link[=tfl_table_code]{tfl_table_code()}} writes a workbook's header.  The plan adds two things to a header it is
 given, both of which used to need a function:
 \itemize{
 \item \code{{n:sum}} is that number \strong{totalled over the columns the cell
@@ -348,6 +357,10 @@ only entry when there is one.  The resolved value is also what
 
 \item{values}{For \code{tfl_plan_col_header()}: passed to \code{\link[rtfreporter:set_col_header]{rtfreporter::set_col_header()}} as
 \verb{values =}, for a header whose cells carry \code{{token}} placeholders.}
+
+\item{decimal}{For \code{tfl_plan_columns()}: the columns whose numbers line
+up at the decimal point (\code{.values} for every value column) --- the
+\code{columns} sheet's \code{decimal_split}.}
 
 \item{type, sep, spacer, spacer_rel_width, blank_row, blank_row_first, align, layout, wrap, record}{For \code{tfl_plan_listing()}: \code{\link[rtfreporter:listing_spec]{rtfreporter::listing_spec()}}'s own arguments, unchanged.
 \code{...} there takes the \code{\link[rtfreporter:listing_col]{rtfreporter::listing_col()}}s.}
