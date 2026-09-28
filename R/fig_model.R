@@ -174,7 +174,7 @@
 # the figure-wide settings
 .fig_plot_fields <- function() {
   rbind(
-    .ff("title", "text", "Title"),
+    .ff("title", "text", "Figure title"),
     .ff("x_label", "text", "X label"),
     .ff("y_label", "text", "Y label"),
     .ff("x_min", "number", "X min"),
