@@ -36,3 +36,9 @@ test_that("a design is checked against the schema and the data", {
                                          group = "TRT01A"))
   expect_equal(nrow(tfl_check_fig_design(ok, adam)), 0L)
 })
+
+test_that("group and pop come from ADSL for the types that join it", {
+  s <- tfl_fig_schema()
+  expect_equal(s$of[s$type == "mean" & s$arg == "group"], "ADSL")
+  expect_equal(s$of[s$type == "km" & s$arg == "group"], "data")
+})

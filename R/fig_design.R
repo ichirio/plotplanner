@@ -224,6 +224,12 @@ tfl_fig_schema <- function(type = NULL) {
       r
     })
     d <- do.call(rbind, d)
+    # the group, the analysis set and the subgroups: variables of the
+    # figure's dataset for the spec engine (km, waterfall, swimmer); the
+    # other types join them from ADSL
+    if (!"..." %in% names(fm)) {
+      d$of[d$arg %in% c("group", "pop", "subgroups")] <- "ADSL"
+    }
     # the choices the standard or the engine knows
     set <- function(a, v) if (a %in% d$arg && is.na(d$choices[d$arg == a])) {
       d$choices[d$arg == a] <<- paste(v, collapse = " | ")
