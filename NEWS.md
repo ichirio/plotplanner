@@ -1,4 +1,4 @@
-# tflspec 0.0.11
+# tflspec 0.0.12
 
 * **Figure designs** (#14): a figure as data -- its type, its style and the
   arguments of its `tfl_fig_<type>()` -- kept as one YAML file per figure.
@@ -13,6 +13,26 @@
     `tfl_fig_<type>()`) and `tfl_check_fig_design()` (the arguments against
     the schema, and the variables and PARAMCDs against the data).
   - 'yaml' is a new import.
+
+# tflspec 0.0.11
+
+* **Listing specs are read in tflspec** (#13), as ARD and table specs are:
+  the definition is two sheets keyed by `output_id`, `listings` (dataset,
+  where, sort, max_rows, type) and `listing_cols` (vars, label, width,
+  collapse_repeats) -- the sheets of tflplanner's
+  `listing_figure_spec.xlsx`, which reads unchanged.
+  - `tfl_listing_spec()` makes the definition (class `tfl_listing_spec`)
+    and checks it: a listing with no dataset or no columns, a `where` that is
+    not R, a `sort` that is not variable names, a `max_rows` that is not a
+    whole number, a `width` that is not a positive number, a
+    `collapse_repeats` that is not TRUE / FALSE, columns of an unknown
+    listing.  `check = FALSE` keeps a draft.
+  - `tfl_read_listing_spec(path, output_id)` / `tfl_write_listing_spec()`:
+    the workbook (other sheets, and a `note` column, are ignored).
+  - `tfl_listing_code(spec, output_id, datasets)` now takes the definition
+    (or its workbook's path) instead of loose data-frame rows.
+  - New `tfl_listing(spec, data, output_id)`: the pages themselves from data
+    in hand -- the same pages the code makes (tested).
 
 # tflspec 0.0.10
 

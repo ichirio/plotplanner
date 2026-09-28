@@ -4,32 +4,36 @@
 \alias{tfl_listing_code}
 \title{The code that makes a listing from its definition}
 \usage{
-tfl_listing_code(listing, cols, datasets, rework = NULL, type = "multiline")
+tfl_listing_code(
+  spec,
+  output_id = NULL,
+  datasets,
+  rework = NULL,
+  type = "multiline"
+)
 }
 \arguments{
-\item{listing}{One row: \code{dataset}, \code{where} (R), \code{sort} (variables, \code{|}
-between them, \code{-} for descending), \code{max_rows}, \code{type} (blank: \code{type}
-below).}
+\item{spec}{A \code{\link[=tfl_listing_spec]{tfl_listing_spec()}}, or the path of its workbook.}
 
-\item{cols}{Its columns, one row each: \code{vars} (\code{|} between variables
-stacked in one column), \code{label} (\verb{\\n} for a line break), \code{width},
-\code{collapse_repeats} (\code{TRUE} prints a repeated value once).}
+\item{output_id}{The listing; may be left out when the definition has one.}
 
 \item{datasets}{The data catalog (see \code{\link[=tfl_read_data_code]{tfl_read_data_code()}}).}
 
 \item{rework}{Code run on \code{data} before it is sorted, or \code{NULL}.}
 
-\item{type}{The listing type when \code{listing$type} is blank (one of
+\item{type}{The listing type when the listing's \code{type} is blank (one of
 rtfreporter's \code{listing_spec()} types).}
 }
 \value{
 The code, one element per line; \code{NULL} when the listing names no
-dataset.
+dataset yet.
 }
 \description{
-From one row of a \code{listings} sheet and its rows of \code{listing_cols}, writes
-the part of a listing program that reads the data, subsets, reworks and
-sorts it, and lays it out: \code{content <- as_rtftables(data, listing = lst)}.
-The program's setup (\code{library(rtfreporter)}) and its report are the
-caller's.
+Writes the part of a listing program that reads the data, subsets,
+reworks and sorts it, and lays it out:
+\code{content <- as_rtftables(data, listing = lst)}.  The program's setup
+(\code{library(rtfreporter)}) and its report are the caller's.
+}
+\seealso{
+\code{\link[=tfl_listing]{tfl_listing()}} for the pages themselves.
 }

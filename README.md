@@ -15,7 +15,8 @@ rtfreporter  the RTF renderer; usable on its own
 
 | Part | What it does | Entry points |
 |---|---|---|
-| Tables (ARD) | a cards/cardx ARD -> a table data.frame -> rtfreporter pages, declared once as a plan or in an Excel table spec | `tfl_ard_normalize()`, `tfl_ard_spread()`, `tfl_plan()` + `plan_*()`, `tfl_table_spec()`, `tfl_read_report_spec()`, `tfl_report()` |
+| Tables (ARD) | a cards/cardx ARD -> a table data.frame -> rtfreporter pages, declared once as a plan or in an Excel table spec | `tfl_ard_normalize()`, `tfl_ard_spread()`, `tfl_plan()` + `tfl_plan_*()`, `tfl_table_spec()`, `tfl_read_report_spec()`, `tfl_report()` |
+| Listings | an Excel listing spec (sheets `listings`, `listing_cols`) -> the listing program, or its pages | `tfl_read_listing_spec()`, `tfl_listing_code()`, `tfl_listing()` |
 | Figures | an Excel plot spec -> a ggplot2 skeleton script | `tfl_fig_spec()`, `tfl_fig_code()`, `tfl_fig_km()`, `tfl_fig_waterfall()`, `tfl_fig_swimmer()` |
 
 A plan is a table source for rtfreporter: `rtf_tables(doc, plan)` and
@@ -42,6 +43,27 @@ tbl <- ard |>
 doc <- rtf_document() |> rtf_tables(tbl)
 generate_rtfreport(doc, "t_dm.rtf")
 ```
+
+## Listings
+
+A listing is defined in two sheets keyed by `output_id`: `listings` (one row
+a listing: `dataset`, `where`, `sort`, `max_rows`, `type`) and `listing_cols`
+(one row a printed column: `vars`, `label`, `width`, `collapse_repeats`).
+tflplanner's `listing_figure_spec.xlsx` is such a workbook.
+
+```r
+spec <- tfl_read_listing_spec("spec/listing_figure_spec.xlsx")
+
+# the program: read the data (catalog), subset, sort, lay out
+tfl_listing_code(spec, "L-16-2-7", datasets = catalog)
+
+# or the pages, from data in hand
+pages <- tfl_listing(spec, adae, "L-16-2-7")
+doc <- rtf_document() |> rtf_tables(pages)
+```
+
+Both give the same pages. `tfl_write_listing_spec(tfl_listing_spec(), path)`
+writes an empty workbook to fill in.
 
 ## Figures
 
