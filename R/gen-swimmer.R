@@ -1,6 +1,9 @@
 pp_gen_swimmer <- function(ctx) {
   id <- pp_role(ctx, "id", required = TRUE)$variable
   end <- pp_role(ctx, "end", required = TRUE)$variable
+  # subtype: bars from 0 (default) or from a start variable to `end`
+  start <- pp_role(ctx, "start")$variable
+  x0 <- start %or% "0"
   bar_col <- pp_role(ctx, "colour")
   key <- pp_opt(ctx, "id_var")  # join key; `id` is only the y-axis label
   src <- pp_use_ds(ctx, ctx$ds)
@@ -9,7 +12,7 @@ pp_gen_swimmer <- function(ctx) {
 
   # ---- subject-level bar data ----
   steps <- list(src, pp_filter_code(ctx, flist, ctx$ds))
-  time_vars <- end
+  time_vars <- c(start, end)
   c_var <- NULL
   sv_bar <- NULL
   if (!is.null(bar_col)) {
@@ -104,9 +107,9 @@ pp_gen_swimmer <- function(ctx) {
   base_terms <- list(
     "ggplot(bar_df, aes(y = Y_ID))",
     if (!is.null(c_var)) {
-      c(sprintf("geom_segment(aes(x = 0, xend = %s, yend = Y_ID, colour = %s), linewidth = %s)", end, c_var, bw),
+      c(sprintf("geom_segment(aes(x = %s, xend = %s, yend = Y_ID, colour = %s), linewidth = %s)", x0, end, c_var, bw),
         pp_scale_manual("colour", sv_bar, 'na.value = "grey80"'))
-    } else sprintf('geom_segment(aes(x = 0, xend = %s, yend = Y_ID), colour = "#9DB4C0", linewidth = %s)', end, bw),
+    } else sprintf('geom_segment(aes(x = %s, xend = %s, yend = Y_ID), colour = "#9DB4C0", linewidth = %s)', x0, end, bw),
     if (grid) {
       paste0("scale_x_continuous(
 ",
@@ -138,17 +141,27 @@ pp_gen_swimmer <- function(ctx) {
       })
   }
   if (!is.null(events)) {
-    plot <- c(plot, "# ---- layer: event_marker (one row per event variable) ----",
-      plus_code("p", list(
-        paste0("geom_point(\n",
-               "  data = event_df,\n",
-               "  aes(x = X, shape = EVENT,\n",
-               "      colour = I(event_colour[as.character(EVENT)]),\n",
-               "      fill   = I(event_colour[as.character(EVENT)])),\n",
-               "  size = ", pp_opt(ctx, "event_size"), "\n)"),
+    ev_code <- plus_code("p", list(
+        paste0("geom_point(
+",
+               "  data = event_df,
+",
+               "  aes(x = X, shape = EVENT,
+",
+               "      colour = I(event_colour[as.character(EVENT)]),
+",
+               "      fill   = I(event_colour[as.character(EVENT)])),
+",
+               "  size = ", pp_opt(ctx, "event_size"), "
+)"),
         "scale_shape_manual(values = event_shape, breaks = names(event_shape))",
         "guides(shape = guide_legend(override.aes = list(colour = unname(event_colour), fill = unname(event_colour))))"
-      ), append = TRUE))
+      ), append = TRUE)
+    plot <- c(plot, "# ---- layer: event_marker (one row per event variable; skipped when no event) ----",
+      paste0("if (nrow(event_df) > 0) {
+", paste(indent(ev_code), collapse = "
+"), "
+}"))
   }
   if (has_layer(ctx, "ongoing_arrow")) {
     o_flist <- pp_filters(ctx, "ongoing_arrow", ctx$ds)

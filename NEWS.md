@@ -1,3 +1,50 @@
+# tflspec 0.0.8
+
+* **pharmaverseadam example** (`inst/examples/pharmaverseadam/`): a plot
+  list with 19 clinical figures (`plot_list.xlsx`), the data preparation
+  tflspec does not do (`prepare_adam.R`) and `run_all.R` (spec -> programs ->
+  figures). All 19 programs run without warnings.
+* Template figure types take `where =`, an extra record condition in R code
+  (e.g. only scheduled visits).
+* Groups follow the paired numeric code of ADSL when there is one (`TRT01AN`
+  for `TRT01A`) instead of alphabetical order.
+* Generated programs cope with real data: swimmer event markers are skipped
+  when no subject has an event; a forest model that does not converge is
+  shown as NE; eDISH drops records without a ULN.
+* `write_plot_code()` / `plot_list_code(dir =)` keep plot ids in file names
+  (`F-01.R`, not `F.01.R`).
+* **Catalogue of clinical figure types**: `pp_catalog()` classifies every type
+  and style (subtype) by category (efficacy: time to event / tumour response /
+  subgroups and rates, longitudinal, safety, PK / PD, distribution, treatment
+  patterns), with planned types recorded for later. `pp_styles()` and the
+  Excel plot list are derived from it.
+* **Ten new figure types**, each with styles: `pp_forest()` (hr, or,
+  estimates), `pp_bar()` (rate_ci, stacked, dodged), `pp_mean()` (se, sd, ci,
+  se_n), `pp_individual()` (spaghetti, spider), `pp_box()` (by_visit,
+  by_group, change), `pp_ae_dot()` (risk_diff, incidence), `pp_butterfly()`
+  (soc, pt), `pp_edish()` (alt, alt_ast), `pp_scatter()` (shift, xy) and
+  `pp_pk()` (mean, mean_log, individual). Their scripts depend only on
+  dplyr / ggplot2 (+ survival, patchwork).
+* Swimmer subtype: `pp_swimmer(start =, end =)` draws bars from a start day
+  instead of 0.
+* `pp_example_adam()` gains `ADAE`, `ADLB`, `ADPC`, tumour size over time in
+  `ADTR`, and `SEX` / `AGEGR1` / `TRT01A` / start and end days in `ADSL`
+  (drawn from a separate random stream: existing values are unchanged).
+* **Treatment-sequence figures moved here from ydisctools**: `plot_sankey()`
+  (nodes laid out from the node table, baseline-aware ribbon stacking,
+  shared / adaptive scales), `plot_sankey_subgroups_batch()` and
+  `plot_sunburst()`, with their tests. `plot_sankey_polygon()` (deprecated
+  alias) was not carried over.
+* `sankey_data()` / `sunburst_data()` build their inputs from one row per
+  subject and line (e.g. lines of therapy), optionally by subgroup.
+* Quick API `pp_sankey()` (styles `grey_links`, `colored_links`,
+  `subgroups`) and `pp_sunburst()` (style `rings`); both are also available
+  as `type` in the Excel plot list (`group` = subgroup variable of sankey).
+  Unlike the other figure types, these scripts call tflspec.
+* `pp_example_adam()` gains `ADLOT` (lines of therapy); existing datasets
+  are unchanged.
+* ggplot2 and rlang are now imported.
+
 # tflspec 0.0.7
 
 * **`rtf_plan()` is now `table_plan()`**, and the object it returns is of

@@ -17,5 +17,6 @@ A named list of data frames.
 \description{
 Synthetic oncology data (no real subjects): \code{ADSL}, \code{ADTTE} (OS / PFS /
 DOR, days), \code{ADRS} (OVR per visit + BOR) and \code{ADTR} (best percent change in
-sum of diameters).
+sum of diameters; \code{SDIAM} over time), \code{ADLOT} (lines of therapy), \code{ADAE},
+\code{ADLB} (ALT / AST / BILI) and \code{ADPC} (concentrations).
 }

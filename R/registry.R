@@ -36,7 +36,7 @@ pp_types <- function() {
       title = "Swimmer plot",
       packages = c("dplyr", "ggplot2", "patchwork"),
       roles = list(
-        base = c(id = TRUE, end = TRUE, colour = FALSE),
+        base = c(id = TRUE, end = TRUE, start = FALSE, colour = FALSE),
         assessment_marker = c(x = TRUE, fill = FALSE),
         event_marker = c(x = TRUE)
       ),

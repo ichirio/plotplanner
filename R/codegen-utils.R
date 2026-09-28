@@ -2,6 +2,9 @@
 # Not `%or%`: the ARD / plan code needs base R's NULL-only meaning of that.
 `%or%` <- function(a, b) if (is.null(a) || length(a) == 0 || (length(a) == 1 && is.na(a))) b else a
 
+# File name of a plot id: keeps letters, digits, '-', '_' and '.' (F-14.2.1 stays as is).
+pp_file_name <- function(x) gsub("[^A-Za-z0-9._-]", "_", x)
+
 # Quote a string as R code.
 q <- function(x) encodeString(as.character(x), quote = '"')
 
@@ -255,33 +258,7 @@ pp_scale_manual <- function(aes, sv, extra = NULL) {
 
 pp_theme_code <- function(ctx) {
   th <- ctx$prow$theme %or% pp_opt(ctx, "theme") %or% "boxed"
-  bs <- pp_opt(ctx, "base_size")
-  o <- function(k) pp_opt(ctx, k)
-  text_sizes <- paste0(
-    "  axis.title        = element_text(size = ", o("axis_title_size"), "),\n",
-    "  axis.text         = element_text(size = ", o("axis_text_size"), "),\n",
-    "  legend.text       = element_text(size = ", o("legend_text_size"), "),\n",
-    "  legend.key.size   = unit(", o("legend_key_size"), ", \"lines\"),\n")
-  switch(th,
-    boxed = c(
-      sprintf("theme_minimal(base_size = %s)", bs),
-      paste0("theme(\n", text_sizes,
-             "  panel.border      = element_rect(colour = \"black\", fill = NA, linewidth = ", o("panel_border_width"), "),\n",
-             "  panel.grid        = element_blank(),\n",
-             "  axis.ticks        = element_line(linewidth = ", o("tick_width"), "),\n",
-             "  axis.ticks.length = unit(", o("tick_length"), ", \"mm\")\n)")
-    ),
-    L_axis = c(
-      sprintf("theme_minimal(base_size = %s)", bs),
-      paste0("theme(\n", text_sizes,
-             "  panel.grid = element_blank(),\n",
-             "  axis.line  = element_line(colour = \"black\", linewidth = ", o("axis_line_width"), "),\n",
-             "  axis.ticks = element_line(linewidth = ", o("axis_line_width"), ")\n)")
-    ),
-    minimal = sprintf("theme_minimal(base_size = %s)", bs),
-    classic = sprintf("theme_classic(base_size = %s)", bs),
-    stop("Unknown theme: ", th, call. = FALSE)
-  )
+  pp_theme_lines(th, pp_opt(ctx, "base_size"), function(k) pp_opt(ctx, k))
 }
 
 # Join ggplot terms with " +".

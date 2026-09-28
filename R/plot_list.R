@@ -2,7 +2,12 @@
 
 pp_list_cols <- c("plot_id", "type", "style", "title", "param", "group", "pop", "legend", "args")
 
-pp_quick_fun <- list(km = "pp_km", waterfall = "pp_waterfall", swimmer = "pp_swimmer")
+# type -> quick function, from the catalogue
+pp_quick_fun_list <- function() {
+  x <- pp_catalog("implemented")
+  x <- x[!duplicated(x$type), ]
+  as.list(stats::setNames(x$fun, x$type))
+}
 
 #' Write an Excel plot list template
 #'
@@ -44,8 +49,8 @@ write_plot_list_template <- function(path, adam = NULL, rows = NULL, n_rows = 30
   openxlsx::writeData(wb, "styles", st, headerStyle = hdr)
   openxlsx::setColWidths(wb, "styles", 1:4, widths = c(11, 13, 9, 90))
 
-  help <- do.call(rbind, lapply(names(pp_quick_fun), function(t) {
-    f <- formals(get(pp_quick_fun[[t]]))
+  help <- do.call(rbind, lapply(names(pp_quick_fun_list()), function(t) {
+    f <- formals(get(pp_quick_fun_list()[[t]]))
     f <- f[setdiff(names(f), c("adam", "style", "title", "file", "plot_id", "...", "param", "group", "pop", "legend"))]
     data.frame(type = t, argument = names(f),
                default = vapply(f, function(v) paste(deparse(v), collapse = ""), character(1)),
@@ -68,8 +73,8 @@ write_plot_list_template <- function(path, adam = NULL, rows = NULL, n_rows = 30
     openxlsx::writeData(wb, "_lists", data.frame(x = values), startCol = col, colNames = FALSE)
     openxlsx::createNamedRegion(wb, "_lists", cols = col, rows = seq_along(values), name = name)
   }
-  add_list("PP_TYPES", names(pp_quick_fun))
-  for (t in names(pp_quick_fun)) add_list(paste0("ST_", t), st$style[st$type == t])
+  add_list("PP_TYPES", names(pp_quick_fun_list()))
+  for (t in names(pp_quick_fun_list())) add_list(paste0("ST_", t), st$style[st$type == t])
   add_list("PP_LEGENDS", names(pp_quick_legends))
   if (!is.null(adam)) {
     params <- unique(unlist(lapply(adam, function(d) if ("PARAMCD" %in% names(d)) pp_values(d, "PARAMCD"))))
@@ -114,12 +119,13 @@ plot_list_code <- function(x, adam = NULL, dir = NULL) {
   adam <- pp_prep_adam(adam)
   code <- vapply(seq_len(nrow(x)), function(i) {
     r <- lapply(x[i, ], function(v) if (is.na(v) || trimws(v) == "") NULL else trimws(as.character(v)))
-    fun <- pp_quick_fun[[r$type]]
+    fun <- pp_quick_fun_list()[[r$type]]
     if (is.null(fun)) stop("Row ", i, ": unknown type '", r$type, "'.", call. = FALSE)
     args <- list(adam = adam, plot_id = r$plot_id %or% paste0("plot", i))
     for (a in c("style", "title", "param", "group", "legend")) {
       if (!is.null(r[[a]]) && a %in% names(formals(get(fun)))) args[[a]] <- r[[a]]
     }
+    if (!is.null(r$group) && "by" %in% names(formals(get(fun)))) args$by <- r$group
     if (!is.null(r$pop)) args$pop <- if (toupper(r$pop) == "NONE") NULL else r$pop
     if (!is.null(r$args)) {
       extra <- tryCatch(eval(parse(text = paste0("list(", r$args, ")")), envir = baseenv()),
@@ -132,7 +138,7 @@ plot_list_code <- function(x, adam = NULL, dir = NULL) {
   names(code) <- x$plot_id %or% paste0("plot", seq_len(nrow(x)))
   if (!is.null(dir)) {
     dir.create(dir, showWarnings = FALSE, recursive = TRUE)
-    for (i in seq_along(code)) writeLines(code[[i]], file.path(dir, paste0(make.names(names(code)[i]), ".R")), useBytes = TRUE)
+    for (i in seq_along(code)) writeLines(code[[i]], file.path(dir, paste0(pp_file_name(names(code)[i]), ".R")), useBytes = TRUE)
     return(invisible(code))
   }
   code

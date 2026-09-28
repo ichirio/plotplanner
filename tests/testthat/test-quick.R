@@ -3,6 +3,7 @@ test_that("every style of the quick API generates runnable code", {
   skip_if_not_installed("patchwork")
   adam <- pp_example_adam()
   st <- pp_styles()
+  st <- st[st$type %in% c("km", "waterfall", "swimmer"), ]  # sankey / sunburst: test-sequence.R
   for (i in seq_len(nrow(st))) {
     fun <- get(c(km = "pp_km", waterfall = "pp_waterfall", swimmer = "pp_swimmer")[[st$type[i]]])
     for (use_adam in list(adam, NULL)) {
