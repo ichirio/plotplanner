@@ -1,3 +1,19 @@
+# tflspec 0.0.11
+
+* **Figure designs** (#14): a figure as data -- its type, its style and the
+  arguments of its `tfl_fig_<type>()` -- kept as one YAML file per figure.
+  - `tfl_fig_schema()` describes every argument of every figure type: its
+    section (data / mapping / style / axes / legend / output), its kind (a
+    dataset, a PARAMCD, a variable, one of a set of values, a number ...),
+    basic or advanced, its default and its choices.  For `km`, `waterfall`
+    and `swimmer` it includes the axis and look options they take through
+    `...`.  A GUI draws its form from it (tflplanner's Plot Designer).
+  - `tfl_fig_design()`, `tfl_write_fig_design()` / `tfl_read_fig_design()`
+    (YAML), `tfl_fig_design_code()` (the script, by the type's
+    `tfl_fig_<type>()`) and `tfl_check_fig_design()` (the arguments against
+    the schema, and the variables and PARAMCDs against the data).
+  - 'yaml' is a new import.
+
 # tflspec 0.0.10
 
 * **The former names are gone** (#11): `ard_normalize()`, `rtf_plan()`,
