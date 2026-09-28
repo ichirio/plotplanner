@@ -141,3 +141,13 @@ test_that("tfl_listing(): one listing needs no output_id; a bad sort says so", {
   expect_s3_class(pages[[1]], "rtftable")
   expect_error(tfl_listing(sp, adsl["USUBJID"]), "sorts by AGE, which the data has not")
 })
+
+test_that("a dataset the catalog has not stops the program, saying so", {
+  cat <- data.frame(dataset = "ADSL", path = "data/adsl.rds", derive = NA)
+  code <- tfl_read_data_code(cat, "ADAE")
+  expect_identical(code,
+                   "stop(\"tflspec: dataset ADAE is not in the data catalog.\")")
+  expect_error(eval(str2lang(code)),
+               "tflspec: dataset ADAE is not in the data catalog.", fixed = TRUE)
+  expect_true("adsl <- readRDS(\"data/adsl.rds\")" %in% tfl_read_data_code(cat, "ADSL"))
+})
