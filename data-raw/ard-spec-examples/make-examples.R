@@ -9,7 +9,7 @@
 #  For each report this script
 #    1. builds the example ARD (the same code as Discussion #473),
 #    2. writes its definition workbook to inst/extdata/ard-spec/<id>.xlsx,
-#    3. reads the workbook back and runs rtf_plan(spec = ) on the ARD,
+#    3. reads the workbook back and runs table_plan(spec = ) on the ARD,
 #    4. checks the table data frame is IDENTICAL to ard_spread() written
 #       out, and the finished rtftable pages to the report's plan code --
 #       and that as_table_spec(<plan code>) gives those pages back.
@@ -51,9 +51,9 @@ tbl <- function(...) {
 check <- function(id, ard_n, spec_path, code_tbl, code_plan, header,
                   pages_n = ard_n) {
   sp <- read_table_spec(spec_path, output_id = id)
-  from_spec <- apply_plan(rtf_plan(ard_n, spec = sp, notes = FALSE), "table")
+  from_spec <- apply_plan(table_plan(ard_n, spec = sp, notes = FALSE), "table")
   ok <- isTRUE(all.equal(as.data.frame(from_spec), as.data.frame(code_tbl)))
-  pg_spec <- apply_plan(rtf_plan(pages_n, spec = sp, notes = FALSE), "pages")
+  pg_spec <- apply_plan(table_plan(pages_n, spec = sp, notes = FALSE), "pages")
   pg_code <- apply_plan(code_plan, "pages")
   ok_pg <- isTRUE(all.equal(pg_spec, pg_code))
   # and the other way: the plan code written back as a workbook
@@ -337,7 +337,7 @@ specs$DM <- with_pages(specs$DM,
     hc("DM", 2, ".values", "(N={n})", span = "each")))
 dm_plan <- ard_dm |>
   ard_normalize() |>
-  rtf_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
+  table_plan(cols = "TRT01P", rows = c(group = "variable"), notes = FALSE) |>
   plan_labels(c(AGE    = "Age (years) [a]",
                 AGEGR1 = "Age (group1) (years) [n (%)] [a]",
                 SEX    = "Sex [n (%)]",
@@ -389,7 +389,7 @@ specs$AE <- with_pages(specs$AE,
     hc("AE", 3, ".values", "{col2}
 (N={n})", span = "each")))
 ae_plan <- ae_n |>
-  rtf_plan(cols  = c("TR01AG1", "SEROSTAT"),
+  table_plan(cols  = c("TR01AG1", "SEROSTAT"),
            rows  = c(group1 = "AEBODSYS"),
            label = c(label  = "AEDECOD"), notes = FALSE) |>
   plan_levels(TR01AG1  = c("Placebo", "Xanomeline Low Dose",
@@ -444,7 +444,7 @@ specs$ORR <- with_pages(specs$ORR,
     hc("ORR", 2, "variable = n", "N", span = "each"),
     hc("ORR", 2, "variable = orr_ci", "ORR(%) 90%CI", span = "each")))
 orr_plan <- orr_n |>
-  rtf_plan(cols  = c("TRT01P", "variable"), sep = "_",
+  table_plan(cols  = c("TRT01P", "variable"), sep = "_",
            rows  = c(grp1 = "group2", grp2 = "group2_level"),
            label = NA, notes = FALSE) |>
   plan_sort(FALSE) |>
@@ -485,7 +485,7 @@ specs$LB <- with_pages(specs$LB,
     hc("LB", 2, ".values", "{col}", span = "each")))
 lb_pages_n <- ard_normalize(ard_lb, drop_contexts = "attributes")
 lb_plan <- lb_pages_n |>
-  rtf_plan(cols  = "BASEGR",
+  table_plan(cols  = "BASEGR",
            rows  = c(LBTOX_LBL = "LBTOX_LBL",
                      group1    = ~ "Worst Post-Baseline Values"),
            label = c(label = ".label"), notes = FALSE) |>
@@ -537,7 +537,7 @@ specs$PK <- with_pages(specs$PK,
     hc("PK", 2, "Statistics", "Statistics"),
     hc("PK", 2, ".values", "{col}", span = "each")))
 pk_plan <- ard_normalize(ard_pk) |>
-  rtf_plan(cols  = "ATPT", rows = c(Analyte = "ANALYTE"),
+  table_plan(cols  = "ATPT", rows = c(Analyte = "ANALYTE"),
            label = c(Statistics = "stat_label"), stats = "rows",
            notes = FALSE) |>
   plan_levels(Statistics = stat_levels, ATPT = TIMEPOINTS) |>
@@ -723,7 +723,7 @@ pages_n <- list(DM = ard_normalize(ard_dm), AE = ae_n, ORR = orr_n,
 tmp <- tempfile("rtf"); dir.create(tmp)
 for (id in names(code_plans)) {
   sp <- read_report_spec(c(report_book, study_path), output_id = id)
-  p <- rtf_plan(pages_n[[id]], spec = sp, notes = FALSE)
+  p <- table_plan(pages_n[[id]], spec = sp, notes = FALSE)
   a <- file.path(tmp, "code.rtf"); b <- file.path(tmp, "spec.rtf")
   generate_rtfreport(code_doc(id, code_plans[[id]]), a, overwrite = TRUE)
   generate_rtfreport(rtf_report(sp, p), b, overwrite = TRUE)

@@ -2370,7 +2370,7 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
     cells     = c("output_id", "variable", "context", "row", "when",
                   "template", "digits", "signif"),
     # the table half: what as_rtftables() / rtftable() are told, read by
-    # rtf_plan(spec = ) and resolved like the plan's own verbs
+    # table_plan(spec = ) and resolved like the plan's own verbs
     layout    = c("output_id", names(.ard_spec_types$layout)),
     columns   = c("output_id", names(.ard_spec_types$columns)),
     style     = c("output_id", names(.ard_spec_types$style)),
@@ -2595,8 +2595,8 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
 #' | `col_header` | header cell | line, columns, span, text, borders |
 #'
 #' The first four say how the ARD becomes a table data frame; the last
-#' four how that becomes `rtftable` pages.  [rtf_plan()] reads them all
-#' (`rtf_plan(data, spec = )`), as the first layers of a plan, so a verb
+#' four how that becomes `rtftable` pages.  [table_plan()] reads them all
+#' (`table_plan(data, spec = )`), as the first layers of a plan, so a verb
 #' written after it still wins.
 #'
 #' @section `study`:
@@ -2736,7 +2736,7 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
 #'     depth of the keys) and `{n:sum}` (the total over the cell's
 #'     columns).  `{n}` is read from the ARD whenever a text uses it; a
 #'     number the ARD does not state prints `NA` with a warning, and
-#'     `plan_col_header(n = )` after `rtf_plan(spec = )` supplies it.
+#'     `plan_col_header(n = )` after `table_plan(spec = )` supplies it.
 #'     Quote a text to keep leading spaces: `"  Category"`.}
 #'   \item{`align`, `bold`, `border_top`, `border_bottom`}{As
 #'     [col_cell()] / [rtf_border()] take them (`single`, `none`, ...).}
@@ -3187,7 +3187,7 @@ print.table_spec <- function(x, ...) {
 #' @param output_id The report to narrow the workbook to.  Rows with a blank
 #'   `output_id` are the study's defaults and stay; a row naming this
 #'   report replaces the default with the same key.  `NULL` (default)
-#'   reads the whole workbook; what needs one report --- [rtf_plan()],
+#'   reads the whole workbook; what needs one report --- [table_plan()],
 #'   [rtf_report()] --- then takes a workbook of one report as it is and
 #'   asks which of several.
 #'
@@ -3250,7 +3250,7 @@ read_table_spec <- function(path, output_id = NULL) {
   sp <- .ard_spec_from_sheets(sheets, paste(basename(path), collapse = " + "))
   # the whole study, unless one report is asked for: a workbook is edited,
   # combined and compared whole, and whatever needs ONE report
-  # (rtf_plan(), rtf_report(), report_path()) narrows it and says so
+  # (table_plan(), rtf_report(), report_path()) narrows it and says so
   if (is.null(output_id)) sp else .ard_spec_scope(sp, output_id)
 }
 
@@ -3443,7 +3443,7 @@ table_spec_template <- function(ard, path = NULL, cols = NULL,
 #' @param output_id The report to narrow the definition to.
 #'
 #' @return A [table_spec()] carrying the report sheets as well; it serves
-#'   `rtf_plan(spec = )` and [rtf_report()] alike.
+#'   `table_plan(spec = )` and [rtf_report()] alike.
 #'
 #' @section `report`:
 #' `type` (`table`, `listing`, `figure`; default `table`), `file` (default
@@ -3474,20 +3474,20 @@ read_report_spec <- function(path, output_id = NULL) {
 #'
 #' `rtf_report()` is the document half of a report definition: the page,
 #' the running header and footer, the titles and footnotes, and the
-#' table's pages --- an [rtf_plan()] or anything [rtf_tables()] takes ---
+#' table's pages --- an [table_plan()] or anything [rtf_tables()] takes ---
 #' in one [rtf_document()] ready for [generate_rtfreport()].  The document
 #' carries its program, so `{PROGRAM}` needs nothing more.
 #'
 #' ```r
 #' spec <- read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = id)
-#' plan <- ard |> ard_normalize() |> rtf_plan(spec = spec)
+#' plan <- ard |> ard_normalize() |> table_plan(spec = spec)
 #' generate_rtfreport(rtf_report(spec, plan), report_path(spec),
 #'                    overwrite = TRUE)
 #' ```
 #'
 #' @param spec A report definition ([read_report_spec()]) narrowed to one
 #'   report, or the path(s) to read it from.
-#' @param content The report's content: an [rtf_plan()] or `rtftable`
+#' @param content The report's content: an [table_plan()] or `rtftable`
 #'   pages for a table or listing, figures for a `type = figure` report.
 #' @param output_id The report, when `spec` is a path or still defines
 #'   several.

@@ -10,7 +10,7 @@ rtf_report(spec, content, output_id = NULL)
 \item{spec}{A report definition (\code{\link[=read_report_spec]{read_report_spec()}}) narrowed to one
 report, or the path(s) to read it from.}
 
-\item{content}{The report's content: an \code{\link[=rtf_plan]{rtf_plan()}} or \code{rtftable}
+\item{content}{The report's content: an \code{\link[=table_plan]{table_plan()}} or \code{rtftable}
 pages for a table or listing, figures for a \code{type = figure} report.}
 
 \item{output_id}{The report, when \code{spec} is a path or still defines
@@ -22,13 +22,13 @@ An \code{\link[rtfreporter:rtf_document]{rtfreporter::rtf_document()}}.
 \description{
 \code{rtf_report()} is the document half of a report definition: the page,
 the running header and footer, the titles and footnotes, and the
-table's pages --- an \code{\link[=rtf_plan]{rtf_plan()}} or anything \code{\link[rtfreporter:rtf_tables]{rtfreporter::rtf_tables()}} takes ---
+table's pages --- an \code{\link[=table_plan]{table_plan()}} or anything \code{\link[rtfreporter:rtf_tables]{rtfreporter::rtf_tables()}} takes ---
 in one \code{\link[rtfreporter:rtf_document]{rtfreporter::rtf_document()}} ready for \code{\link[rtfreporter:generate_rtfreport]{rtfreporter::generate_rtfreport()}}.  The document
 carries its program, so \code{{PROGRAM}} needs nothing more.
 }
 \details{
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{spec <- read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = id)
-plan <- ard |> ard_normalize() |> rtf_plan(spec = spec)
+plan <- ard |> ard_normalize() |> table_plan(spec = spec)
 generate_rtfreport(rtf_report(spec, plan), report_path(spec),
                    overwrite = TRUE)
 }\if{html}{\out{</div>}}

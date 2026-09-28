@@ -15,7 +15,7 @@ rtfreporter  the RTF renderer; usable on its own
 
 | Part | What it does | Entry points |
 |---|---|---|
-| Tables (ARD) | a cards/cardx ARD -> a table data.frame -> rtfreporter pages, declared once as a plan or in an Excel table spec | `ard_normalize()`, `ard_spread()`, `rtf_plan()` + `plan_*()`, `table_spec()`, `read_report_spec()`, `rtf_report()` |
+| Tables (ARD) | a cards/cardx ARD -> a table data.frame -> rtfreporter pages, declared once as a plan or in an Excel table spec | `ard_normalize()`, `ard_spread()`, `table_plan()` + `plan_*()`, `table_spec()`, `read_report_spec()`, `rtf_report()` |
 | Figures | an Excel plot spec -> a ggplot2 skeleton script | `plot_spec()`, `plot_code()`, `pp_km()`, `pp_waterfall()`, `pp_swimmer()` |
 
 A plan is a table source for rtfreporter: `rtf_tables(doc, plan)` and
@@ -34,7 +34,7 @@ library(tflspec)     # attaches rtfreporter too (Depends)
 
 tbl <- ard |>
   ard_normalize() |>
-  rtf_plan(cols = "TRT01A", rows = c(group = "variable")) |>
+  table_plan(cols = "TRT01A", rows = c(group = "variable")) |>
   plan_cells(continuous = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
              categorical = "{n} ({p:%})") |>
   plan_digits(1)

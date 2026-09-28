@@ -1,3 +1,12 @@
+# tflspec 0.0.7
+
+* **`rtf_plan()` is now `table_plan()`**, and the object it returns is of
+  class `table_plan` (was `rtf_plan`), the plan paired with `table_spec`.
+  The plan lives in tflspec, not rtfreporter, so it no longer carries
+  rtfreporter's `rtf_` prefix.  `rtf_plan()` still works: it is the same
+  function under its former name, **superseded** -- write `table_plan()` in
+  new code.  `plan_template()` now writes `table_plan()` (#7).
+
 # tflspec 0.0.6
 
 * **Figure style standard** (`fig_style()`, `fig_style_template()`,

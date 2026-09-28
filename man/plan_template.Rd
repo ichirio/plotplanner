@@ -22,7 +22,7 @@ found and says so in a comment.}
 \item{hierarchy}{Optional nested hierarchy, outermost first.}
 
 \item{spec}{When \code{TRUE}, the generated plan reads its definition from a
-workbook (\code{rtf_plan(spec = read_table_spec(...))}) instead of inlining
+workbook (\code{table_plan(spec = read_table_spec(...))}) instead of inlining
 the cells.}
 
 \item{file}{Optional path to write the code to.}
@@ -55,7 +55,7 @@ The generated code, as a character vector, invisibly.
 }
 \description{
 The counterpart of \code{\link[=ard_template]{ard_template()}} for the deferred form: reads an ARD
-and prints a runnable \code{\link[=rtf_plan]{rtf_plan()}} pipeline, filled in with the keys,
+and prints a runnable \code{\link[=table_plan]{table_plan()}} pipeline, filled in with the keys,
 hierarchy, contexts and statistics it actually found.
 }
 \details{
@@ -68,7 +68,7 @@ guess.
 }
 \section{Lifecycle}{
 
-\strong{Spike.}  See \code{\link[=rtf_plan]{rtf_plan()}}.
+\strong{Spike.}  See \code{\link[=table_plan]{table_plan()}}.
 }
 
 \examples{
@@ -81,5 +81,5 @@ if (requireNamespace("cards", quietly = TRUE)) {
 }
 }
 \seealso{
-\code{\link[=rtf_plan]{rtf_plan()}}, \code{\link[=apply_plan]{apply_plan()}}, \code{\link[=ard_template]{ard_template()}}
+\code{\link[=table_plan]{table_plan()}}, \code{\link[=apply_plan]{apply_plan()}}, \code{\link[=ard_template]{ard_template()}}
 }

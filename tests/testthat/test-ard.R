@@ -945,12 +945,12 @@ test_that("naming the analysed variable says where its levels went", {
 
 # ----------------------------------------------------------------- the spec
 
-# A definition is read by rtf_plan(spec = ), which lives in the plan spike;
+# A definition is read by table_plan(spec = ), which lives in the plan spike;
 # these tests skip once that file is deleted.
 spec_table <- function(d, spec, ...) {
-  testthat::skip_if_not(exists("rtf_plan", mode = "function"),
+  testthat::skip_if_not(exists("table_plan", mode = "function"),
                         "the plan spike is not here")
-  apply_plan(rtf_plan(d, spec = spec, notes = FALSE, ...), "table")
+  apply_plan(table_plan(d, spec = spec, notes = FALSE, ...), "table")
 }
 
 dm_spec <- function(output_id = NA) {
@@ -1251,8 +1251,8 @@ test_that("the rounding family: argument > spec > option > R's own", {
   from_spec <- function(p) {
     apply_plan(p, "table")$Placebo[1]
   }
-  if (exists("rtf_plan", mode = "function")) {
-    p <- rtf_plan(d, spec = sp, cols = "TRT", rows = c(group = "variable"),
+  if (exists("table_plan", mode = "function")) {
+    p <- table_plan(d, spec = sp, cols = "TRT", rows = c(group = "variable"),
                   notes = FALSE)
     expect_identical(from_spec(p), "0.3")                        # the spec
     expect_identical(from_spec(p |> plan_digits(rounding = "r")), "0.2")
