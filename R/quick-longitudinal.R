@@ -9,14 +9,14 @@ pp_q_visit_step <- function(visit, visit_label) {
 #'
 #' Mean with error bars by visit and group.
 #'
-#' @inheritParams pp_bar
+#' @inheritParams tfl_fig_bar
 #' @param style `se` (mean +/- SE), `sd` (mean +/- SD), `ci` (mean with 95%
 #'   CI) or `se_n` (mean +/- SE with a table of n below).
 #' @param value Analysis variable (`AVAL`, `CHG`, `PCHG`, ...).
 #' @param visit,visit_label Visit order variable and its label.
 #' @param flag Optional record flag (`== "Y"`), e.g. `ANL01FL`.
 #' @export
-pp_mean <- function(adam = NULL, style = c("se", "sd", "ci", "se_n"), param = "ALT", data = "ADLB",
+tfl_fig_mean <- function(adam = NULL, style = c("se", "sd", "ci", "se_n"), param = "ALT", data = "ADLB",
                     value = "AVAL", visit = "AVISITN", visit_label = "AVISIT", group = "TRT01A",
                     pop = "SAFFL", where = NULL, flag = NULL, legend = "bottom", palette = "treatment", key = "USUBJID",
                     theme = "boxed", title = NULL, width = 7.5, height = 4.5, dpi = 300, units = "in",
@@ -77,7 +77,7 @@ pp_mean <- function(adam = NULL, style = c("se", "sd", "ci", "se_n"), param = "A
 
 #' Individual profile code (spaghetti / spider)
 #'
-#' @inheritParams pp_mean
+#' @inheritParams tfl_fig_mean
 #' @param style `spaghetti` (one line per subject by visit, coloured by
 #'   group, with the group means) or `spider` (percent change in tumour size
 #'   over time, coloured by best overall response, with +20% / -30% lines).
@@ -86,7 +86,7 @@ pp_mean <- function(adam = NULL, style = c("se", "sd", "ci", "se_n"), param = "A
 #'   `months`).
 #' @param response PARAMCD of the best overall response in `ADRS` (spider).
 #' @export
-pp_individual <- function(adam = NULL, style = c("spaghetti", "spider"), param = NULL, data = NULL,
+tfl_fig_individual <- function(adam = NULL, style = c("spaghetti", "spider"), param = NULL, data = NULL,
                           value = NULL, x = NULL, group = NULL, pop = NULL, where = NULL,
                           response = "BOR", time_unit = "weeks", legend = "right", palette = NULL,
                           key = "USUBJID", theme = "boxed", title = NULL, width = 7.5, height = 4.5,
@@ -142,13 +142,13 @@ pp_individual <- function(adam = NULL, style = c("spaghetti", "spider"), param =
 
 #' Box plot code
 #'
-#' @inheritParams pp_mean
+#' @inheritParams tfl_fig_mean
 #' @param style `by_visit` (boxes by visit and group), `by_group` (one box
 #'   per group at one visit, with the data points) or `change` (change from
 #'   baseline by visit and group, with a zero line).
 #' @param at_visit Visit label kept for `by_group` (default: last visit).
 #' @export
-pp_box <- function(adam = NULL, style = c("by_visit", "by_group", "change"), param = "ALT", data = "ADLB",
+tfl_fig_box <- function(adam = NULL, style = c("by_visit", "by_group", "change"), param = "ALT", data = "ADLB",
                    value = NULL, visit = "AVISITN", visit_label = "AVISIT", at_visit = NULL,
                    group = "TRT01A", pop = "SAFFL", where = NULL, legend = "bottom", palette = "treatment",
                    key = "USUBJID", theme = "boxed", title = NULL, width = 7.5, height = 4.5, dpi = 300,

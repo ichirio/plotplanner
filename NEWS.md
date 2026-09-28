@@ -1,3 +1,35 @@
+# tflspec 0.0.9
+
+* **Every function now starts with `tfl_`** (#9), so tflspec's names do not
+  collide with cards / cardx (`ard_*`) or rtfreporter (`rtf_*`) when they
+  are attached together, and say whose function it is -- as `rtf_` does
+  for rtfreporter.  The scheme is `tfl_` + area + action:
+  - ARD: `tfl_ard_spec()`, `tfl_read_ard_spec()`, `tfl_ard_code()` (was
+    `ard_spec_code()`), `tfl_build_ard()`, `tfl_ard_normalize()`,
+    `tfl_ard_spread()`, ...
+  - Tables: `tfl_table_spec()`, `tfl_read_table_spec()`, `tfl_plan()` (was
+    `rtf_plan()` / `table_plan()`) and the verbs `tfl_plan_cells()`,
+    `tfl_plan_digits()`, ..., `tfl_apply_plan()`, `tfl_plan_template()`.
+  - Reports: `tfl_report()` (was `rtf_report()`), `tfl_read_report_spec()`,
+    `tfl_report_path()`.
+  - Listings: `tfl_listing_code()` (was `listing_spec_code()`),
+    `tfl_read_data_code()`.
+  - Figures: `tfl_fig_km()`, `tfl_fig_waterfall()`, ... (were `pp_*()`),
+    `tfl_fig_spec()` / `tfl_read_fig_spec()` / `tfl_fig_code()` /
+    `tfl_fig_list_code()` (were `plot_spec()`, `read_plot_spec()`,
+    `plot_code()`, `plot_list_code()`), `tfl_fig_style()`,
+    `tfl_check_fig()` (was `check_figure()`), `tfl_fig_types()` (was
+    `pp_styles()`); figures drawn directly: `tfl_plot_sankey()`,
+    `tfl_plot_sankey_batch()`, `tfl_plot_sunburst()`.
+  S3 classes follow: `tfl_plan`, `tfl_table_spec`, `tfl_ard_spec`,
+  `tfl_ard_cells`, `tfl_ard_overall`, `tfl_fig_spec` (was `pp_spec`),
+  `tfl_code` (was `pp_code`).
+* **The former names still work**: each is the same function as its new
+  name (see `?tflspec-superseded` for the table).  They are superseded --
+  no warning -- and will be removed before the first CRAN release.
+  Generated code (`tfl_plan_template()`, figure scripts) writes the new
+  names.  The five example reports' RTF are byte-identical.
+
 # tflspec 0.0.8
 
 * **pharmaverseadam example** (`inst/examples/pharmaverseadam/`): a plot

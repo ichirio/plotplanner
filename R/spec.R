@@ -17,7 +17,7 @@ pp_sheet_cols <- list(
 #'   named list of data frames.
 #' @return A named list of data frames; names are upper-case dataset names.
 #' @export
-read_adam <- function(x) {
+tfl_read_adam <- function(x) {
   if (is.list(x) && !is.data.frame(x)) {
     if (is.null(names(x)) || any(names(x) == "")) stop("`x` must be a named list.", call. = FALSE)
     out <- lapply(x, as.data.frame)
@@ -76,17 +76,17 @@ pp_values <- function(df, var) {
 #' `adam`. Variables that depend on a dataset pick the list of that dataset
 #' (the row's `dataset`, or the plot's `dataset` when blank).
 #'
-#' @param adam Result of [read_adam()] (or a named list of data frames).
+#' @param adam Result of [tfl_read_adam()] (or a named list of data frames).
 #' @param path Output `.xlsx` path.
 #' @param spec Optional spec (list of data frames, e.g. from
-#'   [read_plot_spec()]) whose rows are pre-filled.
+#'   [tfl_read_fig_spec()]) whose rows are pre-filled.
 #' @param max_levels Variables with more distinct values than this are not
 #'   offered as codelists.
 #' @param n_rows Rows prepared with drop-downs in each sheet.
 #' @return `path`, invisibly.
 #' @export
-write_plot_spec_template <- function(adam, path, spec = NULL, max_levels = 50, n_rows = 300) {
-  adam <- read_adam(adam)
+tfl_fig_spec_template <- function(adam, path, spec = NULL, max_levels = 50, n_rows = 300) {
+  adam <- tfl_read_adam(adam)
   spec <- pp_normalize_spec(spec)
   ds_names <- names(adam)
   types <- pp_types()
@@ -147,7 +147,7 @@ write_plot_spec_template <- function(adam, path, spec = NULL, max_levels = 50, n
   add_list("PP_LAYERS", c("base", all_layers))
   add_list("PP_ROLES", all_roles)
   add_list("PP_THEMES", pp_themes)
-  add_list("PP_PALETTES", names(pp_palettes()))
+  add_list("PP_PALETTES", names(tfl_fig_palettes()))
   add_list("PP_LEGEND_TYPES", pp_legend_types)
   add_list("PP_LEGEND_POS", pp_legend_positions)
   add_list("PP_GLYPHS", pp_glyphs)
@@ -209,9 +209,9 @@ write_plot_spec_template <- function(adam, path, spec = NULL, max_levels = 50, n
 #' Read an Excel plot spec
 #'
 #' @param path Path to the spec `.xlsx`.
-#' @return A `pp_spec` object (list of data frames, all columns character).
+#' @return A `tfl_fig_spec` object (list of data frames, all columns character).
 #' @export
-read_plot_spec <- function(path) {
+tfl_read_fig_spec <- function(path) {
   sheets <- openxlsx::getSheetNames(path)
   out <- lapply(names(pp_sheet_cols), function(sh) {
     if (!sh %in% sheets) return(NULL)
@@ -226,16 +226,16 @@ read_plot_spec <- function(path) {
 #'
 #' @param plots,roles,filters,levels,legend,options Data frames with the
 #'   columns of the corresponding spec sheet (missing columns are added).
-#' @return A `pp_spec` object.
+#' @return A `tfl_fig_spec` object.
 #' @export
-plot_spec <- function(plots, roles = NULL, filters = NULL, levels = NULL,
+tfl_fig_spec <- function(plots, roles = NULL, filters = NULL, levels = NULL,
                       legend = NULL, options = NULL) {
   pp_normalize_spec(list(plots = plots, roles = roles, filters = filters,
                          levels = levels, legend = legend, options = options))
 }
 
 pp_normalize_spec <- function(spec) {
-  if (inherits(spec, "pp_spec")) return(spec)
+  if (inherits(spec, "tfl_fig_spec")) return(spec)
   out <- lapply(names(pp_sheet_cols), function(sh) {
     cols <- pp_sheet_cols[[sh]]
     df <- spec[[sh]]
@@ -256,12 +256,12 @@ pp_normalize_spec <- function(spec) {
     df[rowSums(!is.na(df)) > 0, , drop = FALSE]
   })
   names(out) <- names(pp_sheet_cols)
-  structure(out, class = "pp_spec")
+  structure(out, class = "tfl_fig_spec")
 }
 
 #' @export
-print.pp_spec <- function(x, ...) {
-  cat("<pp_spec>", nrow(x$plots), "plot(s):",
+print.tfl_fig_spec <- function(x, ...) {
+  cat("<tfl_fig_spec>", nrow(x$plots), "plot(s):",
       paste(sprintf("%s [%s]", x$plots$plot_id, x$plots$plot_type), collapse = ", "), "\n")
   invisible(x)
 }

@@ -29,4 +29,4 @@ rows <- tibble::tribble(
   "F-19",   "bar",        "dodged",     "ALT normal range category at Week 24",        "ALT",   "TRT01A", "SAFFL", "bottom", paste0('data = "ADLB", category = "ANRIND", where = ', q('AVISIT == "Week 24" & ANL01FL == "Y"'))
 )
 
-write_plot_list_template("plot_list.xlsx", adam, rows = as.data.frame(rows))
+tfl_fig_list_template("plot_list.xlsx", adam, rows = as.data.frame(rows))

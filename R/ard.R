@@ -106,7 +106,7 @@
 # Read that order back off the normalized frame's `.label_order` column: for
 # each variable, its labels in the position the factor gave them.  A COLUMN,
 # not an attribute, because the caller is invited to rework the frame between
-# ard_normalize() and ard_spread() and `dplyr::mutate()` -- the natural verb
+# tfl_ard_normalize() and tfl_ard_spread() and `dplyr::mutate()` -- the natural verb
 # for a one-pipe conversion -- rebuilds it and drops attributes.  Reading the
 # label as it stands now is also what we want: a caller who indented a level
 # to "  Mild" gets "  Mild" in the order "Mild" declared.
@@ -267,7 +267,7 @@
 }
 
 # The study total the ARD states outright, as ONE number, or NULL.
-# Read from the rows ard_normalize() drops so that a header can still
+# Read from the rows tfl_ard_normalize() drops so that a header can still
 # ask for it.  A total that is not one number is not a study total, and
 # guessing which of several it meant is exactly what this refuses to do.
 .ard_total_n_value <- function(x) {
@@ -306,7 +306,8 @@
   keep <- !is.na(long$.tpl)
   if (!any(keep)) return(invisible(FALSE))
   x <- long[keep, , drop = FALSE]
-  key <- paste(x$.var, x$.lab, x$.tpl, x$.guard, sep = "")
+  key <- paste(x$.var, x$.lab, x$.tpl, x$.guard, sep = "
+")
   agg <- x[!duplicated(key), c(".var", ".lab", ".tpl", ".guard"), drop = FALSE]
   agg$cells <- as.integer(table(key)[unique(key)])
   agg <- agg[order(agg$.var, -agg$cells), , drop = FALSE]
@@ -619,11 +620,11 @@
 #   c("a", "b")                    one row, first template that resolves wins
 #   c(n == 0 ~ "0", "{n} ({p})")   the same chain, its first element guarded
 #   c("Mean (SD)" = "...", ...)    one row per element, label = the name
-#   ard_cells("1" = c(...), ...)   the same, each element a chain of its own
+#   tfl_ard_cells("1" = c(...), ...)   the same, each element a chain of its own
 # Returns list(labels = <chr|NULL>, chains = <list of chains>).
 .ard_cell_entry <- function(entry) {
   if (is.null(entry)) return(NULL)
-  if (inherits(entry, "ard_cells")) {
+  if (inherits(entry, "tfl_ard_cells")) {
     return(list(labels = names(entry),
                 chains = lapply(unclass(entry), .ard_chain)))
   }
@@ -795,7 +796,7 @@
 .ard_lookup_cells <- function(cells, variable, context, kind = NA_character_) {
   # A list is a map only when its elements are NAMED: `c()` over guards
   # returns an unnamed list, and that is one chain, not a map.
-  if (inherits(cells, "ard_cells")) return(.ard_cell_entry(cells))
+  if (inherits(cells, "tfl_ard_cells")) return(.ard_cell_entry(cells))
   if (!is.list(cells) || !any(nzchar(names(cells) %||% ""))) {
     return(.ard_cell_entry(cells))
   }
@@ -821,13 +822,13 @@
 
 
 # ============================================================================
-#  ard_keys()
+#  tfl_ard_keys()
 # ============================================================================
 
 #' What is actually inside an ARD
 #'
 #' Prints, and returns invisibly, the structural facts you need in order to
-#' call [ard_normalize()] and [ard_spread()]: the grouping-variable names
+#' call [tfl_ard_normalize()] and [tfl_ard_spread()]: the grouping-variable names
 #' that appear in the `group1..groupN` columns, the analysis variables, the
 #' `context` values and the statistics each context carries.  All of it is read from the tibble's
 #' rows -- never from the object's attributes.
@@ -840,9 +841,9 @@
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
-#' @seealso [ard_normalize()], [ard_spread()], [ard_template()]
+#' @seealso [tfl_ard_normalize()], [tfl_ard_spread()], [tfl_ard_template()]
 #' @export
-ard_keys <- function(ard) {
+tfl_ard_keys <- function(ard) {
   d <- as.data.frame(ard, stringsAsFactors = FALSE)
   gcols <- grep("^group[0-9]+$", names(d), value = TRUE)
   keys <- unique(unlist(lapply(gcols, function(g) .ard_first_seen(d[[g]]))))
@@ -859,7 +860,7 @@ ard_keys <- function(ard) {
 
   # The structural classification -- what `cells` should normally be keyed on,
   # because unlike `context` it does not move when cards renames a verb.
-  norm  <- try(ard_normalize(ard, drop_key_variables = FALSE), silent = TRUE)
+  norm  <- try(tfl_ard_normalize(ard, drop_key_variables = FALSE), silent = TRUE)
   kinds <- NULL
   if (!inherits(norm, "try-error")) {
     kinds <- unique(data.frame(variable = as.character(norm$variable),
@@ -887,7 +888,7 @@ ard_keys <- function(ard) {
 
 
 # ============================================================================
-#  ard_overall()
+#  tfl_ard_overall()
 # ============================================================================
 
 #' Where the table's overall row comes from
@@ -908,40 +909,40 @@ ard_keys <- function(ard) {
 #' @param from The analysis variable that block summarised -- the treatment
 #'   variable, usually.  `NULL` (default) means the cards sentinel.
 #'
-#' @return An object of class `ard_overall`, for [ard_normalize()]'s
+#' @return An object of class `tfl_ard_overall`, for [tfl_ard_normalize()]'s
 #'   `overall` argument.  That argument also takes a bare string, which is
-#'   `ard_overall(label)`.
+#'   `tfl_ard_overall(label)`.
 #'
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
 #' @examples
-#' ard_overall("Any TEAE")                      # the cards sentinel rows
-#' ard_overall("Any TEAE", from = "TRT01P")     # a separately-built block
-#' @seealso [ard_normalize()], [ard_spread()]
+#' tfl_ard_overall("Any TEAE")                      # the cards sentinel rows
+#' tfl_ard_overall("Any TEAE", from = "TRT01P")     # a separately-built block
+#' @seealso [tfl_ard_normalize()], [tfl_ard_spread()]
 #' @export
-ard_overall <- function(label, from = NULL) {
+tfl_ard_overall <- function(label, from = NULL) {
   if (missing(label) || !is.character(label) || length(label) != 1L) {
     .ard_stop("`label` is required: one string for the overall row.")
   }
   structure(list(label = label, from = as.character(from)),
-            class = "ard_overall")
+            class = "tfl_ard_overall")
 }
 
-# `overall` as given -- NULL, a bare string, or ard_overall() -- as one list.
+# `overall` as given -- NULL, a bare string, or tfl_ard_overall() -- as one list.
 .ard_overall_spec <- function(x) {
   if (is.null(x)) return(list(label = NULL, from = character(0)))
-  if (inherits(x, "ard_overall")) return(x)
+  if (inherits(x, "tfl_ard_overall")) return(x)
   if (is.character(x) && length(x) == 1L) {
     return(list(label = x, from = character(0)))
   }
-  .ard_stop(paste0("`overall` must be a single string or ard_overall(); see ",
-                   "?ard_overall."))
+  .ard_stop(paste0("`overall` must be a single string or tfl_ard_overall(); see ",
+                   "?tfl_ard_overall."))
 }
 
 
 # ============================================================================
-#  ard_cells()
+#  tfl_ard_cells()
 # ============================================================================
 
 #' Several rows in one cell recipe, each with its own fallback chain
@@ -950,18 +951,18 @@ ard_overall <- function(label, from = NULL) {
 #' character vector is one row per element, and a `list()` is a map looked up
 #' by analysis variable.  The one shape those cannot spell is a **named row
 #' whose value is itself a chain** -- `c("1" = c(a, b))` is flattened by `c()`
-#' before `ard_spread()` ever sees it.  `ard_cells()` is that shape, and only
+#' before `tfl_ard_spread()` ever sees it.  `tfl_ard_cells()` is that shape, and only
 #' that shape.
 #'
 #' Each argument is one output row: its name is the row label, its value is a
 #' template, a chain of templates, or a chain with guards.  Reading a recipe
-#' then goes `list()` for *which variable*, `ard_cells()` for *which row*,
+#' then goes `list()` for *which variable*, `tfl_ard_cells()` for *which row*,
 #' `c()` for *which template to try first*.
 #'
 #' @param ... One argument per output row.  Names become row labels; an
 #'   unnamed argument takes its label from `label`, as a bare template does.
 #'
-#' @return An object of class `ard_cells`, for `cells` in [ard_spread()].
+#' @return An object of class `tfl_ard_cells`, for `cells` in [tfl_ard_spread()].
 #'
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
@@ -969,22 +970,22 @@ ard_overall <- function(label, from = NULL) {
 #' @examples
 #' # an estimate line and a confidence-interval line, the first guarded so a
 #' # count of zero prints as "0" rather than "0 (0.0)"
-#' ard_cells(
+#' tfl_ard_cells(
 #'   "1" = c(n == 0 ~ "0", "{n:.0f} ({estimate:.1f%})"),
 #'   "2" = "{conf.low:.1f%}, {conf.high:.1f%}")
-#' @seealso [ard_spread()], [tflspec-ard]
+#' @seealso [tfl_ard_spread()], [tflspec-ard]
 #' @export
-ard_cells <- function(...) {
+tfl_ard_cells <- function(...) {
   x <- list(...)
-  if (!length(x)) .ard_stop("`ard_cells()` needs at least one row.")
+  if (!length(x)) .ard_stop("`tfl_ard_cells()` needs at least one row.")
   nms <- names(x)
   if (is.null(nms)) nms <- rep("", length(x))
-  structure(stats::setNames(x, nms), class = "ard_cells")
+  structure(stats::setNames(x, nms), class = "tfl_ard_cells")
 }
 
 #' @export
-print.ard_cells <- function(x, ...) {
-  cat("<ard_cells>", length(x), "row(s)
+print.tfl_ard_cells <- function(x, ...) {
+  cat("<tfl_ard_cells>", length(x), "row(s)
 ")
   nms <- names(x)
   for (i in seq_along(x)) {
@@ -1001,7 +1002,7 @@ print.ard_cells <- function(x, ...) {
 
 
 # ============================================================================
-#  ard_pull()
+#  tfl_ard_pull()
 # ============================================================================
 #
 #  Replaces ard_big_n(), which guessed.  "bigN" is tfrmt's word, not cards',
@@ -1029,8 +1030,8 @@ print.ard_cells <- function(x, ...) {
 #' An ARD carries more than the table's body: the denominator behind every
 #' percentage, the subject count per arm, a total the author computed
 #' themselves.  Those belong in the **column header** (`Placebo\\nN = 86`) or in
-#' an overall row, not in a body cell, so [ard_spread()] puts them nowhere.
-#' `ard_pull()` reads one out, keyed exactly like the spread columns --
+#' an overall row, not in a body cell, so [tfl_ard_spread()] puts them nowhere.
+#' `tfl_ard_pull()` reads one out, keyed exactly like the spread columns --
 #' `"Placebo____F"` for a crossed header -- ready to paste into a `col_header`.
 #'
 #' Taking the number from the ARD rather than counting the data again is the
@@ -1053,7 +1054,7 @@ print.ard_cells <- function(x, ...) {
 #'   the candidates listed**, so you can pin it with `variable` / `context`.
 #'
 #' @param ard A cards/cardx ARD.
-#' @param cols The column key(s), named as in [ard_spread()] -- the grouping
+#' @param cols The column key(s), named as in [tfl_ard_spread()] -- the grouping
 #'   variable's own name, not its `group*` position.
 #' @param stat Statistic to read; `"N"` by default.
 #' @param variable,context Restrict to this analysis variable and/or this
@@ -1061,7 +1062,7 @@ print.ard_cells <- function(x, ...) {
 #'   or to ask for the key variable's own rows.
 #' @param levels Optional level order for the keys, so the result lines up
 #'   with the table's columns.
-#' @param sep Separator between multiple `cols` keys; match [ard_spread()].
+#' @param sep Separator between multiple `cols` keys; match [tfl_ard_spread()].
 #'
 #' @return A named vector, one element per column key.
 #'
@@ -1074,13 +1075,13 @@ print.ard_cells <- function(x, ...) {
 #'   adsl$TRT <- as.character(adsl$ARM)
 #'   ard <- cards::ard_stack(adsl, .by = TRT,
 #'                           cards::ard_continuous(variables = AGE))
-#'   n <- ard_pull(ard, cols = "TRT")            # the denominator, per arm
+#'   n <- tfl_ard_pull(ard, cols = "TRT")            # the denominator, per arm
 #'   paste0(names(n), "\\nN = ", n)
 #' }
-#' @seealso [ard_keys()], which lists every statistic an ARD carries;
-#'   [ard_spread()]
+#' @seealso [tfl_ard_keys()], which lists every statistic an ARD carries;
+#'   [tfl_ard_spread()]
 #' @export
-ard_pull <- function(ard, cols, stat = "N", variable = NULL, context = NULL,
+tfl_ard_pull <- function(ard, cols, stat = "N", variable = NULL, context = NULL,
                      levels = NULL, sep = "____") {
   raw   <- as.data.frame(ard, stringsAsFactors = FALSE)
   gcols <- grep("^group[0-9]+$", names(raw), value = TRUE)
@@ -1089,13 +1090,13 @@ ard_pull <- function(ard, cols, stat = "N", variable = NULL, context = NULL,
   unknown <- setdiff(cols, have)
   if (length(unknown)) {
     .ard_stop(sprintf(
-      "`cols`: no key %s in this ARD.  It has: %s.  ard_keys() lists them.",
+      "`cols`: no key %s in this ARD.  It has: %s.  tfl_ard_keys() lists them.",
       paste(sQuote(unknown), collapse = ", "),
       if (length(have)) paste(sQuote(utils::head(have, 12)), collapse = ", ")
       else "(none)"))
   }
 
-  d <- ard_normalize(ard, keys = cols, drop_key_variables = FALSE,
+  d <- tfl_ard_normalize(ard, keys = cols, drop_key_variables = FALSE,
                      drop_contexts = "attributes")
   key <- do.call(paste, c(lapply(cols, function(k) as.character(d[[k]])),
                           list(sep = sep)))
@@ -1165,7 +1166,7 @@ ard_pull <- function(ard, cols, stat = "N", variable = NULL, context = NULL,
 
 
 # ============================================================================
-#  ard_normalize()
+#  tfl_ard_normalize()
 # ============================================================================
 
 #' Flatten an ARD into an explicitly keyed long table
@@ -1177,8 +1178,8 @@ ard_pull <- function(ard, cols, stat = "N", variable = NULL, context = NULL,
 #' column and record the nesting depth.
 #'
 #' The result is a plain data frame that you can keep manipulating with base R
-#' or dplyr before handing it to [ard_spread()].  That is the intended route
-#' for anything [ard_spread()] does not do by itself: marginal totals, derived
+#' or dplyr before handing it to [tfl_ard_spread()].  That is the intended route
+#' for anything [tfl_ard_spread()] does not do by itself: marginal totals, derived
 #' rows, custom sorting.
 #'
 #' @param ard A cards/cardx ARD.
@@ -1204,15 +1205,15 @@ ard_pull <- function(ard, cols, stat = "N", variable = NULL, context = NULL,
 #'   the `context == "tabulate"` counts of the by-variable -- are no table
 #'   cell, but they are often the only place an ARD states each column's
 #'   size.  `FALSE` (default) keeps them and marks them `.key_own = TRUE`, so
-#'   [ard_spread()] leaves them out of the body while a column header can
+#'   [tfl_ard_spread()] leaves them out of the body while a column header can
 #'   still read them.  `TRUE` removes them outright.
 #'
-#' @section Working on the result before [ard_spread()]:
+#' @section Working on the result before [tfl_ard_spread()]:
 #' The result is a plain data frame; reshaping it in between is the point of
-#' the two-stage split.  **Everything [ard_spread()] reads is in the
+#' the two-stage split.  **Everything [tfl_ard_spread()] reads is in the
 #' columns**, so `dplyr::mutate()`, `filter()`, `arrange()`, `bind_rows()`,
 #' `select()` and base `[` are all safe, and so is a one-pipe
-#' `ard_normalize() |> ... |> ard_spread()`.  A manipulation that really does
+#' `tfl_ard_normalize() |> ... |> tfl_ard_spread()`.  A manipulation that really does
 #' break the rows is still caught -- two values arriving in one cell is an
 #' error, not a silent overwrite.
 #'
@@ -1220,14 +1221,14 @@ ard_pull <- function(ard, cols, stat = "N", variable = NULL, context = NULL,
 #' table: it is a report about rows that are no longer in the frame, so there
 #' is no column it could be.  Dropping it (`mutate()` and `select()`, base
 #' `transform()` and `subset()` do) only makes `notes` report the discards
-#' from [ard_spread()] alone.
+#' from [tfl_ard_spread()] alone.
 #'
 #' @section Factor levels:
 #' \pkg{cards} stores the level of a factor variable as a one-element factor,
 #' so the flattening has to take the label: a level comes back as `"<65"`, not
 #' as the integer code `1`.  The order the factor declared is kept too, as the
 #' `.label_order` column -- each row's position within its variable's declared
-#' levels -- and [ard_spread()] rebuilds that variable's row order from it
+#' levels -- and [tfl_ard_spread()] rebuilds that variable's row order from it
 #' unless `levels` says otherwise.  Relabelling a level keeps its position,
 #' so indenting `"Mild"` to `"  Mild"` with `mutate()` still sorts where
 #' `"Mild"` was declared.
@@ -1235,7 +1236,7 @@ ard_pull <- function(ard, cols, stat = "N", variable = NULL, context = NULL,
 #' A **key** column holds one variable, so it can carry its order itself: a
 #' key that was a factor in the data (a treatment variable declared
 #' `factor(levels = c("Low", "Placebo", "High"))`) comes back a factor with
-#' those levels, unused ones included, and [ard_spread()] lays the columns --
+#' those levels, unused ones included, and [tfl_ard_spread()] lays the columns --
 #' or the rows, for a row key -- out in that order however the frame was
 #' reordered in between.  `levels` still overrides it.  A key that was
 #' character stays character.
@@ -1256,9 +1257,9 @@ ard_pull <- function(ard, cols, stat = "N", variable = NULL, context = NULL,
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
-#' @seealso [ard_spread()], [ard_keys()]
+#' @seealso [tfl_ard_spread()], [tfl_ard_keys()]
 #' @export
-ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
+tfl_ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
                           overall = NULL,
                           drop_contexts = c("attributes", "total_n"),
                           drop_key_variables = FALSE) {
@@ -1415,7 +1416,7 @@ ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
   } else {
     # NA, not 1: depth only means something inside a hierarchy, and a column
     # that says "there is no hierarchy here" survives every manipulation the
-    # caller may do between ard_normalize() and ard_spread(), where an
+    # caller may do between tfl_ard_normalize() and tfl_ard_spread(), where an
     # attribute does not.
     d$.depth <- NA_integer_
     d$.label <- d$variable_level
@@ -1423,7 +1424,7 @@ ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
 
   # A key variable's own tabulation is no table cell, but it is often the
   # only place the ARD states each column's size -- the per-arm `n` of
-  # ard_stack(.by = ) -- so it is MARKED, not removed: ard_spread() leaves
+  # ard_stack(.by = ) -- so it is MARKED, not removed: tfl_ard_spread() leaves
   # it out of the body and a column header can still read it.  A column,
   # like every other mark, so it survives whatever happens in between.
   own <- d$variable %in% setdiff(keys, c(hierarchy, ovs$from))
@@ -1476,7 +1477,7 @@ ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
   # column it could be.  Losing it only shortens a message.
   attr(out, "ard_ignored") <- ignored
   attr(out, "ard_total_n") <- total_n
-  # The class is a hint, not a requirement: ard_spread() accepts any data frame
+  # The class is a hint, not a requirement: tfl_ard_spread() accepts any data frame
   # of the right shape, because the whole point of the two-stage split is that
   # you may rebuild the middle however you like.  It is here so that passing a
   # raw ARD by mistake says so, rather than failing on a missing column.
@@ -1486,7 +1487,7 @@ ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
 
 
 # ============================================================================
-#  ard_spread()
+#  tfl_ard_spread()
 # ============================================================================
 
 # Resolve a (possibly named) reference vector into a list of
@@ -1502,26 +1503,26 @@ ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
     nm  <- if (!is.null(nms) && nzchar(nms[i])) nms[i] else sub("^[.]", "", ref)
     if (!ref %in% names(d)) {
       # the commonest slip: naming the analysed variable, whose levels
-      # ard_normalize() puts in `.label` rather than in a column of its own.
+      # tfl_ard_normalize() puts in `.label` rather than in a column of its own.
       # `levels` does take that name, so the two arguments look inconsistent
       # unless the message says why.
       if ("variable" %in% names(d) && ref %in% d$variable) {
         .ard_stop(sprintf(paste0(
-          "`%s`: '%s' is an analysis variable, not a key, so ard_normalize() ",
+          "`%s`: '%s' is an analysis variable, not a key, so tfl_ard_normalize() ",
           "puts its levels in `.label`, not in a column named '%s'. Write ",
           "`.label` here. (`levels` does take '%s' -- it keys on the analysis ",
           "variable to order that variable's rows in the label column.)"),
           what, ref, ref, ref))
       }
       avail <- paste(setdiff(names(d), c(".overall", ".key_own")), collapse = ", ")
-      # `.label` is ard_normalize()'s own column.  Asking a frame that never
+      # `.label` is tfl_ard_normalize()'s own column.  Asking a frame that never
       # went through it to produce one is a different mistake from naming a
       # column that is simply misspelt, and the fix is different too: say
       # which column carries the row identity.  Nothing can guess that.
       if (identical(ref, ".label") && !".label" %in% names(d)) {
         .ard_stop(paste0(
           "`", what, "`: this frame has no `.label`, which is the column ",
-          "ard_normalize() adds.\n",
+          "tfl_ard_normalize() adds.\n",
           "  A long frame of statistics built any other way has to say which ",
           "column\n  carries the row identity:\n",
           "    ", what, " = c(row = \"<column>\")\n",
@@ -1566,7 +1567,7 @@ ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
              "  If that is deliberate -- a row group of \"which variable\" and ",
              "\"which level\" -- name the\n",
              "  variable column too, e.g. `%s = c(..., \"%s\", \"%s\")`.\n",
-             "  Otherwise name the variable you mean; see ard_keys()."),
+             "  Otherwise name the variable you mean; see tfl_ard_keys()."),
       what, ref, g, length(vars),
       paste(sQuote(utils::head(vars, 6)), collapse = ", "),
       what, g, ref), call. = FALSE)
@@ -1577,15 +1578,15 @@ ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
 
 #' Turn a normalized ARD into a wide table data.frame
 #'
-#' Step two of the ARD conversion.  `ard_spread()` takes the long table from
-#' [ard_normalize()] (possibly after you have added rows of your own), builds
+#' Step two of the ARD conversion.  `tfl_ard_spread()` takes the long table from
+#' [tfl_ard_normalize()] (possibly after you have added rows of your own), builds
 #' one character cell per template, and pivots the column keys across.
 #'
 #' One ARD record becomes one table row.  Layouts that put a single record on
 #' two printed lines are deliberately out of scope -- do those afterwards, on
 #' the returned data frame.
 #'
-#' @param x A data frame from [ard_normalize()].
+#' @param x A data frame from [tfl_ard_normalize()].
 #' @param cols Column keys, outermost first.  Multiple keys are pasted with
 #'   `sep`, producing the `"Placebo____Day 1"` names that
 #'   [rtftable()]'s `col_header` already reads as a spanning header.  May be
@@ -1609,7 +1610,7 @@ ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
 #'   A bare string is still a column name, so nothing already written
 #'   changes meaning.
 #' @param label Source of the row label, as a single (optionally named)
-#'   reference.  Default `".label"`, which [ard_normalize()] sets to the
+#'   reference.  Default `".label"`, which [tfl_ard_normalize()] sets to the
 #'   deepest hierarchy value, or to `variable_level` when there is no
 #'   hierarchy.  `NULL` drops the label column, which is what you want when
 #'   every `cells` entry is named.
@@ -1649,7 +1650,7 @@ ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
 #'   `c("Mean (SD)" = ..., "Min, Max" = ...)` is a two-row recipe, while
 #'   `list(continuous = ..., categorical = ...)` is a map.  A list with no
 #'   names is a chain, which is what `c()` returns once a guard is in it.
-#'   For a named row whose value is itself a chain, use [ard_cells()].
+#'   For a named row whose value is itself a chain, use [tfl_ard_cells()].
 #'
 #'   Statistics no template names are simply not read, which is how an ARD
 #'   that also carries `method`, `alternative`, `conf.level` or a p-value
@@ -1758,9 +1759,9 @@ ard_normalize <- function(ard, keys = NULL, hierarchy = character(),
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
-#' @seealso [ard_normalize()], [ard_template()]
+#' @seealso [tfl_ard_normalize()], [tfl_ard_template()]
 #' @export
-ard_spread <- function(x, cols, rows = NULL, label = ".label",
+tfl_ard_spread <- function(x, cols, rows = NULL, label = ".label",
                        cells = "{n} ({p})", stats = c("cells", "rows"),
                        value = c("stat", "stat_fmt"),
                        levels = NULL, labels = NULL, sort = FALSE,
@@ -1795,9 +1796,9 @@ ard_spread <- function(x, cols, rows = NULL, label = ".label",
   if (!inherits(x, "ard_long") &&
       !any(c(".label", ".kind", "stat_name") %in% names(d))) {
     .ard_stop(paste0(
-      "`x` does not look like an ard_normalize() result: it has none of\n",
+      "`x` does not look like an tfl_ard_normalize() result: it has none of\n",
       "  `.label`, `.kind`, `stat_name`.  Pass the ARD through\n",
-      "  ard_normalize() first."))
+      "  tfl_ard_normalize() first."))
   }
 
   # A long frame that nobody built with cards -- a statistician's own
@@ -1812,7 +1813,7 @@ ard_spread <- function(x, cols, rows = NULL, label = ".label",
     if (!cn %in% names(d)) d[[cn]] <- NA_character_
   }
 
-  # A key variable's own tabulation is kept by ard_normalize() for the
+  # A key variable's own tabulation is kept by tfl_ard_normalize() for the
   # column header to read, and is no cell of the body.  Flip `.key_own` to
   # FALSE to have it spread after all.
   own_ignored <- NULL
@@ -1888,7 +1889,7 @@ ard_spread <- function(x, cols, rows = NULL, label = ".label",
 
   # ---- recode key values and build the ordering factors -------------------
   # An explicit `levels` entry first; otherwise the order the key's own
-  # factor declared, which ard_normalize() carried over from the data.
+  # factor declared, which tfl_ard_normalize() carried over from the data.
   lev_for <- function(r) {
     lv <- if (is.null(levels)) NULL else levels[[r$out]] %||% levels[[r$ref]]
     if (is.null(lv) && is.factor(d[[r$ref]])) lv <- base::levels(d[[r$ref]])
@@ -2169,8 +2170,8 @@ ard_spread <- function(x, cols, rows = NULL, label = ".label",
   # comparison is how anyone decides to adopt this -- and an extra attribute
   # makes all.equal() report a difference that is not in the table.
   if (identical(notes, "attr")) attr(out, "ard_ignored") <- ignored
-  if (!isFALSE(notes)) .ard_notes_message(ignored, "ard_spread()")
-  if (identical(notes, "applied")) .ard_applied_message(long, "ard_spread()")
+  if (!isFALSE(notes)) .ard_notes_message(ignored, "tfl_ard_spread()")
+  if (identical(notes, "applied")) .ard_applied_message(long, "tfl_ard_spread()")
   out
 }
 
@@ -2370,12 +2371,12 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
     cells     = c("output_id", "variable", "context", "row", "when",
                   "template", "digits", "signif"),
     # the table half: what as_rtftables() / rtftable() are told, read by
-    # table_plan(spec = ) and resolved like the plan's own verbs
+    # tfl_plan(spec = ) and resolved like the plan's own verbs
     layout    = c("output_id", names(.ard_spec_types$layout)),
     columns   = c("output_id", names(.ard_spec_types$columns)),
     style     = c("output_id", names(.ard_spec_types$style)),
     col_header = c("output_id", names(.ard_spec_types$col_header)),
-    # the report half: read_report_spec() / rtf_report()
+    # the report half: tfl_read_report_spec() / tfl_report()
     report    = c("output_id", names(.ard_spec_types$report)),
     page      = c("output_id", names(.ard_spec_types$page)),
     header    = c("output_id", names(.ard_spec_types$header)),
@@ -2570,14 +2571,14 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
     "  `label` / `order` / `levels` move to `variables` (once per variable), ",
     "`round` becomes\n  `rounding` on the `study` sheet (one per study), and the ",
     "rest stays on `cells`.  ",
-    "table_spec_template() writes the new layout."))
+    "tfl_table_spec_template() writes the new layout."))
 }
 
 #' A workbook-shaped definition of how an ARD becomes a table
 #'
 #' @description
-#' `table_spec()` validates the definition that [ard_spread()] accepts as
-#' `spec =`, and [read_table_spec()] builds one from a workbook.  It holds
+#' `tfl_table_spec()` validates the definition that [tfl_ard_spread()] accepts as
+#' `spec =`, and [tfl_read_table_spec()] builds one from a workbook.  It holds
 #' what would otherwise be repeated in every script --- which keys go
 #' across and down, the display label and order of each variable, and the
 #' template and digits of every row --- in **one sheet per grain**, so
@@ -2595,8 +2596,8 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
 #' | `col_header` | header cell | line, columns, span, text, borders |
 #'
 #' The first four say how the ARD becomes a table data frame; the last
-#' four how that becomes `rtftable` pages.  [table_plan()] reads them all
-#' (`table_plan(data, spec = )`), as the first layers of a plan, so a verb
+#' four how that becomes `rtftable` pages.  [tfl_plan()] reads them all
+#' (`tfl_plan(data, spec = )`), as the first layers of a plan, so a verb
 #' written after it still wins.
 #'
 #' @section `study`:
@@ -2612,9 +2613,9 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
 #' key** --- the whole `tables` row for that report, the `variables` row
 #' for that variable, the `cells` rows for that variable / context / row.
 #' So one workbook can hold a house style and every report's own changes to
-#' it.  [read_table_spec()] narrows it to one report with `output_id =`.
+#' it.  [tfl_read_table_spec()] narrows it to one report with `output_id =`.
 #'
-#' Explicit [ard_spread()] arguments win over the spec, and the spec wins
+#' Explicit [tfl_ard_spread()] arguments win over the spec, and the spec wins
 #' over the defaults.
 #'
 #' Lists inside a cell are `|`-separated (`TR01AG1 | SEROSTAT`).  A column
@@ -2632,7 +2633,7 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
 #'     (`label = AEDECOD`).  Blank keeps `.label`; `NA` builds it to tell
 #'     rows apart and then drops it; `NULL` leaves it out.}
 #'   \item{`stats`, `value`, `sep`, `sort_stat`, `na`}{As the
-#'     [ard_spread()] arguments of the same name.}
+#'     [tfl_ard_spread()] arguments of the same name.}
 #'   \item{`sort`}{`TRUE`, `FALSE`, or the keys in order:
 #'     `.overall | group1 | .depth | -n | label`.}
 #'   \item{`header_n`}{Which population a `col_header` text's `{n}` is,
@@ -2641,7 +2642,7 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
 #'     ARD rows without the page key).  Several at once name their
 #'     tokens: `n = page | N = table` gives `{n}` and `{N}`.  Blank: the
 #'     page's, with a warning when the ARD states both.  See
-#'     [plan_col_header()]'s `n`.}
+#'     [tfl_plan_col_header()]'s `n`.}
 #' }
 #'
 #' @section `variables`:
@@ -2680,16 +2681,16 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
 #' One row per report, each column one argument of the plan verb its
 #' prefix names:
 #' \describe{
-#'   \item{`pages_*`}{[plan_paginate_rows()]: `max_rows`, `split`, `by`,
+#'   \item{`pages_*`}{[tfl_plan_paginate_rows()]: `max_rows`, `split`, `by`,
 #'     `min_group_rows`, `cont_label`.}
-#'   \item{`group_*`}{`col`, `mode` and `collapse` of [plan_row_group()];
-#'     `group_page = TRUE` is [plan_paginate_group()], one page per value
+#'   \item{`group_*`}{`col`, `mode` and `collapse` of [tfl_plan_row_group()];
+#'     `group_page = TRUE` is [tfl_plan_paginate_group()], one page per value
 #'     of `group_col`, and `group_show = FALSE` hides that column.}
-#'   \item{`blank_*`}{[plan_blanks()]: `where`, `first`, `last`,
+#'   \item{`blank_*`}{[tfl_plan_blanks()]: `where`, `first`, `last`,
 #'     `counted`.}
-#'   \item{`stub_*`}{[plan_stub()]: `vars`, `into`, `indent`, `summary`,
+#'   \item{`stub_*`}{[tfl_plan_stub()]: `vars`, `into`, `indent`, `summary`,
 #'     `before`.}
-#'   \item{`colpages_*`}{[plan_paginate_cols()]: `every`, `at`, `carry`,
+#'   \item{`colpages_*`}{[tfl_plan_paginate_cols()]: `every`, `at`, `carry`,
 #'     `order`.}
 #' }
 #'
@@ -2729,14 +2730,14 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
 #'     per column.  A column key (`TR01AG1`): one cell per value of that
 #'     key, over its columns --- an arm's spanner, however many arms.}
 #'   \item{`text`}{The label.  A line break is Alt+Enter or `\\n`.  The
-#'     tokens of [plan_col_header()] work: `{col}` (the column's own
+#'     tokens of [tfl_plan_col_header()] work: `{col}` (the column's own
 #'     value), `{col1}`, `{col2}` (its keys, outermost first), `{n}` (the
 #'     population of what the cell stands for: its column, or over an
 #'     arm's spanner the arm), `{n1}`, `{n2}` (the population at that
 #'     depth of the keys) and `{n:sum}` (the total over the cell's
 #'     columns).  `{n}` is read from the ARD whenever a text uses it; a
 #'     number the ARD does not state prints `NA` with a warning, and
-#'     `plan_col_header(n = )` after `table_plan(spec = )` supplies it.
+#'     `tfl_plan_col_header(n = )` after `tfl_plan(spec = )` supplies it.
 #'     Quote a text to keep leading spaces: `"  Category"`.}
 #'   \item{`align`, `bold`, `border_top`, `border_bottom`}{As
 #'     [col_cell()] / [rtf_border()] take them (`single`, `none`, ...).}
@@ -2752,25 +2753,25 @@ rid_for_stat <- function(d, rowrefs, labref, sort_stat) {
 #' @param tables,variables,cells,layout,columns,style,col_header Data
 #'   frames with the columns above; missing columns are added as `NA`.
 #' @param report,page,header,footer,titles,footnotes The report sheets, as
-#'   data frames with the columns [read_report_spec()] describes.  `tables` may instead be a named list of the
-#'   sheets, or an `table_spec` (returned as it is).
+#'   data frames with the columns [tfl_read_report_spec()] describes.  `tables` may instead be a named list of the
+#'   sheets, or an `tfl_table_spec` (returned as it is).
 #' @param study The `study` sheet: a `key` / `value` frame, or a named
 #'   vector such as `c(rounding = "sas")`.
 #'
-#' @return An object of class `table_spec`: a list of the sheets' data
+#' @return An object of class `tfl_table_spec`: a list of the sheets' data
 #'   frames.
 #'
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
-#' @seealso [read_table_spec()], [write_table_spec()], [table_spec_template()]
+#' @seealso [tfl_read_table_spec()], [tfl_write_table_spec()], [tfl_table_spec_template()]
 #' @export
-table_spec <- function(tables = NULL, variables = NULL, cells = NULL,
+tfl_table_spec <- function(tables = NULL, variables = NULL, cells = NULL,
                        study = NULL, layout = NULL, columns = NULL,
                        style = NULL, col_header = NULL, report = NULL,
                        page = NULL, header = NULL, footer = NULL,
                        titles = NULL, footnotes = NULL) {
-  if (inherits(tables, "table_spec")) return(tables)
+  if (inherits(tables, "tfl_table_spec")) return(tables)
   if (is.data.frame(tables) && "template" %in% names(tables) &&
       is.null(variables) && is.null(cells)) {
     .ard_spec_old_layout(tables)
@@ -2831,14 +2832,14 @@ table_spec <- function(tables = NULL, variables = NULL, cells = NULL,
     }
   }
   .ard_spec_dupes(sp)
-  class(sp) <- "table_spec"
+  class(sp) <- "tfl_table_spec"
   sp
 }
 
 #' @export
-print.table_spec <- function(x, ...) {
+print.tfl_table_spec <- function(x, ...) {
   ids <- .ard_first_seen(stats::na.omit(unlist(lapply(x, `[[`, "output_id"))))
-  cat("<table_spec>",
+  cat("<tfl_table_spec>",
       if (!is.null(attr(x, "output_id"))) paste0(" for ",
         sQuote(attr(x, "output_id")))
       else if (length(ids)) paste0(" for ", length(ids), " report",
@@ -2874,7 +2875,7 @@ print.table_spec <- function(x, ...) {
       .ard_stop(paste0(
         "This spec defines ", length(ids), " reports (",
         paste(sQuote(ids), collapse = ", "), "); say which one:\n",
-        "    read_table_spec(path, output_id = ", dQuote(ids[1L], FALSE), ")"))
+        "    tfl_read_table_spec(path, output_id = ", dQuote(ids[1L], FALSE), ")"))
     }
     if (!length(ids)) return(sp)
     output_id <- ids
@@ -2897,7 +2898,7 @@ print.table_spec <- function(x, ...) {
     # normal; it is still worth saying, because a mistyped id looks exactly
     # the same from here.
     message(sprintf(paste0(
-      "read_table_spec(): no row names %s, so the default rows are used.",
+      "tfl_read_table_spec(): no row names %s, so the default rows are used.",
       "\n  The file defines: %s"),
       sQuote(output_id), paste(sQuote(ids), collapse = ", ")))
   }
@@ -2963,9 +2964,9 @@ print.table_spec <- function(x, ...) {
   v
 }
 
-# The table-wide arguments one `tables` row supplies, as ard_spread() takes
+# The table-wide arguments one `tables` row supplies, as tfl_ard_spread() takes
 # them.  Only what the row says is returned: an argument it leaves blank
-# keeps ard_spread()'s own default.
+# keeps tfl_ard_spread()'s own default.
 .ard_spec_table_args <- function(sp) {
   out <- list()
   r <- .ard_spec_study_value(sp, "rounding")
@@ -3079,7 +3080,7 @@ print.table_spec <- function(x, ...) {
   eval(call("~", cond, tpl), baseenv())
 }
 
-# The `cells` sheet as ard_spread()'s `cells` map.  Rows sharing variable /
+# The `cells` sheet as tfl_ard_spread()'s `cells` map.  Rows sharing variable /
 # context / row are one chain, in sheet order; the map key is the variable,
 # the context, both (a variable summarised two ways), or `default`.
 .ard_spec_cells <- function(sp) {
@@ -3107,7 +3108,7 @@ print.table_spec <- function(x, ...) {
     })
     guarded <- any(vapply(chains, is.list, NA))
     out[[k]] <- if (identical(labs, "")) chains[[1L]]
-                else if (guarded) do.call(ard_cells, stats::setNames(chains, labs))
+                else if (guarded) do.call(tfl_ard_cells, stats::setNames(chains, labs))
                 else stats::setNames(chains, labs)
   }
   out
@@ -3143,7 +3144,7 @@ print.table_spec <- function(x, ...) {
   res <- low %in% .ard_spec_reserved & !skip
   if (any(res)) {
     message(sprintf(paste0(
-      "read_table_spec(): %s %s reserved for a later version and not read yet."),
+      "tfl_read_table_spec(): %s %s reserved for a later version and not read yet."),
       paste(sQuote(nm[res]), collapse = ", "),
       if (sum(res) == 1L) "is" else "are"))
   }
@@ -3159,7 +3160,7 @@ print.table_spec <- function(x, ...) {
     i <- which(low == s)
     if (length(i)) sheets[[i[1L]]] else NULL
   }
-  table_spec(stats::setNames(lapply(c("study", names(.ard_spec_schema())),
+  tfl_table_spec(stats::setNames(lapply(c("study", names(.ard_spec_schema())),
                                     get),
                              c("study", names(.ard_spec_schema()))))
 }
@@ -3181,29 +3182,29 @@ print.table_spec <- function(x, ...) {
 #' Read an ARD table definition from a workbook
 #'
 #' @param path An `.xlsx` workbook (needs \pkg{readxl}) with the sheets
-#'   of [table_spec()] (`study`, `tables`, `variables`, `cells`, `layout`,
+#'   of [tfl_table_spec()] (`study`, `tables`, `variables`, `cells`, `layout`,
 #'   `columns`, `style`, `col_header`).  Any of them may be absent.  A definition is one file with several sheets,
 #'   so it is an Excel workbook and nothing else.
 #' @param output_id The report to narrow the workbook to.  Rows with a blank
 #'   `output_id` are the study's defaults and stay; a row naming this
 #'   report replaces the default with the same key.  `NULL` (default)
-#'   reads the whole workbook; what needs one report --- [table_plan()],
-#'   [rtf_report()] --- then takes a workbook of one report as it is and
+#'   reads the whole workbook; what needs one report --- [tfl_plan()],
+#'   [tfl_report()] --- then takes a workbook of one report as it is and
 #'   asks which of several.
 #'
-#' @return An [table_spec()].
+#' @return An [tfl_table_spec()].
 #'
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
-#' @seealso [table_spec()], [write_table_spec()]
+#' @seealso [tfl_table_spec()], [tfl_write_table_spec()]
 #' @export
-read_table_spec <- function(path, output_id = NULL) {
+tfl_read_table_spec <- function(path, output_id = NULL) {
   if (!is.character(path) || !length(path)) {
     .ard_stop("`path` must name one or more .xlsx workbooks.")
   }
-  for (f in path) .ard_spec_xlsx_path(f, "read_table_spec")
-  .ard_need("readxl", "read_table_spec()")
+  for (f in path) .ard_spec_xlsx_path(f, "tfl_read_table_spec")
+  .ard_need("readxl", "tfl_read_table_spec()")
   sheets <- list()
   from <- character()
   for (f in path) {
@@ -3250,15 +3251,15 @@ read_table_spec <- function(path, output_id = NULL) {
   sp <- .ard_spec_from_sheets(sheets, paste(basename(path), collapse = " + "))
   # the whole study, unless one report is asked for: a workbook is edited,
   # combined and compared whole, and whatever needs ONE report
-  # (table_plan(), rtf_report(), report_path()) narrows it and says so
+  # (tfl_plan(), tfl_report(), tfl_report_path()) narrows it and says so
   if (is.null(output_id)) sp else .ard_spec_scope(sp, output_id)
 }
 
 #' Write an ARD table definition to a workbook
 #'
-#' @param spec An [table_spec()] (or what it accepts).
+#' @param spec An [tfl_table_spec()] (or what it accepts).
 #' @param path Destination `.xlsx` (needs \pkg{writexl}).  The workbook
-#'   gets every sheet of [table_spec()], empty ones included so their columns
+#'   gets every sheet of [tfl_table_spec()], empty ones included so their columns
 #'   are there to fill in, and an `about` sheet stating `spec_version`.
 #'
 #' @return `path`, invisibly.
@@ -3266,10 +3267,10 @@ read_table_spec <- function(path, output_id = NULL) {
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
-#' @seealso [table_spec()], [read_table_spec()]
+#' @seealso [tfl_table_spec()], [tfl_read_table_spec()]
 #' @export
-write_table_spec <- function(spec, path) {
-  sp <- table_spec(spec)
+tfl_write_table_spec <- function(spec, path) {
+  sp <- tfl_table_spec(spec)
   sheets <- lapply(names(.ard_spec_schema()), function(s) {
     d <- sp[[s]]
     rownames(d) <- NULL
@@ -3283,8 +3284,8 @@ write_table_spec <- function(spec, path) {
     st[nrow(st) + 1L, c("key", "value")] <- list(k, NA_character_)
   }
   sheets <- c(list(study = st), sheets)
-  .ard_spec_xlsx_path(path, "write_table_spec")
-  .ard_need("writexl", "write_table_spec()")
+  .ard_spec_xlsx_path(path, "tfl_write_table_spec")
+  .ard_need("writexl", "tfl_write_table_spec()")
   about <- data.frame(key = "spec_version",
                       value = as.character(.ard_spec_version),
                       stringsAsFactors = FALSE)
@@ -3294,7 +3295,7 @@ write_table_spec <- function(spec, path) {
 
 #' Scaffold a definition workbook from an ARD
 #'
-#' Walks the ARD and writes the three [table_spec()] sheets: one `tables` row,
+#' Walks the ARD and writes the three [tfl_table_spec()] sheets: one `tables` row,
 #' one `variables` row per analysis variable (its levels filled in for a
 #' categorical one), and one `cells` row per row template --- a continuous
 #' variable gets the templates its statistics can fill, a categorical one
@@ -3303,21 +3304,21 @@ write_table_spec <- function(spec, path) {
 #'
 #' @param ard A cards/cardx ARD.
 #' @param path Optional destination; when given the spec is also written there
-#'   with [write_table_spec()].
+#'   with [tfl_write_table_spec()].
 #' @param cols The column keys for the `tables` row, if known.
 #' @param output_id The report the rows belong to; `NULL` writes them as
 #'   defaults.
 #'
-#' @return An [table_spec()], invisibly when `path` is given.
+#' @return An [tfl_table_spec()], invisibly when `path` is given.
 #'
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
-#' @seealso [table_spec()], [ard_template()]
+#' @seealso [tfl_table_spec()], [tfl_ard_template()]
 #' @export
-table_spec_template <- function(ard, path = NULL, cols = NULL,
+tfl_table_spec_template <- function(ard, path = NULL, cols = NULL,
                               output_id = NULL) {
-  d <- ard_normalize(ard, drop_key_variables = FALSE)
+  d <- tfl_ard_normalize(ard, drop_key_variables = FALSE)
   if (".key_own" %in% names(d)) d <- d[!(d$.key_own %in% TRUE), , drop = FALSE]
   vars <- .ard_first_seen(d$variable)
   id <- if (is.null(output_id)) NA_character_ else output_id
@@ -3355,11 +3356,11 @@ table_spec_template <- function(ard, path = NULL, cols = NULL,
                        cols = if (length(cols)) paste(cols, collapse = " | ")
                               else NA_character_,
                        stringsAsFactors = FALSE)
-  sp <- table_spec(tables,
+  sp <- tfl_table_spec(tables,
                  if (length(vrows)) do.call(rbind, vrows) else NULL,
                  if (length(crows)) do.call(rbind, crows) else NULL)
   if (is.null(path)) return(sp)
-  write_table_spec(sp, path)
+  tfl_write_table_spec(sp, path)
   invisible(sp)
 }
 
@@ -3410,7 +3411,7 @@ table_spec_template <- function(ard, path = NULL, cols = NULL,
 #' Read a report definition: the table and everything around it
 #'
 #' @description
-#' A **report definition** is the [table_spec()] sheets plus the ones that
+#' A **report definition** is the [tfl_table_spec()] sheets plus the ones that
 #' say how a report's pages are dressed:
 #'
 #' | sheet | one row per | holds |
@@ -3442,8 +3443,8 @@ table_spec_template <- function(ard, path = NULL, cols = NULL,
 #' @param path One or more `.xlsx` workbooks.
 #' @param output_id The report to narrow the definition to.
 #'
-#' @return A [table_spec()] carrying the report sheets as well; it serves
-#'   `table_plan(spec = )` and [rtf_report()] alike.
+#' @return A [tfl_table_spec()] carrying the report sheets as well; it serves
+#'   `tfl_plan(spec = )` and [tfl_report()] alike.
 #'
 #' @section `report`:
 #' `type` (`table`, `listing`, `figure`; default `table`), `file` (default
@@ -3464,30 +3465,30 @@ table_spec_template <- function(ard, path = NULL, cols = NULL,
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
-#' @seealso [rtf_report()], [report_path()], [read_table_spec()]
+#' @seealso [tfl_report()], [tfl_report_path()], [tfl_read_table_spec()]
 #' @export
-read_report_spec <- function(path, output_id = NULL) {
-  read_table_spec(path, output_id)
+tfl_read_report_spec <- function(path, output_id = NULL) {
+  tfl_read_table_spec(path, output_id)
 }
 
 #' Build a report's RTF document from its definition
 #'
-#' `rtf_report()` is the document half of a report definition: the page,
+#' `tfl_report()` is the document half of a report definition: the page,
 #' the running header and footer, the titles and footnotes, and the
-#' table's pages --- an [table_plan()] or anything [rtf_tables()] takes ---
+#' table's pages --- an [tfl_plan()] or anything [rtf_tables()] takes ---
 #' in one [rtf_document()] ready for [generate_rtfreport()].  The document
 #' carries its program, so `{PROGRAM}` needs nothing more.
 #'
 #' ```r
-#' spec <- read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = id)
-#' plan <- ard |> ard_normalize() |> table_plan(spec = spec)
-#' generate_rtfreport(rtf_report(spec, plan), report_path(spec),
+#' spec <- tfl_read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = id)
+#' plan <- ard |> tfl_ard_normalize() |> tfl_plan(spec = spec)
+#' generate_rtfreport(tfl_report(spec, plan), tfl_report_path(spec),
 #'                    overwrite = TRUE)
 #' ```
 #'
-#' @param spec A report definition ([read_report_spec()]) narrowed to one
+#' @param spec A report definition ([tfl_read_report_spec()]) narrowed to one
 #'   report, or the path(s) to read it from.
-#' @param content The report's content: an [table_plan()] or `rtftable`
+#' @param content The report's content: an [tfl_plan()] or `rtftable`
 #'   pages for a table or listing, figures for a `type = figure` report.
 #' @param output_id The report, when `spec` is a path or still defines
 #'   several.
@@ -3497,12 +3498,12 @@ read_report_spec <- function(path, output_id = NULL) {
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
-#' @seealso [read_report_spec()], [report_path()]
+#' @seealso [tfl_read_report_spec()], [tfl_report_path()]
 #' @export
-rtf_report <- function(spec, content, output_id = NULL) {
+tfl_report <- function(spec, content, output_id = NULL) {
   sp <- .ard_spec_scope(if (is.character(spec))
-                          read_report_spec(spec, output_id)
-                        else table_spec(spec), output_id)
+                          tfl_read_report_spec(spec, output_id)
+                        else tfl_table_spec(spec), output_id)
   r <- .ard_spec_report_row(sp)
   pg <- if (nrow(sp$page)) .ard_spec_typed(sp$page[1L, ], "page") else list()
 
@@ -3568,18 +3569,18 @@ rtf_report <- function(spec, content, output_id = NULL) {
 #' `file.path(study$output_path, report$file)`, with `{output_id}` filled:
 #' the path [generate_rtfreport()] writes to.
 #'
-#' @inheritParams rtf_report
+#' @inheritParams tfl_report
 #' @return A single path.
 #'
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
-#' @seealso [rtf_report()]
+#' @seealso [tfl_report()]
 #' @export
-report_path <- function(spec, output_id = NULL) {
+tfl_report_path <- function(spec, output_id = NULL) {
   sp <- .ard_spec_scope(if (is.character(spec))
-                          read_report_spec(spec, output_id)
-                        else table_spec(spec), output_id)
+                          tfl_read_report_spec(spec, output_id)
+                        else tfl_table_spec(spec), output_id)
   r <- .ard_spec_report_row(sp)
   out <- .ard_spec_study_value(sp, "output_path")
   if (is.na(out)) r$file else file.path(out, r$file)
@@ -3651,11 +3652,11 @@ report_path <- function(spec, output_id = NULL) {
 }
 
 # What a template needs to know about an ARD, gathered once.  Two emitters
-# read it -- ard_template() writes the verbs, plan_template() writes the
+# read it -- tfl_ard_template() writes the verbs, tfl_plan_template() writes the
 # plan -- and neither should be re-deriving the same facts from the same
 # tibble in two places.
 .ard_template_facts <- function(ard, cols = NULL, hierarchy = character()) {
-  d  <- ard_normalize(ard, hierarchy = hierarchy, drop_key_variables = FALSE)
+  d  <- tfl_ard_normalize(ard, hierarchy = hierarchy, drop_key_variables = FALSE)
   ra <- as.data.frame(ard)
   gcols <- grep("^group[0-9]+$", names(ra), value = TRUE)
   keys  <- unique(unlist(lapply(gcols, function(g) .ard_first_seen(ra[[g]]))))
@@ -3667,7 +3668,7 @@ report_path <- function(spec, output_id = NULL) {
   vars <- setdiff(vars, c("..ard_total_n..", "..ard_hierarchical_overall.."))
   kinds <- .ard_first_seen(d$.kind[d$variable %in% vars])
   if (!length(kinds)) kinds <- .ard_first_seen(d$.kind)
-  # Ask the RAW ard: ard_normalize() drops the sentinel rows when no
+  # Ask the RAW ard: tfl_ard_normalize() drops the sentinel rows when no
   # `overall =` was given, so looking at `d` would never find them.
   overall <- any(as.character(unlist(ra$variable)) ==
                    "..ard_hierarchical_overall..", na.rm = TRUE)
@@ -3712,7 +3713,7 @@ report_path <- function(spec, output_id = NULL) {
 }
 
 # ============================================================================
-#  ard_template()
+#  tfl_ard_template()
 # ============================================================================
 
 # The second half of a generated script: the as_rtftables() call, plus the
@@ -3749,11 +3750,11 @@ report_path <- function(spec, output_id = NULL) {
 #' @param hierarchy Optional nested hierarchy, outermost first.
 #' @section What it writes:
 #' Always three blocks, so the author deletes rather than remembers:
-#' the conversion written as the **pipe** --- `ard_normalize()`, a commented
-#' `dplyr::mutate()` and `ard_spread()` --- with the seam left open, because
+#' the conversion written as the **pipe** --- `tfl_ard_normalize()`, a commented
+#' `dplyr::mutate()` and `tfl_ard_spread()` --- with the seam left open, because
 #' half the reports on Discussion #473 have to reach between the two steps
 #' (to derive a key from a statistic, to add a constant column, to indent a
-#' label); then the `col_header` (drafted from [ard_pull()] when one column
+#' label); then the `col_header` (drafted from [tfl_ard_pull()] when one column
 #' key makes that decidable, and skipped entirely when
 #' several do, since `as_rtftables(header_sep = )` rebuilds the spanning
 #' header from the `"____"` in the names), and the [as_rtftables()]
@@ -3788,9 +3789,9 @@ report_path <- function(spec, output_id = NULL) {
 #' @section Lifecycle:
 #' **Experimental.**  See [tflspec-ard].
 #'
-#' @seealso [ard_normalize()], [ard_spread()], [table_spec_template()]
+#' @seealso [tfl_ard_normalize()], [tfl_ard_spread()], [tfl_table_spec_template()]
 #' @export
-ard_template <- function(ard, cols = NULL, hierarchy = character(),
+tfl_ard_template <- function(ard, cols = NULL, hierarchy = character(),
                          file = NULL, pipe = NULL) {
   op <- .ard_pipe_op(pipe)
   f <- .ard_template_facts(ard, cols, hierarchy)
@@ -3803,7 +3804,7 @@ ard_template <- function(ard, cols = NULL, hierarchy = character(),
   # -- banner -----------------------------------------------------------
   L <- c(
     .ard_bar("", "="),
-    "#  generated by tflspec::ard_template()",
+    "#  generated by tflspec::tfl_ard_template()",
     "#",
     paste0("#  keys       : ", paste(keys, collapse = ", ")),
     paste0("#  variables  : ",
@@ -3849,14 +3850,14 @@ ard_template <- function(ard, cols = NULL, hierarchy = character(),
     .ard_bar("1. ARD -> table data.frame"),
     paste0("tbl_df <- ard ", op),
     if (length(norm_args))
-      c("  tflspec::ard_normalize(", norm_args, paste0("  ) ", op))
-    else paste0("  tflspec::ard_normalize() ", op),
+      c("  tflspec::tfl_ard_normalize(", norm_args, paste0("  ) ", op))
+    else paste0("  tflspec::tfl_ard_normalize() ", op),
     # the trailing comment stays in one column whichever operator it is
     paste0("  # dplyr::mutate() ", op, strrep(" ", 34L - 20L - nchar(op)),
            "# <- a key derived from a statistic."),
     "  #                                  A constant heading or a label rule",
     "  #                                  goes in `rows` / `label` below.",
-    "  tflspec::ard_spread(",
+    "  tflspec::tfl_ard_spread(",
     paste0("    cols  = ", vecq(cols), ","),
     if (length(row_parts))
       paste0("    rows  = c(", paste(row_parts, collapse = ", "), "),")
@@ -3914,13 +3915,13 @@ ard_template <- function(ard, cols = NULL, hierarchy = character(),
       "# Nothing to write here: as_rtftables(header_sep = ) rebuilds the",
       "# spanning header from the \"____\" in the column names.")
   } else {
-    n <- tryCatch(ard_pull(ard, cols = cols), error = function(e) NULL)
+    n <- tryCatch(tfl_ard_pull(ard, cols = cols), error = function(e) NULL)
     if (!is.null(n)) {
       L <- c(L,
         "# The denominator each percentage used, straight out of the ARD.",
-        paste0("#   ard_pull() found  ",
+        paste0("#   tfl_ard_pull() found  ",
                paste0(names(n), " = ", as.integer(n), collapse = ",  ")),
-        paste0("arm_n      <- tflspec::ard_pull(ard, cols = ", vecq(cols), ")"),
+        paste0("arm_n      <- tflspec::tfl_ard_pull(ard, cols = ", vecq(cols), ")"),
         "col_header <- c(",
         "  \"Characteristic\",",
         paste0("  paste0(names(arm_n), \"\\nN = \", as.integer(arm_n))"),
@@ -3929,9 +3930,9 @@ ard_template <- function(ard, cols = NULL, hierarchy = character(),
     } else {
       L <- c(L,
         "# The header denominator is not decidable from this ARD alone.",
-        paste0("# Run  tflspec::ard_pull(ard, cols = ", vecq(cols), ")"),
+        paste0("# Run  tflspec::tfl_ard_pull(ard, cols = ", vecq(cols), ")"),
         "# read the list of candidates it prints, then name the one you want:",
-        paste0("#   arm_n <- tflspec::ard_pull(ard, cols = ", vecq(cols),
+        paste0("#   arm_n <- tflspec::tfl_ard_pull(ard, cols = ", vecq(cols),
                ", variable = \"<pick one>\")"))
     }
   }
@@ -3969,20 +3970,20 @@ ard_template <- function(ard, cols = NULL, hierarchy = character(),
 #' [as_rtftables()] consumes.  The target is *one ARD record, one table row*.
 #' Layouts that print one record over two lines, or that need derived rows such
 #' as marginal totals, stay a human job -- do them on the returned data frame,
-#' or on the long frame from [ard_normalize()].
+#' or on the long frame from [tfl_ard_normalize()].
 #'
 #' @section The functions:
 #' \describe{
-#'   \item{[ard_keys()]}{What keys, variables, contexts and statistics an ARD
+#'   \item{[tfl_ard_keys()]}{What keys, variables, contexts and statistics an ARD
 #'     actually holds.}
-#'   \item{[ard_normalize()]}{ARD to a flat, explicitly keyed long table.}
-#'   \item{[ard_spread()]}{Long table to the wide table data.frame.}
-#'   \item{[ard_template()]}{Emit runnable conversion code for a given ARD.}
-#'   \item{[ard_overall()]}{Where the table's overall row comes from.}
-#'   \item{[ard_pull()]}{A statistic keyed like the spread columns, for a
+#'   \item{[tfl_ard_normalize()]}{ARD to a flat, explicitly keyed long table.}
+#'   \item{[tfl_ard_spread()]}{Long table to the wide table data.frame.}
+#'   \item{[tfl_ard_template()]}{Emit runnable conversion code for a given ARD.}
+#'   \item{[tfl_ard_overall()]}{Where the table's overall row comes from.}
+#'   \item{[tfl_ard_pull()]}{A statistic keyed like the spread columns, for a
 #'     column header or an overall row.}
-#'   \item{[table_spec()], [read_table_spec()], [write_table_spec()],
-#'     [table_spec_template()]}{The spreadsheet definition file.}
+#'   \item{[tfl_table_spec()], [tfl_read_table_spec()], [tfl_write_table_spec()],
+#'     [tfl_table_spec_template()]}{The spreadsheet definition file.}
 #' }
 #'
 #' @section Nothing is read from the object's attributes:
@@ -4016,7 +4017,7 @@ ard_template <- function(ard, cols = NULL, hierarchy = character(),
 #' nothing.  The two differ for a proportion: \pkg{cards} writes `61.6` into
 #' `stat_fmt` while `stat` holds `0.616`, so `{p}` and `{p:.1f\%}` agree and
 #' `{p:.1f}` does not.  For `stats = "rows"`, where a value goes into the cell without
-#' a template, `ard_spread(value = )` makes the same choice.
+#' a template, `tfl_ard_spread(value = )` makes the same choice.
 #' A template whose statistics are not all present yields `NA`, which is what
 #' lets `c("{n} ({p})", "{n}")` act as a fallback chain.  A **named** vector of
 #' templates produces one table row per element, the name being the row label:
@@ -4054,7 +4055,7 @@ ard_template <- function(ard, cols = NULL, hierarchy = character(),
 #' what keeps `continuous` / `categorical` (or `summary` / `tabulate`, either
 #' spelling) working when \pkg{cards} renames a verb again.
 #'
-#' [ard_keys()] prints both: the contexts, which are version-specific, and the
+#' [tfl_ard_keys()] prints both: the contexts, which are version-specific, and the
 #' kinds, which are not.
 #'
 #' @section Where a value lives depends on how the ARD was built:
@@ -4066,16 +4067,16 @@ ard_template <- function(ard, cols = NULL, hierarchy = character(),
 #'     `..ard_hierarchical_overall..`; summarise each level separately and bind
 #'     the results and there is no sentinel -- that block counts the treatment
 #'     itself, so the arm sits in `variable` / `variable_level`.
-#'     [ard_overall()] says which.}
+#'     [tfl_ard_overall()] says which.}
 #'   \item{the denominator}{in one ARD `stat_name == "N"` is the per-arm
 #'     denominator on the summary rows and the **study** total on the by
 #'     variable's own rows, where the per-arm count is `n` instead; and an
-#'     author may compute their own.  [ard_pull()] names the statistic and
+#'     author may compute their own.  [tfl_ard_pull()] names the statistic and
 #'     lists the candidates when the choice is ambiguous.}
 #' }
 #' Column headers are rtfreporter's own job -- `col_header` takes a plain
-#' character vector -- so [ard_spread()] builds the body only, and
-#' [ard_pull()] is there when the header needs a number that must agree with
+#' character vector -- so [tfl_ard_spread()] builds the body only, and
+#' [tfl_ard_pull()] is there when the header needs a number that must agree with
 #' the percentages.
 #'
 #' @section Lifecycle:

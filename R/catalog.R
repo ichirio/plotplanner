@@ -1,11 +1,11 @@
 # Catalogue of clinical figure types: category, type, style (subtype),
 # status, engine, default input and description. The implemented rows drive
-# pp_styles(), the Excel plot list and the README; the planned rows record
+# tfl_fig_types(), the Excel plot list and the README; the planned rows record
 # the classification for later types.
 
 pp_catalog_rows <- function() {
   r <- function(category, type, style, default, engine, data, description,
-                status = "implemented", fun = paste0("pp_", type), subtypes = "") {
+                status = "implemented", fun = paste0("tfl_fig_", type), subtypes = "") {
     data.frame(category = category, type = type, style = style, default = default,
                status = status, fun = if (status == "implemented") fun else NA_character_,
                engine = engine, data = data, subtypes = subtypes, description = description,
@@ -40,7 +40,7 @@ pp_catalog_rows <- function() {
       "Bars in one colour + ongoing arrows", subtypes = "origin: from 0 / from start"),
     r("Efficacy: tumour response", "individual", "spider", FALSE, "ggplot2", "ADTR + ADRS",
       "% change in tumour size over time per subject, coloured by BOR, +20% / -30% lines",
-      fun = "pp_individual", subtypes = "time_unit: days / weeks / months"),
+      fun = "tfl_fig_individual", subtypes = "time_unit: days / weeks / months"),
     # ---- efficacy: subgroups and rates ----
     r("Efficacy: subgroups and rates", "forest", "hr", TRUE, "ggplot2 + survival", "ADTTE + ADSL",
       "Cox hazard ratio (95% CI) overall and by subgroup + N / estimate text columns"),
@@ -62,7 +62,7 @@ pp_catalog_rows <- function() {
     r("Longitudinal", "mean", "se_n", FALSE, "ggplot2 + patchwork", "ADLB / ADVS + ADSL",
       "Mean +/- SE by visit and group + table of n below"),
     r("Longitudinal", "individual", "spaghetti", TRUE, "ggplot2", "ADLB / ADVS + ADSL",
-      "One line per subject by visit, coloured by group, with group means", fun = "pp_individual"),
+      "One line per subject by visit, coloured by group, with group means", fun = "tfl_fig_individual"),
     r("Longitudinal", "box", "by_visit", TRUE, "ggplot2", "ADLB / ADVS + ADSL",
       "Box plots by visit and group + mean marker"),
     r("Longitudinal", "box", "by_group", FALSE, "ggplot2", "ADLB / ADVS + ADSL",
@@ -127,10 +127,10 @@ pp_catalog_rows <- function() {
 #'   `fun` (quick function), `engine`, `data` (default input), `subtypes`
 #'   (argument-level variants) and `description`.
 #' @examples
-#' cat <- pp_catalog()
+#' cat <- tfl_fig_catalog()
 #' table(cat$category, cat$status)
 #' @export
-pp_catalog <- function(status = NULL) {
+tfl_fig_catalog <- function(status = NULL) {
   x <- pp_catalog_rows()
   if (!is.null(status)) x <- x[x$status %in% status, , drop = FALSE]
   rownames(x) <- NULL
@@ -139,11 +139,11 @@ pp_catalog <- function(status = NULL) {
 
 #' Styles of the quick API
 #'
-#' The implemented rows of [pp_catalog()].
+#' The implemented rows of [tfl_fig_catalog()].
 #'
 #' @return A data frame: `type`, `style`, `default`, `description`.
 #' @export
-pp_styles <- function() {
-  x <- pp_catalog("implemented")
+tfl_fig_types <- function() {
+  x <- tfl_fig_catalog("implemented")
   x[c("type", "style", "default", "description")]
 }

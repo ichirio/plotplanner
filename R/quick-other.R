@@ -2,13 +2,13 @@
 
 #' Scatter plot code
 #'
-#' @inheritParams pp_mean
+#' @inheritParams tfl_fig_mean
 #' @param style `shift` (baseline vs post-baseline value at one visit, with
 #'   the identity line) or `xy` (any two variables with a linear fit per group).
 #' @param x,y Variables of `xy` (defaults `BASE` and `CHG`).
 #' @param at_visit Visit label kept for `shift` (default: last visit).
 #' @export
-pp_scatter <- function(adam = NULL, style = c("shift", "xy"), param = "ALT", data = "ADLB",
+tfl_fig_scatter <- function(adam = NULL, style = c("shift", "xy"), param = "ALT", data = "ADLB",
                        x = NULL, y = NULL, visit = "AVISITN", visit_label = "AVISIT", at_visit = NULL,
                        group = "TRT01A", pop = "SAFFL", where = NULL, legend = "inside_tl", palette = "treatment",
                        key = "USUBJID", theme = "boxed", title = NULL, width = 6, height = 5.5,
@@ -50,14 +50,14 @@ pp_scatter <- function(adam = NULL, style = c("shift", "xy"), param = "ALT", dat
 
 #' PK concentration-time plot code
 #'
-#' @inheritParams pp_mean
+#' @inheritParams tfl_fig_mean
 #' @param style `mean` (mean +/- SD by nominal time and group, linear axis),
 #'   `mean_log` (the same on a log axis) or `individual` (one line per
 #'   subject, log axis, one panel per group).
 #' @param time Nominal time variable.
 #' @param time_label Axis label of `time`.
 #' @export
-pp_pk <- function(adam = NULL, style = c("mean", "mean_log", "individual"), param = NULL,
+tfl_fig_pk <- function(adam = NULL, style = c("mean", "mean_log", "individual"), param = NULL,
                   data = "ADPC", value = "AVAL", time = "NFRLT", time_label = "Nominal time (h)",
                   group = "TRT01A", pop = "SAFFL", where = NULL, legend = "inside", palette = "treatment",
                   key = "USUBJID", theme = "boxed", title = NULL, width = 7.5, height = 4.5,

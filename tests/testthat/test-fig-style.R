@@ -1,44 +1,44 @@
 test_that("the built-in style carries the sample programs' values", {
-  s <- fig_style()
+  s <- tfl_fig_style()
   expect_named(s, c("settings", "colors", "markers"))
   expect_equal(tflspec:::.fs_get("censor_size", "km"), "3")
   expect_equal(tflspec:::.fs_get("bar_width", "waterfall"), "0.8")
   expect_equal(tflspec:::.fs_get("theme", "swimmer"), "L_axis")
   expect_equal(tflspec:::.fs_get("theme", "km"), "boxed")          # common row
-  expect_equal(pp_palettes()$response[["PR"]], "#0000FF")
-  expect_equal(pp_palettes()$response_assessment[["PR"]], "#0000CD")
+  expect_equal(tfl_fig_palettes()$response[["PR"]], "#0000FF")
+  expect_equal(tfl_fig_palettes()$response_assessment[["PR"]], "#0000CD")
 })
 
 test_that("the generators take their defaults from the style", {
-  code <- paste(pp_km(style = "single_arm"), collapse = "\n")
+  code <- paste(tfl_fig_km(style = "single_arm"), collapse = "\n")
   expect_match(code, 'linetype = "twodash"', fixed = TRUE)
   expect_match(code, "add_censor_mark(shape = 4, size = 3, stroke = 0.6", fixed = TRUE)
-  wf <- paste(pp_waterfall(), collapse = "\n")
+  wf <- paste(tfl_fig_waterfall(), collapse = "\n")
   expect_match(wf, "geom_col(width = 0.8)", fixed = TRUE)
   expect_match(wf, "hjust = -0.3, size = 3.7", fixed = TRUE)
 
   # a company's style wins
-  s <- fig_style()
+  s <- tfl_fig_style()
   s$settings$value[s$settings$key == "censor_size"] <- "2.5"
   s$colors$colour[s$colors$palette == "response" & s$colors$value == "CR"] <- "#00AA00"
   old <- options(tflspec.fig_style = s)
   on.exit(options(old), add = TRUE)
-  expect_match(paste(pp_km(style = "single_arm"), collapse = "\n"),
+  expect_match(paste(tfl_fig_km(style = "single_arm"), collapse = "\n"),
                "size = 2.5", fixed = TRUE)
-  expect_equal(pp_palettes()$response[["CR"]], "#00AA00")
+  expect_equal(tfl_fig_palettes()$response[["CR"]], "#00AA00")
 })
 
 test_that("a style workbook reads back", {
   f <- tempfile(fileext = ".xlsx")
-  fig_style_template(f)
-  s <- read_fig_style(f)
-  expect_equal(s$settings$value, fig_style()$settings$value)
-  expect_equal(s$markers$shape, fig_style()$markers$shape)
+  tfl_fig_style_template(f)
+  s <- tfl_read_fig_style(f)
+  expect_equal(s$settings$value, tfl_fig_style()$settings$value)
+  expect_equal(s$markers$shape, tfl_fig_style()$markers$shape)
 })
 
 test_that("the helper script gives the standard's look and checks figures", {
   skip_if_not_installed("ggplot2")
-  code <- fig_setup_code()
+  code <- tfl_fig_setup_code()
   expect_silent(parse(text = code))
   e <- new.env()
   eval(parse(text = code), envir = e)
@@ -55,7 +55,7 @@ test_that("the helper script gives the standard's look and checks figures", {
                                           SD = "#FFA500", PD = "#800080"))
   w <- character()
   r <- withCallingHandlers(
-    suppressMessages(check_figure(bad, levels = c("CR", "PR", "SD", "PD"))),
+    suppressMessages(tfl_check_fig(bad, levels = c("CR", "PR", "SD", "PD"))),
     warning = function(x) { w <<- c(w, conditionMessage(x)); invokeRestart("muffleWarning") })
   expect_true(any(grepl("Removed 1 row", r$problems)))
   expect_true(any(grepl("'CR' is drawn red", r$problems)))
@@ -67,14 +67,14 @@ test_that("the KM number at risk can come from the table's ARD", {
   skip_if_not_installed("cardx")
   skip_if_not_installed("ggsurvfit")
   skip_if_not_installed("patchwork")
-  adam <- pp_example_adam()
+  adam <- tfl_example_adam()
   adtte <- adam$ADTTE
   adtte <- adtte[adtte$PARAMCD == "OS" & adtte$FASFL == "Y", ]
   times <- seq(0, 24, by = 6) * 30.4375
   km_table_ard <- cardx::ard_survival_survfit(
     survival::survfit(survival::Surv(AVAL, 1 - CNSR) ~ TRT01P, data = adtte),
     times = times)
-  code <- paste(pp_km(adam, param = "OS", ard = "km_table_ard", x_max = 24,
+  code <- paste(tfl_fig_km(adam, param = "OS", ard = "km_table_ard", x_max = 24,
                       x_by = 6), collapse = "\n")
   expect_match(code, "km_ard  <- km_table_ard", fixed = TRUE)
   expect_match(code, "/ 30.4375", fixed = TRUE)
@@ -102,8 +102,8 @@ test_that("the KM number at risk can come from the table's ARD", {
 test_that("tfl_km_risk() reads the table's ARD and checks it", {
   skip_if_not_installed("cardx")
   e <- new.env()
-  eval(parse(text = fig_setup_code()), envir = e)
-  d <- pp_example_adam()$ADTTE
+  eval(parse(text = tfl_fig_setup_code()), envir = e)
+  d <- tfl_example_adam()$ADTTE
   d <- d[d$PARAMCD == "OS", ]
   fit <- survival::survfit(survival::Surv(AVAL, 1 - CNSR) ~ TRT01P, data = d)
   ard <- cardx::ard_survival_survfit(fit, times = c(0, 100, 200))

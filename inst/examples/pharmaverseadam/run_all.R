@@ -14,7 +14,7 @@ options(
 )
 
 # 2. generate: one .R file per row (group values and colours come from `adam`)
-code <- plot_list_code("plot_list.xlsx", adam = adam, dir = "programs")
+code <- tfl_fig_list_code("plot_list.xlsx", adam = adam, dir = "programs")
 
 # 3. run every program
 for (f in list.files("programs", pattern = "[.]R$", full.names = TRUE)) {

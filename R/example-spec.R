@@ -1,11 +1,11 @@
 #' Example plot spec
 #'
 #' Spec for the three sample figures (KM, waterfall, swimmer) on
-#' [pp_example_adam()] data.
-#' @return A `pp_spec` object.
+#' [tfl_example_adam()] data.
+#' @return A `tfl_fig_spec` object.
 #' @export
-pp_example_spec <- function() {
-  plot_spec(
+tfl_example_fig_spec <- function() {
+  tfl_fig_spec(
     plots = data.frame(
       plot_id     = c("F-KM-1", "F-WF-1", "F-SW-1"),
       plot_type   = c("km", "waterfall", "swimmer"),

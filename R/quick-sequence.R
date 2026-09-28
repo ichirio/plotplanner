@@ -1,7 +1,7 @@
 # Quick API for treatment-sequence figures (sankey / sunburst).
 #
-# These are drawn by tflspec's own ggplot2 functions (plot_sankey(),
-# plot_sunburst()), so -- unlike the other figure types -- the generated
+# These are drawn by tflspec's own ggplot2 functions (tfl_plot_sankey(),
+# tfl_plot_sunburst()), so -- unlike the other figure types -- the generated
 # script calls tflspec.
 
 pp_seq_header <- function(pid, what, title, libs) {
@@ -42,7 +42,7 @@ pp_seq_data <- function(adam, data, pop, id, stage, category, palette) {
     warning(pop, " is not in ", data, "; population filter skipped.", call. = FALSE)
     pop <- NULL
   }
-  pals <- pp_palettes()
+  pals <- tfl_fig_palettes()
   if (!palette %in% names(pals)) stop("Unknown palette: ", palette, call. = FALSE)
   pal <- unname(pals[[palette]])
   pal_code <- if (!is.null(df)) {
@@ -64,10 +64,10 @@ pp_seq_data <- function(adam, data, pop, id, stage, category, palette) {
 
 #' Sankey diagram code for treatment sequences
 #'
-#' The script builds nodes and links with [sankey_data()] and draws them with
-#' [plot_sankey()].
+#' The script builds nodes and links with [tfl_sankey_data()] and draws them with
+#' [tfl_plot_sankey()].
 #'
-#' @inheritParams pp_km
+#' @inheritParams tfl_fig_km
 #' @param style `grey_links` (links in light grey), `colored_links` (links in
 #'   the colour of their source node) or `subgroups` (one panel per value of
 #'   `by`, on a shared scale).
@@ -78,7 +78,7 @@ pp_seq_data <- function(adam, data, pop, id, stage, category, palette) {
 #' @param palette Palette preset for the categories.
 #' @param width,height,dpi,units Figure size.
 #' @export
-pp_sankey <- function(adam = NULL, style = c("grey_links", "colored_links", "subgroups"),
+tfl_fig_sankey <- function(adam = NULL, style = c("grey_links", "colored_links", "subgroups"),
                       data = "ADLOT", id = "USUBJID", stage = "LINE", category = "TRT",
                       by = NULL, pop = "FASFL", palette = "treatment", title = NULL,
                       width = 9, height = 5, dpi = 300, units = "in",
@@ -87,7 +87,7 @@ pp_sankey <- function(adam = NULL, style = c("grey_links", "colored_links", "sub
   adam <- pp_prep_adam(adam)
   if (style == "subgroups" && is.null(by)) stop('`style = "subgroups"` needs `by`.', call. = FALSE)
   if (style != "subgroups") by <- NULL
-  sk_call <- sprintf("sk <- sankey_data(seq_df, id = %s, stage = %s, category = %s%s)",
+  sk_call <- sprintf("sk <- tfl_sankey_data(seq_df, id = %s, stage = %s, category = %s%s)",
                      q(id), q(stage), q(category), if (!is.null(by)) paste0(", by = ", q(by)) else "")
   common <- paste0(
     "  node_label = \"label\",\n",
@@ -100,7 +100,7 @@ pp_sankey <- function(adam = NULL, style = c("grey_links", "colored_links", "sub
   plot <- if (style == "subgroups") {
     c(sk_call,
       "grps <- unique(sk$nodes$grp)",
-      paste0("res <- plot_sankey_subgroups_batch(\n",
+      paste0("res <- tfl_plot_sankey_batch(\n",
              "  sk$nodes, sk$links,\n",
              "  subgroup_specs = data.frame(\n",
              "    subgroup = grps,\n",
@@ -113,13 +113,13 @@ pp_sankey <- function(adam = NULL, style = c("grey_links", "colored_links", "sub
              if (!is.null(title)) paste0(" +\n  plot_annotation(title = ", q(title), ")") else ""))
   } else {
     c(sk_call,
-      paste0("p <- plot_sankey(\n  sk$nodes, sk$links,\n", common, "\n)",
+      paste0("p <- tfl_plot_sankey(\n  sk$nodes, sk$links,\n", common, "\n)",
              if (!is.null(title)) paste0(" +\n  labs(title = ", q(title), ")") else ""),
       "fig <- p")
   }
   libs <- c("dplyr", "ggplot2", if (style == "subgroups") "patchwork", "tflspec")
   code <- paste(c(
-    pp_seq_header(plot_id, "Sankey diagram of treatment sequences (tflspec::plot_sankey)", title, libs),
+    pp_seq_header(plot_id, "Sankey diagram of treatment sequences (tflspec::tfl_plot_sankey)", title, libs),
     pp_seq_data(adam, data, pop, id, stage, category, palette),
     "",
     section("Step2: Making a figure"),
@@ -134,14 +134,14 @@ pp_sankey <- function(adam = NULL, style = c("grey_links", "colored_links", "sub
 
 #' Sunburst code for treatment sequences
 #'
-#' The script builds paths with [sunburst_data()] and draws them with
-#' [plot_sunburst()].
+#' The script builds paths with [tfl_sunburst_data()] and draws them with
+#' [tfl_plot_sunburst()].
 #'
-#' @inheritParams pp_sankey
+#' @inheritParams tfl_fig_sankey
 #' @param style `rings` (one ring per line, inner = first line).
 #' @param legend `right`, `bottom` or `none`.
 #' @export
-pp_sunburst <- function(adam = NULL, style = "rings",
+tfl_fig_sunburst <- function(adam = NULL, style = "rings",
                         data = "ADLOT", id = "USUBJID", stage = "LINE", category = "TRT",
                         pop = "FASFL", palette = "treatment", legend = "right", title = NULL,
                         width = 6.5, height = 5.5, dpi = 300, units = "in",
@@ -150,14 +150,14 @@ pp_sunburst <- function(adam = NULL, style = "rings",
   adam <- pp_prep_adam(adam)
   if (!legend %in% c("right", "bottom", "none")) stop("`legend` must be right, bottom or none.", call. = FALSE)
   code <- paste(c(
-    pp_seq_header(plot_id, "Sunburst of treatment sequences (tflspec::plot_sunburst)", title,
+    pp_seq_header(plot_id, "Sunburst of treatment sequences (tflspec::tfl_plot_sunburst)", title,
                   c("dplyr", "ggplot2", "tflspec")),
     pp_seq_data(adam, data, pop, id, stage, category, palette),
     "",
     section("Step2: Making a figure"),
     "# one row per treatment sequence (L1, L2, ...) with its number of subjects",
-    sprintf("paths <- sunburst_data(seq_df, id = %s, stage = %s, category = %s)", q(id), q(stage), q(category)),
-    paste0("p <- plot_sunburst(\n",
+    sprintf("paths <- tfl_sunburst_data(seq_df, id = %s, stage = %s, category = %s)", q(id), q(stage), q(category)),
+    paste0("p <- tfl_plot_sunburst(\n",
            "  paths,\n",
            "  path_value   = \"n\",\n",
            "  levels       = names(pal_cat),\n",
@@ -178,5 +178,5 @@ pp_seq_finish <- function(code, file) {
     dir.create(dirname(file), showWarnings = FALSE, recursive = TRUE)
     writeLines(code, file, useBytes = TRUE)
   }
-  structure(code, class = "pp_code")
+  structure(code, class = "tfl_code")
 }

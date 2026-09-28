@@ -39,14 +39,14 @@ pp_q_ae_data <- function(adam, data, term, group, pop, tefl, key, top, min_pct, 
 #' Incidence by preferred term for two arms, with the risk difference and
 #' its 95% CI (Wald) in a second panel.
 #'
-#' @inheritParams pp_bar
+#' @inheritParams tfl_fig_bar
 #' @param style `risk_diff` (incidence + risk difference) or `incidence`.
 #' @param term AE term variable.
 #' @param tefl Treatment-emergent flag (`NULL` for all records).
 #' @param top,min_pct Show at most `top` terms with incidence of at least
 #'   `min_pct` percent in any arm.
 #' @export
-pp_ae_dot <- function(adam = NULL, style = c("risk_diff", "incidence"), data = "ADAE",
+tfl_fig_ae_dot <- function(adam = NULL, style = c("risk_diff", "incidence"), data = "ADAE",
                       term = "AEDECOD", group = "TRT01A", pop = "SAFFL", where = NULL, tefl = "TRTEMFL",
                       top = 20, min_pct = 5, legend = "bottom", palette = "treatment", key = "USUBJID",
                       theme = "boxed", title = NULL, width = 8, height = 5.5, dpi = 300, units = "in",
@@ -96,10 +96,10 @@ pp_ae_dot <- function(adam = NULL, style = c("risk_diff", "incidence"), data = "
 #'
 #' Incidence of two arms as mirrored horizontal bars.
 #'
-#' @inheritParams pp_ae_dot
+#' @inheritParams tfl_fig_ae_dot
 #' @param style `soc` (system organ class) or `pt` (preferred term).
 #' @export
-pp_butterfly <- function(adam = NULL, style = c("soc", "pt"), data = "ADAE", term = NULL,
+tfl_fig_butterfly <- function(adam = NULL, style = c("soc", "pt"), data = "ADAE", term = NULL,
                          group = "TRT01A", pop = "SAFFL", where = NULL, tefl = "TRTEMFL", top = 20, min_pct = 0,
                          legend = "bottom", palette = "treatment", key = "USUBJID", theme = "boxed",
                          title = NULL, width = 8, height = 5, dpi = 300, units = "in",
@@ -128,14 +128,14 @@ pp_butterfly <- function(adam = NULL, style = c("soc", "pt"), data = "ADAE", ter
 #' Maximum post-baseline transaminase vs total bilirubin, both as multiples
 #' of the upper limit of normal, with the Hy's law reference lines.
 #'
-#' @inheritParams pp_ae_dot
+#' @inheritParams tfl_fig_ae_dot
 #' @param style `alt` (ALT on the x axis) or `alt_ast` (the larger of ALT
 #'   and AST).
 #' @param alt,ast,bili PARAMCD of ALT, AST and total bilirubin.
 #' @param uln Upper limit of normal variable.
 #' @param post_baseline Condition selecting post-baseline records (R code).
 #' @export
-pp_edish <- function(adam = NULL, style = c("alt", "alt_ast"), data = "ADLB", alt = "ALT", ast = "AST",
+tfl_fig_edish <- function(adam = NULL, style = c("alt", "alt_ast"), data = "ADLB", alt = "ALT", ast = "AST",
                      bili = "BILI", uln = "ANRHI", post_baseline = "AVISITN > 0", group = "TRT01A",
                      pop = "SAFFL", where = NULL, legend = "inside", palette = "treatment", key = "USUBJID",
                      theme = "boxed", title = NULL, width = 7, height = 6, dpi = 300, units = "in",

@@ -2,39 +2,39 @@
 % Please edit documentation in R/plan.R
 \name{plan_verbs}
 \alias{plan_verbs}
-\alias{plan_levels}
-\alias{plan_labels}
-\alias{plan_cells}
-\alias{plan_digits}
-\alias{plan_fmt}
-\alias{plan_stub}
-\alias{plan_cell_style}
-\alias{plan_paginate_group}
-\alias{plan_row_group}
-\alias{plan_hide}
-\alias{plan_sort}
-\alias{plan_blanks}
-\alias{plan_paginate_rows}
-\alias{plan_style}
-\alias{plan_col_header}
-\alias{plan_listing}
-\alias{plan_titles}
-\alias{plan_footnotes}
-\alias{plan_after}
-\alias{plan_paginate_cols}
+\alias{tfl_plan_levels}
+\alias{tfl_plan_labels}
+\alias{tfl_plan_cells}
+\alias{tfl_plan_digits}
+\alias{tfl_plan_fmt}
+\alias{tfl_plan_stub}
+\alias{tfl_plan_cell_style}
+\alias{tfl_plan_paginate_group}
+\alias{tfl_plan_row_group}
+\alias{tfl_plan_hide}
+\alias{tfl_plan_sort}
+\alias{tfl_plan_blanks}
+\alias{tfl_plan_paginate_rows}
+\alias{tfl_plan_style}
+\alias{tfl_plan_col_header}
+\alias{tfl_plan_listing}
+\alias{tfl_plan_titles}
+\alias{tfl_plan_footnotes}
+\alias{tfl_plan_after}
+\alias{tfl_plan_paginate_cols}
 \title{Declare the table, one layer at a time (SPIKE)}
 \usage{
-plan_levels(plan, ...)
+tfl_plan_levels(plan, ...)
 
-plan_labels(plan, ...)
+tfl_plan_labels(plan, ...)
 
-plan_cells(plan, ...)
+tfl_plan_cells(plan, ...)
 
-plan_digits(plan, ..., rounding = NULL)
+tfl_plan_digits(plan, ..., rounding = NULL)
 
-plan_fmt(plan, ...)
+tfl_plan_fmt(plan, ...)
 
-plan_stub(
+tfl_plan_stub(
   plan,
   vars = NULL,
   into = NULL,
@@ -43,19 +43,19 @@ plan_stub(
   before = FALSE
 )
 
-plan_cell_style(plan, ...)
+tfl_plan_cell_style(plan, ...)
 
-plan_paginate_group(plan, col = NULL, show = TRUE)
+tfl_plan_paginate_group(plan, col = NULL, show = TRUE)
 
-plan_row_group(plan, mode = NULL, collapse = NULL, col = NULL)
+tfl_plan_row_group(plan, mode = NULL, collapse = NULL, col = NULL)
 
-plan_hide(plan, ...)
+tfl_plan_hide(plan, ...)
 
-plan_sort(plan, ..., desc = NULL, show = TRUE)
+tfl_plan_sort(plan, ..., desc = NULL, show = TRUE)
 
-plan_blanks(plan, where = NULL, first = NULL, last = NULL, counted = NULL)
+tfl_plan_blanks(plan, where = NULL, first = NULL, last = NULL, counted = NULL)
 
-plan_paginate_rows(
+tfl_plan_paginate_rows(
   plan,
   max_rows = NULL,
   split = NULL,
@@ -66,11 +66,11 @@ plan_paginate_rows(
   show = TRUE
 )
 
-plan_style(plan, border = NULL, widths = NULL, ...)
+tfl_plan_style(plan, border = NULL, widths = NULL, ...)
 
-plan_col_header(plan, header = NULL, n = NULL, values = NULL)
+tfl_plan_col_header(plan, header = NULL, n = NULL, values = NULL)
 
-plan_listing(
+tfl_plan_listing(
   plan,
   ...,
   type = NULL,
@@ -85,13 +85,13 @@ plan_listing(
   record = NULL
 )
 
-plan_titles(plan, ..., pages = NULL)
+tfl_plan_titles(plan, ..., pages = NULL)
 
-plan_footnotes(plan, ..., pages = NULL)
+tfl_plan_footnotes(plan, ..., pages = NULL)
 
-plan_after(plan, ...)
+tfl_plan_after(plan, ...)
 
-plan_paginate_cols(
+tfl_plan_paginate_cols(
   plan,
   at = NULL,
   cols = NULL,
@@ -105,27 +105,27 @@ plan_paginate_cols(
 )
 }
 \arguments{
-\item{plan}{An \code{\link[=table_plan]{table_plan()}}.}
+\item{plan}{An \code{\link[=tfl_plan]{tfl_plan()}}.}
 
-\item{...}{For \code{plan_cells()}, exactly what \code{ard_spread(cells = )}
+\item{...}{For \code{tfl_plan_cells()}, exactly what \code{tfl_ard_spread(cells = )}
 takes: one bare entry, or entries named by variable, \code{context},
 kind (\code{continuous} / \code{categorical}) or \code{default}.
 
-\code{plan_digits()} takes the same keys, with the digits as the value.
+\code{tfl_plan_digits()} takes the same keys, with the digits as the value.
 A value is \strong{one number}, for every token in that entry, or a
 vector \strong{named by statistic} --- a house rule is rarely one number.
 The two keys combine, which is the point of the verb:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{plan_digits(continuous  = c(mean = 2, sd = 3, median = 2),
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tfl_plan_digits(continuous  = c(mean = 2, sd = 3, median = 2),
             categorical = c(p = 1)) |>      # the house rule
-  plan_digits(AGE = c(mean = 1, sd = 2))    # AGE only
+  tfl_plan_digits(AGE = c(mean = 1, sd = 2))    # AGE only
 }\if{html}{\out{</div>}}
 
 A value is the \strong{decimals}, or \code{"4s"} for \strong{4 significant digits} ---
 the token grammar's own distinction (\verb{\{mean:.4f\}} / \verb{\{mean:.4s\}}), not a
 second argument to learn:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{plan_digits(continuous = c(mean = "4s", sd = "5s", n = 0))
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tfl_plan_digits(continuous = c(mean = "4s", sd = "5s", n = 0))
 }\if{html}{\out{</div>}}
 
 A statistic the narrower entry says nothing about falls through to
@@ -134,50 +134,50 @@ reach a token that left the question open (\code{{mean}}, or \verb{\{p:\\\%\}}):
 one that answered it (\verb{\{mean:.2f\}}) keeps its answer, so a template
 meant to be tuned is written open.
 
-For \code{plan_levels()} and \code{plan_labels()}, one entry per column or
+For \code{tfl_plan_levels()} and \code{tfl_plan_labels()}, one entry per column or
 analysis variable: an order (\code{AGEGR1 = c("<65", "65-74")}), or
 the text values are printed as (\code{AGE = "Age (years)"}).  Both
 merge one \strong{key} at a time, so a later layer adds a variable
 without restating the rest --- which is the whole reason these
-two are layers and the roles are not.  A \code{plan_labels()} entry
+two are layers and the roles are not.  A \code{tfl_plan_labels()} entry
 whose value is itself a named vector applies to that \strong{column}
 only: a shift table's \code{"0"} is \code{"Grade 0"} down the side and
 \code{"Baseline 0"} across the top.}
 
-\item{rounding}{For \code{plan_digits()}: the tie-breaking family for the
-run, as \code{ard_spread(rounding = )} takes it.  Last wins, like every
+\item{rounding}{For \code{tfl_plan_digits()}: the tie-breaking family for the
+run, as \code{tfl_ard_spread(rounding = )} takes it.  Last wins, like every
 other layer.}
 
-\item{vars, into, indent, group_summary}{For \code{plan_stub()}: the row keys to
+\item{vars, into, indent, group_summary}{For \code{tfl_plan_stub()}: the row keys to
 fold into one stub column and how, as \code{\link[rtfreporter:stub_cols]{rtfreporter::stub_cols()}} takes them.
 \code{into} is the NAME the folded column gets (\code{stub_cols(label = )}), which
-is a different thing from \code{table_plan(label = )} --- the column whose
+is a different thing from \code{tfl_plan(label = )} --- the column whose
 VALUES are the row text.  \code{vars} is derived when left out.}
 
-\item{before}{For \code{plan_stub()}: \code{FALSE} (default) folds the stub inside
+\item{before}{For \code{tfl_plan_stub()}: \code{FALSE} (default) folds the stub inside
 \code{\link[rtfreporter:as_rtftables]{rtfreporter::as_rtftables()}}, after grouping and pagination have had their say.
 \code{TRUE} folds it first, with \code{\link[rtfreporter:stub_cols]{rtfreporter::stub_cols()}}, which is what
-\code{plan_cell_style()} needs --- only then can a condition see the rows that
+\code{tfl_plan_cell_style()} needs --- only then can a condition see the rows that
 will be printed.  The two do \strong{not} always give the same table.}
 
-\item{col}{For \code{plan_paginate_group()}: the column whose value starts a
+\item{col}{For \code{tfl_plan_paginate_group()}: the column whose value starts a
 new page, \code{as_rtftables()}'s \code{group_col} with \code{split = "by_value"}.  Left
 out, it is the outermost row key.  The page is \strong{named} after
 the value, which is the line \code{rtf_tables(auto_section = TRUE)}
 cuts a section on --- so this verb decides what a section is.
-\code{plan_row_group(col = )} may name it instead when there is no page
+\code{tfl_plan_row_group(col = )} may name it instead when there is no page
 break; naming different columns in the two is an error.}
 
 \item{show}{\code{FALSE} also hides the column the verb names: the
-grouping carrier for \code{plan_row_group()}, the \code{by} key for \code{plan_paginate_rows()}, the
-sort keys for \code{plan_sort()}.  A column can be \strong{needed and not
+grouping carrier for \code{tfl_plan_row_group()}, the \code{by} key for \code{tfl_plan_paginate_rows()}, the
+sort keys for \code{tfl_plan_sort()}.  A column can be \strong{needed and not
 wanted} --- a carrier that groups the rows, the key a page break
 reads --- and the verb that needs it is the one place that knows,
 so it says so there instead of the name being written again in a
-\code{plan_hide()}.  Names that are not columns (a statistic, \code{".depth"})
+\code{tfl_plan_hide()}.  Names that are not columns (a statistic, \code{".depth"})
 are ignored rather than refused.}
 
-\item{mode, collapse}{For \code{plan_row_group()}: what a run of rows sharing a
+\item{mode, collapse}{For \code{tfl_plan_row_group()}: what a run of rows sharing a
 value is, and how the repeat shows.  \code{mode} is \code{as_rtftables(group_by = )},
 which is how a group BOUNDARY is found --- \code{"value"} (each run of equal
 values), \verb{"indent}" (a row starts a group when its cell is not indented),
@@ -185,29 +185,29 @@ values), \verb{"indent}" (a row starts a group when its cell is not indented),
 \code{collapse_repeats}: a repeated value printed once and then blank.
 
 \code{mode = "indent"} \strong{reads} indentation to find the boundary;
-\code{plan_stub(indent = )} \strong{writes} it.  They are not the same knob, and
+\code{tfl_plan_stub(indent = )} \strong{writes} it.  They are not the same knob, and
 a stub written with \code{indent} is exactly what that mode then reads.}
 
-\item{desc}{For \code{plan_sort()} over a table that is
+\item{desc}{For \code{tfl_plan_sort()} over a table that is
 already built: \code{as_rtftables()}'s \code{sort_desc}.  A plan with an ARD
 half writes the direction into the keys instead (\code{-n}).}
 
-\item{where, first, last, counted}{For \code{plan_blanks()}: \code{as_rtftables()}'s
+\item{where, first, last, counted}{For \code{tfl_plan_blanks()}: \code{as_rtftables()}'s
 \code{blank_rows}, \code{blank_row_first}, \code{blank_row_end} and
 \code{count_blank_rows}.}
 
 \item{max_rows, split, break_before, by, min_group_rows, cont_label}{For
-\code{plan_paginate_rows()}: the row budget and what a page break may cut ---
+\code{tfl_plan_paginate_rows()}: the row budget and what a page break may cut ---
 \code{as_rtftables()}'s \code{max_rows}, \code{split}, \code{split_rows}, \code{page_by},
 \code{min_group_rows} and \code{cont_label}.  This is the \strong{row} axis; a
-value split (the \strong{group} axis) is \code{plan_paginate_group()},
-and the \strong{column} axis is \code{plan_paginate_cols()}.}
+value split (the \strong{group} axis) is \code{tfl_plan_paginate_group()},
+and the \strong{column} axis is \code{tfl_plan_paginate_cols()}.}
 
-\item{border, widths}{For \code{plan_style()}: the border set and the relative
+\item{border, widths}{For \code{tfl_plan_style()}: the border set and the relative
 column widths (\code{col_rel_width}).  Anything else \code{\link[rtfreporter:rtftable]{rtfreporter::rtftable()}}
 understands goes through \code{...}.}
 
-\item{header}{For \code{plan_col_header()}: the header, built with the same
+\item{header}{For \code{tfl_plan_col_header()}: the header, built with the same
 \code{\link[rtfreporter:rtf_col_header]{rtfreporter::rtf_col_header()}} as everywhere else --- or a \strong{function} of the
 resolved \code{n} (and, with two arguments, the finished table) when it
 has to be computed.  The plan adds two things to a header it is
@@ -236,14 +236,14 @@ printed, so \code{{col}} is the \strong{leaf} and \code{{col1}}, \code{{col2}}, 
 the levels in order; with one key the leaf is the whole name.
 The hierarchy itself needs no header --- \code{\link[rtfreporter:as_rtftables]{rtfreporter::as_rtftables()}} builds
 the spanning rows from the same separator, merging the cells.
-What each level READS is \code{\link[=plan_labels]{plan_labels()}}'s business, since it
+What each level READS is \code{\link[=tfl_plan_labels]{tfl_plan_labels()}}'s business, since it
 recodes the values the name is made of;
 \item a row \strong{shorter} than the table has its last cell repeated over
 the spread columns, whose names are not known until the table
 exists.
 }
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{plan_col_header(n = TRUE, rtf_col_header(
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tfl_plan_col_header(n = TRUE, rtf_col_header(
   c("",               "\{col\}"),
   c("Characteristic", "(N=\{n\})")))
 }\if{html}{\out{</div>}}
@@ -252,10 +252,10 @@ A row already the right length, and a cell with no token in it, are
 untouched --- so a spanner, a border or a cell that reads the
 finished table is written exactly as it always was.}
 
-\item{n}{For \code{plan_col_header()}: the population each column describes
+\item{n}{For \code{tfl_plan_col_header()}: the population each column describes
 --- its analysis set, the number a header prints as \code{(N=86)}.
 \code{TRUE} reads it from the data, keyed by the same \code{cols} / \code{levels}
-\code{table_plan()} was given, \strong{at every depth of the keys}: with
+\code{tfl_plan()} was given, \strong{at every depth of the keys}: with
 \code{cols = c("TRT", "SEX")} both the arm (\code{"Placebo"}) and the arm x sex
 cell (\code{"Placebo____F"}) are looked up.  Only a number the ARD
 \strong{states as a population size} is read:
@@ -266,7 +266,7 @@ cell (\code{"Placebo____F"}) are looked up.  Only a number the ARD
 denominator; never its \code{n}, the subjects with an event that the
 "Any" row shows.  Taken only when there is one kind of sentinel;
 \item the column variable's \strong{own tabulation} --- the per-arm \code{n} of
-\code{cards::ard_stack(.by = )}, which \code{\link[=ard_normalize]{ard_normalize()}} keeps as
+\code{cards::ard_stack(.by = )}, which \code{\link[=tfl_ard_normalize]{tfl_ard_normalize()}} keeps as
 \code{.key_own} rows --- where its counts add up to the \code{N} those rows
 state (the population split by arm, not the treatment counted as
 an event).  At depth \emph{k} it is \code{cols[k]} tabulated within
@@ -279,15 +279,15 @@ construction (a hierarchical summary, a percentage of the
 agree on it for every column}.  One variable's \code{N} is the count
 of its \strong{non-missing} values --- the arm size only if nothing is
 missing, which the ARD cannot show --- and an \code{N} per visit or per
-parameter is not a column's at all.  \code{\link[=ard_pull]{ard_pull()}} is not asked.
+parameter is not a column's at all.  \code{\link[=tfl_ard_pull]{tfl_ard_pull()}} is not asked.
 }
 
-The study total (\code{..ard_total_n..}, the one \code{\link[=ard_normalize]{ard_normalize()}}
+The study total (\code{..ard_total_n..}, the one \code{\link[=tfl_ard_normalize]{tfl_ard_normalize()}}
 remembers as it drops that row, or the \code{N} the column variable's
 own tabulation states) is \strong{never put in every column}: it answers
 a one-column table and a cell over all the columns.
 
-\strong{Pages split by a group value} (\code{\link[=plan_paginate_group]{plan_paginate_group()}}: a lab
+\strong{Pages split by a group value} (\code{\link[=tfl_plan_paginate_group]{tfl_plan_paginate_group()}}: a lab
 parameter, a visit) have \strong{two populations}, and which one the
 header says is the author's choice:
 \itemize{
@@ -324,8 +324,8 @@ under \code{"{col1} {n1}"}.
 To \strong{give the numbers yourself}, pass a vector named by column
 key, at any depth --- \code{c(Placebo = 86, "Placebo____F" = 53, ...)} ---
 or a function of the data returning one; a single unnamed number
-fills every cell.  After a workbook (\code{table_plan(spec = )}), a later
-\code{plan_col_header(n = ...)} supplies the numbers and keeps the
+fills every cell.  After a workbook (\code{tfl_plan(spec = )}), a later
+\code{tfl_plan_col_header(n = ...)} supplies the numbers and keeps the
 workbook's header.
 A \strong{function} of the data covers what neither can find, and a
 \strong{named list} of either supplies several --- and then \strong{each
@@ -333,7 +333,7 @@ name is a token}, which is how one header says two numbers with
 no function at all: the study total in a spanner and each
 column's own underneath it.
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{plan_col_header(
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{tfl_plan_col_header(
   n = list(n = TRUE, total = 254),
   rtf_col_header(
     list(col_cell(1, ""), col_cell(c(2, 4), "All (N=\{total\})")),
@@ -346,30 +346,30 @@ number fills every cell.  \code{{n}} is the entry called \code{n}, or the
 only entry when there is one.  The resolved value is also what
 \verb{header =} is called with when it is a function.}
 
-\item{values}{For \code{plan_col_header()}: passed to \code{\link[rtfreporter:set_col_header]{rtfreporter::set_col_header()}} as
+\item{values}{For \code{tfl_plan_col_header()}: passed to \code{\link[rtfreporter:set_col_header]{rtfreporter::set_col_header()}} as
 \verb{values =}, for a header whose cells carry \code{{token}} placeholders.}
 
-\item{type, sep, spacer, spacer_rel_width, blank_row, blank_row_first, align, layout, wrap, record}{For \code{plan_listing()}: \code{\link[rtfreporter:listing_spec]{rtfreporter::listing_spec()}}'s own arguments, unchanged.
+\item{type, sep, spacer, spacer_rel_width, blank_row, blank_row_first, align, layout, wrap, record}{For \code{tfl_plan_listing()}: \code{\link[rtfreporter:listing_spec]{rtfreporter::listing_spec()}}'s own arguments, unchanged.
 \code{...} there takes the \code{\link[rtfreporter:listing_col]{rtfreporter::listing_col()}}s.}
 
-\item{pages}{For \code{plan_titles()} / \code{plan_footnotes()}: a list with one
+\item{pages}{For \code{tfl_plan_titles()} / \code{tfl_plan_footnotes()}: a list with one
 block per page, when the pages do not share a block.  \code{...} is the rows
 of a single block used on every page; give one or the other, never
 both, because a three-row title on a three-page table cannot be told
 apart from three one-row titles.}
 
 \item{at, carry, col_header, width, allow_span_break, order}{For
-\code{plan_paginate_cols()}: \code{\link[rtfreporter:paginate_cols]{rtfreporter::paginate_cols()}}'s own arguments --- where to
+\code{tfl_plan_paginate_cols()}: \code{\link[rtfreporter:paginate_cols]{rtfreporter::paginate_cols()}}'s own arguments --- where to
 cut (\code{at}, \code{cols} or \code{by}), which columns every block repeats (\code{carry}),
 what the header becomes, how the widths are rescaled, and \code{order} ---
 \code{paginate_cols(page_order = )}, the order the three axes nest in,
 outermost first: \code{"group"}, \code{"rows"}, \code{"cols"}, or the shorthands
 \code{"across"} and \code{"down"}.}
 
-\item{cols}{For \code{plan_paginate_cols()}: which columns each block keeps, when
+\item{cols}{For \code{tfl_plan_paginate_cols()}: which columns each block keeps, when
 the cut is by name rather than by position.}
 
-\item{every}{For \code{plan_paginate_cols()}: cut a block every this many
+\item{every}{For \code{tfl_plan_paginate_cols()}: cut a block every this many
 columns, counting only the ones a block does not carry.  This is
 \code{at} without writing down how many columns one study had --- the
 plan is deferred, so it counts them when the table exists.  Give one
@@ -379,18 +379,18 @@ of \code{at}, \code{cols}, \code{by} or \code{every}.}
 The plan, with one more layer.
 }
 \description{
-Each verb adds a layer to an \code{\link[=table_plan]{table_plan()}}.  \strong{A later layer wins.}
+Each verb adds a layer to an \code{\link[=tfl_plan]{tfl_plan()}}.  \strong{A later layer wins.}
 The roles --- which column goes across, which go down, which carries
-the row identity --- are said once, on \code{\link[=table_plan]{table_plan()}}; these verbs are
+the row identity --- are said once, on \code{\link[=tfl_plan]{tfl_plan()}}; these verbs are
 the things a report really does declare twice.  Their arguments are
-the ones \code{\link[=ard_spread]{ard_spread()}} and \code{\link[rtfreporter:as_rtftables]{rtfreporter::as_rtftables()}} already take, so the
+the ones \code{\link[=tfl_ard_spread]{tfl_ard_spread()}} and \code{\link[rtfreporter:as_rtftables]{rtfreporter::as_rtftables()}} already take, so the
 layering is the only new idea.
 }
 \section{Lifecycle}{
 
-\strong{Spike.}  See \code{\link[=table_plan]{table_plan()}}.
+\strong{Spike.}  See \code{\link[=tfl_plan]{tfl_plan()}}.
 }
 
 \seealso{
-\code{\link[=table_plan]{table_plan()}}, \code{\link[=apply_plan]{apply_plan()}}
+\code{\link[=tfl_plan]{tfl_plan()}}, \code{\link[=tfl_apply_plan]{tfl_apply_plan()}}
 }

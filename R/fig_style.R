@@ -5,8 +5,8 @@
 # The built-in catalog is taken from the three sample programs the figure
 # generators were built from (KM of duration of response, waterfall of the
 # best percent change, swimmer of the best overall response).  A company
-# writes its own in a workbook (fig_style_template() / read_fig_style()) and
-# sets it with options(tflspec.fig_style = read_fig_style(path)); tflplanner
+# writes its own in a workbook (tfl_fig_style_template() / tfl_read_fig_style()) and
+# sets it with options(tflspec.fig_style = tfl_read_fig_style(path)); tflplanner
 # passes its company standards the same way.
 #
 #   settings  type, key, value   one value; `type` blank = every figure,
@@ -124,15 +124,15 @@
 #' Every look-and-feel value of a figure -- font sizes, line widths, tick
 #' lengths, reference lines, the censor mark, colour palettes, event
 #' markers, the output size -- in one catalog, so every figure of a study
-#' looks the same, whoever (or whatever) writes its code.  The [pp_km()] /
-#' [pp_waterfall()] / [pp_swimmer()] generators take their defaults from it,
-#' and [fig_setup_code()] writes it into a helper script for figure programs
+#' looks the same, whoever (or whatever) writes its code.  The [tfl_fig_km()] /
+#' [tfl_fig_waterfall()] / [tfl_fig_swimmer()] generators take their defaults from it,
+#' and [tfl_fig_setup_code()] writes it into a helper script for figure programs
 #' written by hand.
 #'
 #' The built-in catalog is taken from the sample programs the generators were
 #' built from.  A company keeps its own in a workbook: write the built-in one
-#' with `fig_style_template()`, edit it, read it with `read_fig_style()` and
-#' set it with `options(tflspec.fig_style = read_fig_style(path))`.
+#' with `tfl_fig_style_template()`, edit it, read it with `tfl_read_fig_style()` and
+#' set it with `options(tflspec.fig_style = tfl_read_fig_style(path))`.
 #'
 #' * `settings` (`type`, `key`, `value`): one value per key; `type` blank
 #'   applies to every figure, `km` / `waterfall` / `swimmer` to that type
@@ -145,10 +145,10 @@
 #'   figures' own symbols (`censor`, `assessment`).
 #'
 #' @param path A workbook.
-#' @return `fig_style()` and `read_fig_style()`: a list of three data frames;
-#'   `fig_style_template()`: `path`, invisibly.
+#' @return `tfl_fig_style()` and `tfl_read_fig_style()`: a list of three data frames;
+#'   `tfl_fig_style_template()`: `path`, invisibly.
 #' @export
-fig_style <- function() {
+tfl_fig_style <- function() {
   s <- getOption("tflspec.fig_style")
   if (is.null(s)) return(.fig_style_builtin())
   b <- .fig_style_builtin()
@@ -156,16 +156,16 @@ fig_style <- function() {
   s
 }
 
-#' @rdname fig_style
+#' @rdname tfl_fig_style
 #' @export
-fig_style_template <- function(path) {
+tfl_fig_style_template <- function(path) {
   writexl::write_xlsx(.fig_style_builtin(), path)
   invisible(path)
 }
 
-#' @rdname fig_style
+#' @rdname tfl_fig_style
 #' @export
-read_fig_style <- function(path) {
+tfl_read_fig_style <- function(path) {
   b <- .fig_style_builtin()
   have <- readxl::excel_sheets(path)
   out <- lapply(names(b), function(sh) {
@@ -186,7 +186,7 @@ read_fig_style <- function(path) {
 }
 
 # One setting for a figure type: its own row, else the blank-type row.
-.fs_get <- function(key, type = NA, style = fig_style()) {
+.fs_get <- function(key, type = NA, style = tfl_fig_style()) {
   s <- style$settings
   v <- s$value[s$key %in% key & s$type %in% type]
   if (!length(v) || is.na(v[1])) v <- s$value[s$key %in% key & is.na(s$type)]
@@ -194,14 +194,14 @@ read_fig_style <- function(path) {
 }
 
 # Every setting of a type, as a named list (the type's rows over the blank).
-.fs_all <- function(type = NA, style = fig_style()) {
+.fs_all <- function(type = NA, style = tfl_fig_style()) {
   s <- style$settings
   keys <- unique(s$key)
   stats::setNames(lapply(keys, function(k) .fs_get(k, type, style)), keys)
 }
 
-# The palettes as pp_palettes() gives them.
-.fs_palettes <- function(style = fig_style()) {
+# The palettes as tfl_fig_palettes() gives them.
+.fs_palettes <- function(style = tfl_fig_style()) {
   cl <- style$colors
   cl <- cl[!is.na(cl$palette) & !is.na(cl$colour), , drop = FALSE]
   out <- lapply(split(cl, factor(cl$palette, levels = unique(cl$palette))),
@@ -213,7 +213,7 @@ read_fig_style <- function(path) {
 }
 
 # A marker row by label (case-insensitive), or NULL.
-.fs_marker <- function(label, style = fig_style()) {
+.fs_marker <- function(label, style = tfl_fig_style()) {
   m <- style$markers
   i <- match(tolower(label), tolower(m$marker))
   if (is.na(i)) NULL else as.list(m[i, ])

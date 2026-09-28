@@ -49,7 +49,7 @@ pp_gen_km <- function(ctx) {
   # colours: one per stratum (single arm: arm_label)
   if (is.null(s_var)) {
     arm <- pp_opt(ctx, "arm_label")
-    pal <- pp_palettes()[[ctx$prow$palette %or% "treatment"]]
+    pal <- tfl_fig_palettes()[[ctx$prow$palette %or% "treatment"]]
     sv <- list(code = sprintf("pal_strata <- %s", vec_code(stats::setNames(unname(pal[1]), arm))),
                name = "pal_strata", values = arm, colours = unname(pal[1]), labels = arm)
   } else {

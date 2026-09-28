@@ -11,19 +11,19 @@
 #  What it is
 #  ---------------------------------------------------------------------------
 #
-#  `ard_normalize()` and `ard_spread()` do the work the moment they are
+#  `tfl_ard_normalize()` and `tfl_ard_spread()` do the work the moment they are
 #  called.  This is the same conversion written as DECLARATIONS that are
 #  resolved once at the end:
 #
 #      ard |>
-#        ard_normalize() |>                              # run, not declared
-#        table_plan(cols = "TRT01P", rows = c(group = "variable")) |>
-#        plan_cells(continuous = c("n"         = "{N:d}",
+#        tfl_ard_normalize() |>                              # run, not declared
+#        tfl_plan(cols = "TRT01P", rows = c(group = "variable")) |>
+#        tfl_plan_cells(continuous = c("n"         = "{N:d}",
 #                                  "Mean (SD)" = "{mean} ({sd})"),
 #                   categorical = "{n} ({p:%})") |>
-#        plan_digits(2) |>                # everything to 2 dp ...
-#        plan_digits(AGE = 0) |>          # ... except AGE          <- LAST WINS
-#        apply_plan()
+#        tfl_plan_digits(2) |>                # everything to 2 dp ...
+#        tfl_plan_digits(AGE = 0) |>          # ... except AGE          <- LAST WINS
+#        tfl_apply_plan()
 #
 #  ---------------------------------------------------------------------------
 #  Two rules, and no new vocabulary
@@ -34,7 +34,7 @@
 #     is tfrmt's `frmt_structure` rule, and it is what makes "set everything,
 #     then fix one variable" a two-line edit instead of a rewrite.
 #
-#     Note this is a DIFFERENT rule from `ard_spread(cells = )`, which picks
+#     Note this is a DIFFERENT rule from `tfl_ard_spread(cells = )`, which picks
 #     by SPECIFICITY (variable, then context, then kind, then default) and
 #     ignores order.  Both are defensible; the point of the spike is to find
 #     out which one is nicer to write.  They do not conflict, because the plan
@@ -42,7 +42,7 @@
 #     engine -- specificity still decides what a variable with no layer of its
 #     own gets.
 #
-#  2. THE ROLES ARE SAID ONCE, WHERE THE DATA IS.  `table_plan()` takes the
+#  2. THE ROLES ARE SAID ONCE, WHERE THE DATA IS.  `tfl_plan()` takes the
 #     NORMALIZED frame and, like `ggplot(data, aes(x, y))`, the columns
 #     that play a part in the table: `cols` across, `rows` down, `label`
 #     for the row identity.  Every other verb reads them from there, so
@@ -50,21 +50,21 @@
 #     restated and cannot disagree.
 #
 #     Normalising is NOT deferred.  Nothing in the plan feeds it, nothing
-#     overrides it later, and deferring it meant `table_plan()` had to GUESS
+#     overrides it later, and deferring it meant `tfl_plan()` had to GUESS
 #     whether what it was handed still needed flattening -- a guess that
 #     silently skipped the step for every report once already.  Run it,
 #     look at it, then name its columns.
 #
-#     Beyond that the keys are the ones you already know: `plan_cells()`
-#     takes exactly what `ard_spread(cells = )` takes, and the display
+#     Beyond that the keys are the ones you already know: `tfl_plan_cells()`
+#     takes exactly what `tfl_ard_spread(cells = )` takes, and the display
 #     verbs take `as_rtftables()`'s own arguments.
 #
 #  ---------------------------------------------------------------------------
 #  Why it resolves to arguments rather than re-implementing anything
 #  ---------------------------------------------------------------------------
 #
-#  `apply_plan()` builds `ard_spread()`'s argument list and calls it.  Nothing about the conversion is duplicated, so the
-#  plan cannot drift away from the immediate form -- and `apply_plan(stage =
+#  `tfl_apply_plan()` builds `tfl_ard_spread()`'s argument list and calls it.  Nothing about the conversion is duplicated, so the
+#  plan cannot drift away from the immediate form -- and `tfl_apply_plan(stage =
 #  "args")` can SHOW the call the plan amounts to, which is the honest answer
 #  to "what is this thing going to do".
 #
@@ -73,13 +73,13 @@
 #  ---------------------------------------------------------------------------
 #
 #  * A token that states its own digits (`{mean:.2f}`) keeps them;
-#    `plan_digits()` only fills tokens that left the question open (`{mean}`,
+#    `tfl_plan_digits()` only fills tokens that left the question open (`{mean}`,
 #    or `{p:%}`, which is plan-only notation for "percent, digits from the
-#    plan").  The alternative -- a later `plan_digits()` overriding an
+#    plan").  The alternative -- a later `tfl_plan_digits()` overriding an
 #    explicit token -- would make house-library templates tunable per study,
 #    and is the first thing to reconsider.
 #  * Guards (`c(n == 0 ~ "0", "{n} ({p})")`) are carried through untouched:
-#    `plan_digits()` does not reach inside a formula.
+#    `tfl_plan_digits()` does not reach inside a formula.
 #  * No call site is recorded on a layer, so an error still points at the
 #    resolver.  That is the main thing to fix before this could be real.
 #  * `plan_*` collides with the verb names on design/plan-resolver.  That is
@@ -105,7 +105,8 @@
     nm <- if (is.name(f)) as.character(f)
           else if (is.call(f) && identical(as.character(f[[1L]]), "::"))
             as.character(f[[3L]]) else ""
-    if (startsWith(nm, "plan_") || nm %in% c("table_plan", "rtf_plan")) return(cl)
+    if (startsWith(nm, "tfl_plan") || startsWith(nm, "plan_") ||
+        nm %in% c("table_plan", "rtf_plan")) return(cl)
   }
   NULL
 }
@@ -137,8 +138,8 @@
 }
 
 .plan_layer <- function(plan, kind, fields) {
-  if (!inherits(plan, "table_plan")) {
-    .ard_stop("Expected a table_plan; pipe from table_plan(ard).")
+  if (!inherits(plan, "tfl_plan")) {
+    .ard_stop("Expected a tfl_plan; pipe from tfl_plan(ard).")
   }
   fields <- fields[!vapply(fields, is.null, logical(1L))]
   # Recorded even when empty: calling the verb is the declaration, and
@@ -180,7 +181,7 @@
   v
 }
 
-# What a stage left behind, remembered as it goes.  apply_plan() fills
+# What a stage left behind, remembered as it goes.  tfl_apply_plan() fills
 # these in, so a print() after a run costs nothing and shows everything.
 .plan_remember <- function(plan, what, x) {
   plan$cache[[what]] <- x
@@ -218,9 +219,9 @@
 # How many digits a STATISTIC gets.  `cands` are the declarations that
 # could apply, most specific first; the first that names the statistic
 # wins, and a declaration that names nothing (one number for every
-# token) wins at its own level.  So `plan_digits(c(mean = 2, sd = 3))`
-# as the house rule and `plan_digits(AGE = c(mean = 1, sd = 2))` for
-# one variable is two lines, and `plan_digits(AGE = c(mean = 1))`
+# token) wins at its own level.  So `tfl_plan_digits(c(mean = 2, sd = 3))`
+# as the house rule and `tfl_plan_digits(AGE = c(mean = 1, sd = 2))` for
+# one variable is two lines, and `tfl_plan_digits(AGE = c(mean = 1))`
 # leaves that variable's `sd` to the house rule.
 .plan_digits_for <- function(cands, stat) {
   for (d in cands) {
@@ -259,7 +260,7 @@
 }
 
 # A cells entry is a bare template, a named vector of row templates, a chain
-# (an unnamed list, possibly holding formulas) or an ard_cells object.  Only
+# (an unnamed list, possibly holding formulas) or an tfl_ard_cells object.  Only
 # the character parts can be rewritten; a formula carries its own environment
 # and is carried through untouched.
 .plan_fill_entry <- function(entry, cands) {
@@ -276,7 +277,7 @@
 }
 
 # `{p:%}` is plan-only notation.  A template that reaches the engine still
-# carrying it never had a `plan_digits()` to answer it, and the engine's own
+# carrying it never had a `tfl_plan_digits()` to answer it, and the engine's own
 # message ("Unknown format spec") would not say that, so this one does.
 .plan_check_open <- function(entry, key) {
   tpls <- if (is.character(entry)) entry else
@@ -287,8 +288,8 @@
         .ard_stop(paste0(
           "`", tok, "` asks the plan for its digits, but nothing declared ",
           "them for ", sQuote(key), ".\n",
-          "  Add `plan_digits(", key, " = <n>)`, or a plan-wide ",
-          "`plan_digits(<n>)`,\n",
+          "  Add `tfl_plan_digits(", key, " = <n>)`, or a plan-wide ",
+          "`tfl_plan_digits(<n>)`,\n",
           "  or write the digits in the template: `{",
           .ard_token_parts(tok)$name, ":.1f%}`."))
       }
@@ -305,13 +306,13 @@
 # frame of a different shape and so cannot be trusted to say what it is.
 #
 #   "ard"        a cards/cardx ARD: needs flattening first
-#   "normalized" already through ard_normalize(): our own .label / .kind
+#   "normalized" already through tfl_ard_normalize(): our own .label / .kind
 #   "long"       somebody's OWN long summary: stat_name + stat and no more
 #   "wide"       one row per printed row: the ARD half has nothing to do
 #
 # The "long" case is the point of the classifier.  A statistician who
 # summarised with dplyr has a frame with keys, a statistic name and a
-# value, which is everything `ard_spread()` reads -- so the cell template
+# value, which is everything `tfl_ard_spread()` reads -- so the cell template
 # language, the row templates and the last-wins digits are all usable with
 # no cards anywhere.
 .plan_source_kind <- function(x, roles = NULL) {
@@ -339,46 +340,46 @@
 
 #' A deferred, last-wins plan for a table (SPIKE)
 #'
-#' `table_plan()` starts a plan, and takes the **roles**: which column goes
+#' `tfl_plan()` starts a plan, and takes the **roles**: which column goes
 #' across the table, which go down it, which carries the row identity.
 #' This is `ggplot(data, aes(x, y))` --- the names must be columns of the
 #' data you hand it, so you can check them by looking.  Every `plan_*()`
-#' verb after it adds a declaration, and nothing runs until [apply_plan()].
+#' verb after it adds a declaration, and nothing runs until [tfl_apply_plan()].
 #'
 #' The rule is **last wins** --- a later layer overwrites what an earlier one
 #' said about the same key --- so "set everything, then fix one variable" is a
 #' two-line edit:
 #'
 #' ```r
-#' plan_digits(2) |> plan_digits(AGE = 0)
+#' tfl_plan_digits(2) |> tfl_plan_digits(AGE = 0)
 #' ```
 #'
 #' This is tfrmt's `frmt_structure` rule.  It is deliberately **different**
-#' from [ard_spread()]'s `cells`, which picks by specificity and ignores
+#' from [tfl_ard_spread()]'s `cells`, which picks by specificity and ignores
 #' order; the spike exists to find out which is nicer to write.
 #'
 #' @param data What the table is built from.  A plan does **not** flatten:
 #'   `cols` / `rows` / `label` name columns of what you hand it, so
 #'   flatten first and look at the result.
-#'   * a frame through [ard_normalize()] --- the ordinary case;
+#'   * a frame through [tfl_ard_normalize()] --- the ordinary case;
 #'   * **any long frame of statistics**: keys, a `stat_name` and a `stat`,
-#'     built with dplyr and no cards anywhere.  [plan_cells()] does the
+#'     built with dplyr and no cards anywhere.  [tfl_plan_cells()] does the
 #'     work;
 #'   * a frame that is already the table, for the display half on its own;
-#'   * a frame of subject records, with [plan_listing()].
+#'   * a frame of subject records, with [tfl_plan_listing()].
 #'
 #'   A raw cards ARD is refused, with the line to write.
 #' @param cols The key that goes **across** the table, as
-#'   `ard_spread(cols = )` takes it: one or more columns, optionally
+#'   `tfl_ard_spread(cols = )` takes it: one or more columns, optionally
 #'   renamed `c(new = old)`.
 #' @param rows The keys that go **down** it, likewise.  Left out, the
 #'   analysis variable is used (as `group`).
 #' @param label The column carrying the **row identity** --- the text in
-#'   the label column.  `".label"` by default (what [ard_normalize()]
+#'   the label column.  `".label"` by default (what [tfl_ard_normalize()]
 #'   builds), `NA` for a table that has none, or a guarded template.
 #' @param variable,stat_name,stat Which of **your** columns play the
-#'   three parts [ard_spread()] reads by name: the analysis variable
-#'   (what [plan_cells()] and [plan_digits()] key on), which statistic
+#'   three parts [tfl_ard_spread()] reads by name: the analysis variable
+#'   (what [tfl_plan_cells()] and [tfl_plan_digits()] key on), which statistic
 #'   a row is, and what it is worth.  A frame from \pkg{cards} already
 #'   calls them that and needs none of them; a summary somebody built
 #'   with dplyr says so here, once, instead of being asked again by
@@ -387,20 +388,20 @@
 #' @param stats `"cells"` (default) fills a template per cell; `"rows"`
 #'   makes each statistic a row of its own.
 #' @param sep Separator pasted between multiple `cols` keys.
-#' @param value,na,notes The remaining [ard_spread()] options,
+#' @param value,na,notes The remaining [tfl_ard_spread()] options,
 #'   unchanged: which of `stat` / `stat_fmt` a `{x}` reads, what fills a
 #'   cell no template could, and whether to report what was not used.
-#' @param spec An [table_spec()] definition, or the path to a workbook as
-#'   [read_table_spec()] reads it (a workbook defining several reports must
-#'   be narrowed first, with `read_table_spec(path, output_id = )`).  It is
+#' @param spec An [tfl_table_spec()] definition, or the path to a workbook as
+#'   [tfl_read_table_spec()] reads it (a workbook defining several reports must
+#'   be narrowed first, with `tfl_read_table_spec(path, output_id = )`).  It is
 #'   the plan's **first layers**: the roles from its `tables` sheet (a role
 #'   given here wins), then everything else --- levels, labels, cells,
 #'   rounding, and the `layout` / `columns` / `style` of the pages --- as
 #'   if the matching verbs had been written first.  A verb written after
-#'   `table_plan()` therefore still wins, which is how one report departs
+#'   `tfl_plan()` therefore still wins, which is how one report departs
 #'   from the study's workbook in a line of code.
 #'
-#' @return An object of class `table_plan`.
+#' @return An object of class `tfl_plan`.
 #'
 #' @section Lifecycle:
 #' **Spike.**  A prototype for #474, kept in one deletable file.  It may be
@@ -414,17 +415,17 @@
 #'     cards::ard_categorical(variables = SEX))
 #'
 #'   ard |>
-#'     ard_normalize() |>
-#'     table_plan(cols = "ARM", rows = c(group = "variable")) |>
-#'     plan_cells(continuous  = c("Mean (SD)" = "{mean} ({sd})"),
+#'     tfl_ard_normalize() |>
+#'     tfl_plan(cols = "ARM", rows = c(group = "variable")) |>
+#'     tfl_plan_cells(continuous  = c("Mean (SD)" = "{mean} ({sd})"),
 #'                categorical = "{n} ({p:%})") |>
-#'     plan_digits(2) |>
-#'     plan_digits(AGE = 0, SEX = 1) |>
-#'     apply_plan()
+#'     tfl_plan_digits(2) |>
+#'     tfl_plan_digits(AGE = 0, SEX = 1) |>
+#'     tfl_apply_plan()
 #' }
-#' @seealso [apply_plan()], [ard_normalize()], [ard_spread()]
+#' @seealso [tfl_apply_plan()], [tfl_ard_normalize()], [tfl_ard_spread()]
 #' @export
-table_plan <- function(data = NULL, cols = NULL, rows = NULL,
+tfl_plan <- function(data = NULL, cols = NULL, rows = NULL,
                      label = NULL,
                      variable = NULL, stat_name = NULL, stat = NULL,
                      stats = NULL, sep = NULL, value = NULL,
@@ -440,8 +441,8 @@ table_plan <- function(data = NULL, cols = NULL, rows = NULL,
   # the call still wins.
   sp <- NULL
   if (!is.null(spec)) {
-    sp <- .ard_spec_scope(if (is.character(spec)) read_table_spec(spec)
-                          else table_spec(spec))
+    sp <- .ard_spec_scope(if (is.character(spec)) tfl_read_table_spec(spec)
+                          else tfl_table_spec(spec))
     roles$spec <- NULL
     sa <- .ard_spec_table_args(sp)
     for (r in c("cols", "rows", "label", "stats", "sep", "value", "na",
@@ -455,19 +456,19 @@ table_plan <- function(data = NULL, cols = NULL, rows = NULL,
       "is what lets a typo\n  be caught here rather than three stages later.\n",
       "  A house style that serves every study is an ordinary ",
       "function:\n",
-      "    my_dm <- function(d) table_plan(d, cols = ...) |> ",
-      "plan_cells(...)"))
+      "    my_dm <- function(d) tfl_plan(d, cols = ...) |> ",
+      "tfl_plan_cells(...)"))
   }
   kind <- .plan_source_kind(data, roles)
   if (identical(kind, "ard")) {
     .ard_stop(paste0(
-      "table_plan() takes the NORMALIZED frame, not a raw ARD, so that ",
+      "tfl_plan() takes the NORMALIZED frame, not a raw ARD, so that ",
       "`cols` / `rows` / `label`\n  name columns you can see.  ",
       "Flatten it first:\n",
       "    ard |>\n",
-      "      ard_normalize() |>\n",
-      "      table_plan(cols = ...)\n",
-      "  ard_normalize() is what adds `.label`, `.kind` and `.depth`, ",
+      "      tfl_ard_normalize() |>\n",
+      "      tfl_plan(cols = ...)\n",
+      "  tfl_ard_normalize() is what adds `.label`, `.kind` and `.depth`, ",
       "and names the\n  hierarchy levels -- which is what `rows` ",
       "and `label` then point at."))
   }
@@ -475,7 +476,7 @@ table_plan <- function(data = NULL, cols = NULL, rows = NULL,
   p <- structure(list(data = data, kind = kind, roles = roles,
                       layers = list(),
                       cache = new.env(parent = emptyenv())),
-                 class = "table_plan")
+                 class = "tfl_plan")
   if (!is.null(sp)) p <- .plan_from_spec(p, sp)
   p
 }
@@ -495,11 +496,11 @@ table_plan <- function(data = NULL, cols = NULL, rows = NULL,
     p <- .plan_layer(p, "round", list(rounding = sa[["rounding"]]))
   }
   lv <- .ard_spec_levels(sp)
-  if (length(lv)) p <- plan_levels(p, lv)
+  if (length(lv)) p <- tfl_plan_levels(p, lv)
   lb <- .ard_spec_labels(sp)
-  if (length(lb)) p <- plan_labels(p, lb)
+  if (length(lb)) p <- tfl_plan_labels(p, lb)
   cm <- .ard_spec_cells(sp)
-  if (length(cm)) p <- do.call(plan_cells, c(list(p), cm))
+  if (length(cm)) p <- do.call(tfl_plan_cells, c(list(p), cm))
 
   # rows with no template: the display format of one statistic, for a
   # table that lays the statistics out as rows
@@ -527,7 +528,7 @@ table_plan <- function(data = NULL, cols = NULL, rows = NULL,
       if (!is.na(f$signif[i])) list(signif = as.integer(f$signif[i]))
       else list(digits = as.integer(f$digits[i]))
     })
-    p <- plan_fmt(p, by = .plan_label_name(p),
+    p <- tfl_plan_fmt(p, by = .plan_label_name(p),
                   formats = stats::setNames(fm, f$row))
   }
 
@@ -543,26 +544,26 @@ table_plan <- function(data = NULL, cols = NULL, rows = NULL,
   }
   a <- pick("stub_", c(vars = "vars", into = "into", indent = "indent",
                        summary = "group_summary", before = "before"))
-  if (length(a)) p <- do.call(plan_stub, c(list(p), a))
+  if (length(a)) p <- do.call(tfl_plan_stub, c(list(p), a))
   if (isTRUE(lay[["group_page"]])) {
-    p <- plan_paginate_group(p, col = lay[["group_col"]],
+    p <- tfl_plan_paginate_group(p, col = lay[["group_col"]],
                              show = !identical(lay[["group_show"]], FALSE))
   }
   a <- pick("group_", c(mode = "mode", collapse = "collapse"))
   if (length(a) || (!is.null(lay[["group_col"]]) && !isTRUE(lay[["group_page"]]))) {
     a$col <- lay[["group_col"]]
-    p <- do.call(plan_row_group, c(list(p), a))
+    p <- do.call(tfl_plan_row_group, c(list(p), a))
   }
   a <- pick("blank_", c(where = "where", first = "first", last = "last",
                         counted = "counted"))
-  if (length(a)) p <- do.call(plan_blanks, c(list(p), a))
+  if (length(a)) p <- do.call(tfl_plan_blanks, c(list(p), a))
   a <- pick("pages_", c(max_rows = "max_rows", split = "split", by = "by",
                         min_group_rows = "min_group_rows",
                         cont_label = "cont_label"))
-  if (length(a)) p <- do.call(plan_paginate_rows, c(list(p), a))
+  if (length(a)) p <- do.call(tfl_plan_paginate_rows, c(list(p), a))
   a <- pick("colpages_", c(every = "every", at = "at", carry = "carry",
                            order = "order"))
-  if (length(a)) p <- do.call(plan_paginate_cols, c(list(p), a))
+  if (length(a)) p <- do.call(tfl_plan_paginate_cols, c(list(p), a))
 
   st <- if (nrow(sp$style)) .ard_spec_typed(sp$style[1L, ], "style")
         else list()
@@ -571,8 +572,8 @@ table_plan <- function(data = NULL, cols = NULL, rows = NULL,
     .ard_spec_typed(cl[i, , drop = FALSE], "columns"))
   flag <- function(k) vapply(ct, function(r) isTRUE(r[[k]]), NA)
   if (any(flag("row_title"))) st$row_title <- cl$column[flag("row_title")]
-  if (length(st)) p <- do.call(plan_style, c(list(p), st))
-  if (any(flag("hide"))) p <- plan_hide(p, cl$column[flag("hide")])
+  if (length(st)) p <- do.call(tfl_plan_style, c(list(p), st))
+  if (any(flag("hide"))) p <- tfl_plan_hide(p, cl$column[flag("hide")])
   hd <- sp$col_header
   if (nrow(hd)) {
     cells <- lapply(seq_len(nrow(hd)), function(i)
@@ -581,7 +582,7 @@ table_plan <- function(data = NULL, cols = NULL, rows = NULL,
     # `tables$header_n` says WHICH population; a `{n` in a text is what
     # asks for one at all
     hn <- .ard_spec_table_args(sp)[["header_n"]]
-    p <- plan_col_header(p, header = structure(
+    p <- tfl_plan_col_header(p, header = structure(
       list(cells = cells,
            n = hn %||% any(grepl("{n", txt, fixed = TRUE))),
       class = "plan_spec_col_header"))
@@ -736,7 +737,7 @@ table_plan <- function(data = NULL, cols = NULL, rows = NULL,
 }
 
 # The whole point of naming the roles beside the data is that the names can
-# be CHECKED there, so a typo blames table_plan() rather than the resolver.
+# be CHECKED there, so a typo blames tfl_plan() rather than the resolver.
 # Only plain strings are checked: a constant (`~ "Worst Post-Baseline"`) and
 # a guarded template (`.label %in% x ~ "  {.label}"`) are not column names,
 # and `label = NA` says there is no label column at all.
@@ -753,10 +754,10 @@ table_plan <- function(data = NULL, cols = NULL, rows = NULL,
     miss <- setdiff(v, nm)
     if (length(miss)) {
       .ard_stop(sprintf(paste0(
-        "table_plan(%s = ): no column %s in the data.\n",
+        "tfl_plan(%s = ): no column %s in the data.\n",
         "  Columns: %s%s\n",
         "  A column you derive has to exist first: dplyr::mutate() ",
-        "it before table_plan()."),
+        "it before tfl_plan()."),
         r, paste(sQuote(miss), collapse = ", "),
         paste(utils::head(nm, 12L), collapse = ", "),
         if (length(nm) > 12L) ", ..." else ""))
@@ -765,16 +766,9 @@ table_plan <- function(data = NULL, cols = NULL, rows = NULL,
   invisible(TRUE)
 }
 
-#' @rdname table_plan
-#' @description
-#' `rtf_plan()` is the former name of `table_plan()`, kept so existing
-#' programs still run.  **Superseded**: write `table_plan()` in new code.
 #' @export
-rtf_plan <- table_plan
-
-#' @export
-print.table_plan <- function(x, ...) {
-  cat("<table_plan>  ",
+print.tfl_plan <- function(x, ...) {
+  cat("<tfl_plan>  ",
       switch(x$kind %||% "normalized",
              normalized = "from a normalized frame, ",
              long       = "from a long frame of statistics, ",
@@ -804,7 +798,7 @@ print.table_plan <- function(x, ...) {
     cat(sprintf("      %-6s %s\n", r, txt))
   }
   if (!length(x$layers)) {
-    cat("  (no layers -- add plan_cells() / plan_digits())\n")
+    cat("  (no layers -- add tfl_plan_cells() / tfl_plan_digits())\n")
     return(invisible(x))
   }
   # In declaration order, because that is the order that decides the result.
@@ -816,8 +810,8 @@ print.table_plan <- function(x, ...) {
   # What `cols` / `rows` / `label` may name.  Normalising is the cheap
   # half, so this costs a flatten and answers the question that otherwise
   # needs a run.
-  # The column names change three times -- ard_normalize() builds them,
-  # ard_spread() replaces them, and folding the stub replaces them again
+  # The column names change three times -- tfl_ard_normalize() builds them,
+  # tfl_ard_spread() replaces them, and folding the stub replaces them again
   # -- and different verbs name different ones.  Show every list that is
   # to hand.  Normalising is computed if it has not been; spreading is
   # not, because it is the expensive half.
@@ -830,9 +824,9 @@ print.table_plan <- function(x, ...) {
   }
   say("in                -- what cols / rows / label may name:",
       .plan_long(x), "")
-  say("after spread      -- for plan_stub / plan_group / plan_hide:",
+  say("after spread      -- for tfl_plan_stub / plan_group / tfl_plan_hide:",
       x$cache$table, "")
-  say("as printed        -- for plan_cell_style / plan_style / header:",
+  say("as printed        -- for tfl_plan_cell_style / tfl_plan_style / header:",
       x$cache$printed, "")
   if (is.null(x$cache$table)) {
     cat("  after spread      -- not computed yet; run it once and this",
@@ -842,7 +836,7 @@ print.table_plan <- function(x, ...) {
   # columns from the spread, so neither is visible in the call.
   tk <- tryCatch(.plan_header_tokens(x), error = function(e) list())
   if (length(tk)) {
-    cat("  header tokens     -- what a plan_col_header() cell may ",
+    cat("  header tokens     -- what a tfl_plan_col_header() cell may ",
         "carry:\n", sep = "")
     w <- max(nchar(names(tk)))
     for (k in names(tk)) {
@@ -851,8 +845,8 @@ print.table_plan <- function(x, ...) {
   }
   cat(if (identical(.plan_reach(x), "pages"))
         "  rtf_tables(doc, x) renders it"
-      else "  apply_plan(x) returns it",
-      ";  apply_plan(x, \"args\") shows the call\n", sep = "")
+      else "  tfl_apply_plan(x) returns it",
+      ";  tfl_apply_plan(x, \"args\") shows the call\n", sep = "")
   invisible(x)
 }
 
@@ -861,27 +855,27 @@ print.table_plan <- function(x, ...) {
 
 #' Declare the table, one layer at a time (SPIKE)
 #'
-#' Each verb adds a layer to an [table_plan()].  **A later layer wins.**
+#' Each verb adds a layer to an [tfl_plan()].  **A later layer wins.**
 #' The roles --- which column goes across, which go down, which carries
-#' the row identity --- are said once, on [table_plan()]; these verbs are
+#' the row identity --- are said once, on [tfl_plan()]; these verbs are
 #' the things a report really does declare twice.  Their arguments are
-#' the ones [ard_spread()] and [as_rtftables()] already take, so the
+#' the ones [tfl_ard_spread()] and [as_rtftables()] already take, so the
 #' layering is the only new idea.
 #'
-#' @param plan An [table_plan()].
-#' @param ... For `plan_cells()`, exactly what `ard_spread(cells = )`
+#' @param plan An [tfl_plan()].
+#' @param ... For `tfl_plan_cells()`, exactly what `tfl_ard_spread(cells = )`
 #'   takes: one bare entry, or entries named by variable, `context`,
 #'   kind (`continuous` / `categorical`) or `default`.
 #'
-#'   `plan_digits()` takes the same keys, with the digits as the value.
+#'   `tfl_plan_digits()` takes the same keys, with the digits as the value.
 #'   A value is **one number**, for every token in that entry, or a
 #'   vector **named by statistic** --- a house rule is rarely one number.
 #'   The two keys combine, which is the point of the verb:
 #'
 #'   ```r
-#'   plan_digits(continuous  = c(mean = 2, sd = 3, median = 2),
+#'   tfl_plan_digits(continuous  = c(mean = 2, sd = 3, median = 2),
 #'               categorical = c(p = 1)) |>      # the house rule
-#'     plan_digits(AGE = c(mean = 1, sd = 2))    # AGE only
+#'     tfl_plan_digits(AGE = c(mean = 1, sd = 2))    # AGE only
 #'   ```
 #'
 #'   A value is the **decimals**, or `"4s"` for **4 significant digits** ---
@@ -889,7 +883,7 @@ print.table_plan <- function(x, ...) {
 #'   second argument to learn:
 #'
 #'   ```r
-#'   plan_digits(continuous = c(mean = "4s", sd = "5s", n = 0))
+#'   tfl_plan_digits(continuous = c(mean = "4s", sd = "5s", n = 0))
 #'   ```
 #'
 #'   A statistic the narrower entry says nothing about falls through to
@@ -898,34 +892,34 @@ print.table_plan <- function(x, ...) {
 #'   one that answered it (`{mean:.2f}`) keeps its answer, so a template
 #'   meant to be tuned is written open.
 #'
-#'   For `plan_levels()` and `plan_labels()`, one entry per column or
+#'   For `tfl_plan_levels()` and `tfl_plan_labels()`, one entry per column or
 #'   analysis variable: an order (`AGEGR1 = c("<65", "65-74")`), or
 #'   the text values are printed as (`AGE = "Age (years)"`).  Both
 #'   merge one **key** at a time, so a later layer adds a variable
 #'   without restating the rest --- which is the whole reason these
-#'   two are layers and the roles are not.  A `plan_labels()` entry
+#'   two are layers and the roles are not.  A `tfl_plan_labels()` entry
 #'   whose value is itself a named vector applies to that **column**
 #'   only: a shift table's `"0"` is `"Grade 0"` down the side and
 #'   `"Baseline 0"` across the top.
-#' @param vars,into,indent,group_summary For `plan_stub()`: the row keys to
+#' @param vars,into,indent,group_summary For `tfl_plan_stub()`: the row keys to
 #'   fold into one stub column and how, as [stub_cols()] takes them.
 #'   `into` is the NAME the folded column gets (`stub_cols(label = )`), which
-#'   is a different thing from `table_plan(label = )` --- the column whose
+#'   is a different thing from `tfl_plan(label = )` --- the column whose
 #'   VALUES are the row text.  `vars` is derived when left out.
-#' @param before For `plan_stub()`: `FALSE` (default) folds the stub inside
+#' @param before For `tfl_plan_stub()`: `FALSE` (default) folds the stub inside
 #'   [as_rtftables()], after grouping and pagination have had their say.
 #'   `TRUE` folds it first, with [stub_cols()], which is what
-#'   `plan_cell_style()` needs --- only then can a condition see the rows that
+#'   `tfl_plan_cell_style()` needs --- only then can a condition see the rows that
 #'   will be printed.  The two do **not** always give the same table.
 #' @param show `FALSE` also hides the column the verb names: the
-#'   grouping carrier for `plan_row_group()`, the `by` key for `plan_paginate_rows()`, the
-#'   sort keys for `plan_sort()`.  A column can be **needed and not
+#'   grouping carrier for `tfl_plan_row_group()`, the `by` key for `tfl_plan_paginate_rows()`, the
+#'   sort keys for `tfl_plan_sort()`.  A column can be **needed and not
 #'   wanted** --- a carrier that groups the rows, the key a page break
 #'   reads --- and the verb that needs it is the one place that knows,
 #'   so it says so there instead of the name being written again in a
-#'   `plan_hide()`.  Names that are not columns (a statistic, `".depth"`)
+#'   `tfl_plan_hide()`.  Names that are not columns (a statistic, `".depth"`)
 #'   are ignored rather than refused.
-#' @param mode,collapse For `plan_row_group()`: what a run of rows sharing a
+#' @param mode,collapse For `tfl_plan_row_group()`: what a run of rows sharing a
 #'   value is, and how the repeat shows.  `mode` is `as_rtftables(group_by = )`,
 #'   which is how a group BOUNDARY is found --- `"value"` (each run of equal
 #'   values), `"indent`" (a row starts a group when its cell is not indented),
@@ -933,53 +927,53 @@ print.table_plan <- function(x, ...) {
 #'   `collapse_repeats`: a repeated value printed once and then blank.
 #'
 #'   `mode = "indent"` **reads** indentation to find the boundary;
-#'   `plan_stub(indent = )` **writes** it.  They are not the same knob, and
+#'   `tfl_plan_stub(indent = )` **writes** it.  They are not the same knob, and
 #'   a stub written with `indent` is exactly what that mode then reads.
-#' @param col For `plan_paginate_group()`: the column whose value starts a
+#' @param col For `tfl_plan_paginate_group()`: the column whose value starts a
 #'   new page, `as_rtftables()`'s `group_col` with `split = "by_value"`.  Left
 #'   out, it is the outermost row key.  The page is **named** after
 #'   the value, which is the line `rtf_tables(auto_section = TRUE)`
 #'   cuts a section on --- so this verb decides what a section is.
-#'   `plan_row_group(col = )` may name it instead when there is no page
+#'   `tfl_plan_row_group(col = )` may name it instead when there is no page
 #'   break; naming different columns in the two is an error.
-#' @param desc For `plan_sort()` over a table that is
+#' @param desc For `tfl_plan_sort()` over a table that is
 #'   already built: `as_rtftables()`'s `sort_desc`.  A plan with an ARD
 #'   half writes the direction into the keys instead (`-n`).
-#' @param where,first,last,counted For `plan_blanks()`: `as_rtftables()`'s
+#' @param where,first,last,counted For `tfl_plan_blanks()`: `as_rtftables()`'s
 #'   `blank_rows`, `blank_row_first`, `blank_row_end` and
 #'   `count_blank_rows`.
 #' @param max_rows,split,break_before,by,min_group_rows,cont_label For
-#'   `plan_paginate_rows()`: the row budget and what a page break may cut ---
+#'   `tfl_plan_paginate_rows()`: the row budget and what a page break may cut ---
 #'   `as_rtftables()`'s `max_rows`, `split`, `split_rows`, `page_by`,
 #'   `min_group_rows` and `cont_label`.  This is the **row** axis; a
-#'   value split (the **group** axis) is `plan_paginate_group()`,
-#'   and the **column** axis is `plan_paginate_cols()`.
-#' @param every For `plan_paginate_cols()`: cut a block every this many
+#'   value split (the **group** axis) is `tfl_plan_paginate_group()`,
+#'   and the **column** axis is `tfl_plan_paginate_cols()`.
+#' @param every For `tfl_plan_paginate_cols()`: cut a block every this many
 #'   columns, counting only the ones a block does not carry.  This is
 #'   `at` without writing down how many columns one study had --- the
 #'   plan is deferred, so it counts them when the table exists.  Give one
 #'   of `at`, `cols`, `by` or `every`.
 #' @param at,carry,col_header,width,allow_span_break,order For
-#'   `plan_paginate_cols()`: [paginate_cols()]'s own arguments --- where to
+#'   `tfl_plan_paginate_cols()`: [paginate_cols()]'s own arguments --- where to
 #'   cut (`at`, `cols` or `by`), which columns every block repeats (`carry`),
 #'   what the header becomes, how the widths are rescaled, and `order` ---
 #'   `paginate_cols(page_order = )`, the order the three axes nest in,
 #'   outermost first: `"group"`, `"rows"`, `"cols"`, or the shorthands
 #'   `"across"` and `"down"`.
-#' @param border,widths For `plan_style()`: the border set and the relative
+#' @param border,widths For `tfl_plan_style()`: the border set and the relative
 #'   column widths (`col_rel_width`).  Anything else [rtftable()]
 #'   understands goes through `...`.
 #' @param type,sep,spacer,spacer_rel_width,blank_row,blank_row_first,align,layout,wrap,record
-#'   For `plan_listing()`: [listing_spec()]'s own arguments, unchanged.
+#'   For `tfl_plan_listing()`: [listing_spec()]'s own arguments, unchanged.
 #'   `...` there takes the [listing_col()]s.
-#' @param pages For `plan_titles()` / `plan_footnotes()`: a list with one
+#' @param pages For `tfl_plan_titles()` / `tfl_plan_footnotes()`: a list with one
 #'   block per page, when the pages do not share a block.  `...` is the rows
 #'   of a single block used on every page; give one or the other, never
 #'   both, because a three-row title on a three-page table cannot be told
 #'   apart from three one-row titles.
-#' @param cols For `plan_paginate_cols()`: which columns each block keeps, when
+#' @param cols For `tfl_plan_paginate_cols()`: which columns each block keeps, when
 #'   the cut is by name rather than by position.
-#' @param header For `plan_col_header()`: the header, built with the same
+#' @param header For `tfl_plan_col_header()`: the header, built with the same
 #'   [rtf_col_header()] as everywhere else --- or a **function** of the
 #'   resolved `n` (and, with two arguments, the finished table) when it
 #'   has to be computed.  The plan adds two things to a header it is
@@ -1008,14 +1002,14 @@ print.table_plan <- function(x, ...) {
 #'     the levels in order; with one key the leaf is the whole name.
 #'     The hierarchy itself needs no header --- [as_rtftables()] builds
 #'     the spanning rows from the same separator, merging the cells.
-#'     What each level READS is [plan_labels()]'s business, since it
+#'     What each level READS is [tfl_plan_labels()]'s business, since it
 #'     recodes the values the name is made of;
 #'   * a row **shorter** than the table has its last cell repeated over
 #'     the spread columns, whose names are not known until the table
 #'     exists.
 #'
 #'   ```r
-#'   plan_col_header(n = TRUE, rtf_col_header(
+#'   tfl_plan_col_header(n = TRUE, rtf_col_header(
 #'     c("",               "{col}"),
 #'     c("Characteristic", "(N={n})")))
 #'   ```
@@ -1023,10 +1017,10 @@ print.table_plan <- function(x, ...) {
 #'   A row already the right length, and a cell with no token in it, are
 #'   untouched --- so a spanner, a border or a cell that reads the
 #'   finished table is written exactly as it always was.
-#' @param n For `plan_col_header()`: the population each column describes
+#' @param n For `tfl_plan_col_header()`: the population each column describes
 #'   --- its analysis set, the number a header prints as `(N=86)`.
 #'   `TRUE` reads it from the data, keyed by the same `cols` / `levels`
-#'   `table_plan()` was given, **at every depth of the keys**: with
+#'   `tfl_plan()` was given, **at every depth of the keys**: with
 #'   `cols = c("TRT", "SEX")` both the arm (`"Placebo"`) and the arm x sex
 #'   cell (`"Placebo____F"`) are looked up.  Only a number the ARD
 #'   **states as a population size** is read:
@@ -1037,7 +1031,7 @@ print.table_plan <- function(x, ...) {
 #'      denominator; never its `n`, the subjects with an event that the
 #'      "Any" row shows.  Taken only when there is one kind of sentinel;
 #'   2. the column variable's **own tabulation** --- the per-arm `n` of
-#'      `cards::ard_stack(.by = )`, which [ard_normalize()] keeps as
+#'      `cards::ard_stack(.by = )`, which [tfl_ard_normalize()] keeps as
 #'      `.key_own` rows --- where its counts add up to the `N` those rows
 #'      state (the population split by arm, not the treatment counted as
 #'      an event).  At depth *k* it is `cols[k]` tabulated within
@@ -1051,14 +1045,14 @@ print.table_plan <- function(x, ...) {
 #'      agree on it for every column**.  One variable's `N` is the count
 #'      of its **non-missing** values --- the arm size only if nothing is
 #'      missing, which the ARD cannot show --- and an `N` per visit or per
-#'      parameter is not a column's at all.  [ard_pull()] is not asked.
+#'      parameter is not a column's at all.  [tfl_ard_pull()] is not asked.
 #'
-#'   The study total (`..ard_total_n..`, the one [ard_normalize()]
+#'   The study total (`..ard_total_n..`, the one [tfl_ard_normalize()]
 #'   remembers as it drops that row, or the `N` the column variable's
 #'   own tabulation states) is **never put in every column**: it answers
 #'   a one-column table and a cell over all the columns.
 #'
-#'   **Pages split by a group value** ([plan_paginate_group()]: a lab
+#'   **Pages split by a group value** ([tfl_plan_paginate_group()]: a lab
 #'   parameter, a visit) have **two populations**, and which one the
 #'   header says is the author's choice:
 #'
@@ -1094,8 +1088,8 @@ print.table_plan <- function(x, ...) {
 #'   To **give the numbers yourself**, pass a vector named by column
 #'   key, at any depth --- `c(Placebo = 86, "Placebo____F" = 53, ...)` ---
 #'   or a function of the data returning one; a single unnamed number
-#'   fills every cell.  After a workbook (`table_plan(spec = )`), a later
-#'   `plan_col_header(n = ...)` supplies the numbers and keeps the
+#'   fills every cell.  After a workbook (`tfl_plan(spec = )`), a later
+#'   `tfl_plan_col_header(n = ...)` supplies the numbers and keeps the
 #'   workbook's header.
 
 #'   A **function** of the data covers what neither can find, and a
@@ -1105,7 +1099,7 @@ print.table_plan <- function(x, ...) {
 #'   column's own underneath it.
 #'
 #'   ```r
-#'   plan_col_header(
+#'   tfl_plan_col_header(
 #'     n = list(n = TRUE, total = 254),
 #'     rtf_col_header(
 #'       list(col_cell(1, ""), col_cell(c(2, 4), "All (N={total})")),
@@ -1117,37 +1111,37 @@ print.table_plan <- function(x, ...) {
 #'   number fills every cell.  `{n}` is the entry called `n`, or the
 #'   only entry when there is one.  The resolved value is also what
 #'   `header =` is called with when it is a function.
-#' @param rounding For `plan_digits()`: the tie-breaking family for the
-#'   run, as `ard_spread(rounding = )` takes it.  Last wins, like every
+#' @param rounding For `tfl_plan_digits()`: the tie-breaking family for the
+#'   run, as `tfl_ard_spread(rounding = )` takes it.  Last wins, like every
 #'   other layer.
-#' @param values For `plan_col_header()`: passed to [set_col_header()] as
+#' @param values For `tfl_plan_col_header()`: passed to [set_col_header()] as
 #'   `values =`, for a header whose cells carry `{token}` placeholders.
 #'
 #' @return The plan, with one more layer.
 #'
 #' @section Lifecycle:
-#' **Spike.**  See [table_plan()].
+#' **Spike.**  See [tfl_plan()].
 #'
 #' @name plan_verbs
-#' @seealso [table_plan()], [apply_plan()]
+#' @seealso [tfl_plan()], [tfl_apply_plan()]
 NULL
 
 # The order values appear in, and the text they appear as.  These are the
 # two declarations a report really does make twice -- one order for
 # everything, then one variable's own -- so they are layers, merged one
-# KEY at a time: a later plan_levels() adds a variable without restating
-# the rest.  The roles are said once, on table_plan(); these are not roles.
+# KEY at a time: a later tfl_plan_levels() adds a variable without restating
+# the rest.  The roles are said once, on tfl_plan(); these are not roles.
 #' @rdname plan_verbs
 #' @export
-plan_levels <- function(plan, ...) {
-  v <- .plan_map(list(...), "plan_levels")
+tfl_plan_levels <- function(plan, ...) {
+  v <- .plan_map(list(...), "tfl_plan_levels")
   .plan_layer(plan, "levels", list(levels = v))
 }
 
 #' @rdname plan_verbs
 #' @export
-plan_labels <- function(plan, ...) {
-  v <- .plan_map(list(...), "plan_labels")
+tfl_plan_labels <- function(plan, ...) {
+  v <- .plan_map(list(...), "tfl_plan_labels")
   .plan_layer(plan, "labels", list(labels = v))
 }
 
@@ -1203,7 +1197,7 @@ plan_labels <- function(plan, ...) {
 
 #' @rdname plan_verbs
 #' @export
-plan_cells <- function(plan, ...) .plan_keyed(plan, "cells", list(...))
+tfl_plan_cells <- function(plan, ...) .plan_keyed(plan, "cells", list(...))
 
 
 # `round` used to be a verb of its own, and it never earned one: the whole
@@ -1211,7 +1205,7 @@ plan_cells <- function(plan, ...) .plan_keyed(plan, "cells", list(...))
 # than a layer beside them.
 #' @rdname plan_verbs
 #' @export
-plan_digits <- function(plan, ..., rounding = NULL) {
+tfl_plan_digits <- function(plan, ..., rounding = NULL) {
   p <- .plan_keyed(plan, "digits", list(...))
   if (is.null(rounding)) p
   else .plan_layer(p, "round", list(rounding = rounding))
@@ -1227,50 +1221,50 @@ plan_digits <- function(plan, ..., rounding = NULL) {
 #  is the only way that agreement is structural rather than remembered.
 #
 #  Each verb carries the arguments of the function it stands for, unchanged,
-#  and `apply_plan(stage = "pages")` calls them in the order a report is
+#  and `tfl_apply_plan(stage = "pages")` calls them in the order a report is
 #  built:
 #
 #      (dplyr)        a derived column or a filter is written before
-#                     table_plan(), in the same sentence
-#      plan_fmt()     fmt_numeric()      on the table data.frame
-#      plan_stub()    stub_cols()        fold the row keys into one stub
-#      plan_cell_style()  cell_styles    bold / colour / align, by condition
-#      plan_paginate_group()  one page per value of a column, named
+#                     tfl_plan(), in the same sentence
+#      tfl_plan_fmt()     fmt_numeric()      on the table data.frame
+#      tfl_plan_stub()    stub_cols()        fold the row keys into one stub
+#      tfl_plan_cell_style()  cell_styles    bold / colour / align, by condition
+#      tfl_plan_paginate_group()  one page per value of a column, named
 #                     after it -- what auto_section cuts a section on
-#      plan_row_group()  how a repeated value looks down the body:
+#      tfl_plan_row_group()  how a repeated value looks down the body:
 #                     a heading row, an indent, or printed once
-#      plan_hide()    columns that do their work without being printed
-#      plan_sort()    the printed order
-#      plan_blanks()  where the blank rows go
-#      plan_paginate_rows()  the row budget and what a break may cut
-#      plan_paginate_cols()  the column blocks, and how the three
+#      tfl_plan_hide()    columns that do their work without being printed
+#      tfl_plan_sort()    the printed order
+#      tfl_plan_blanks()  where the blank rows go
+#      tfl_plan_paginate_rows()  the row budget and what a break may cut
+#      tfl_plan_paginate_cols()  the column blocks, and how the three
 #                     page axes nest
-#      plan_style()   borders, widths, alignment
-#      plan_col_header()  set_col_header(), and the denominator `n` it needs
-#      plan_titles()  the block ABOVE the table, on each page
-#      plan_footnotes()  the block BELOW it
-#      plan_after()   set_decimal_split() / paginate_cols() / anything else
+#      tfl_plan_style()   borders, widths, alignment
+#      tfl_plan_col_header()  set_col_header(), and the denominator `n` it needs
+#      tfl_plan_titles()  the block ABOVE the table, on each page
+#      tfl_plan_footnotes()  the block BELOW it
+#      tfl_plan_after()   set_decimal_split() / paginate_cols() / anything else
 
 
 #' @rdname plan_verbs
 #' @export
-plan_fmt <- function(plan, ...) .plan_layer(plan, "fmt", list(...))
+tfl_plan_fmt <- function(plan, ...) .plan_layer(plan, "fmt", list(...))
 
 # WHERE the stub is folded changes the answer, so it is a setting rather
 # than a detail.  as_rtftables() folds it inside its own resolution, after
 # grouping and pagination have had their say, and that is what a report
 # grouped by a carrier column needs.  Folding it FIRST, with stub_cols(),
-# is what plan_cell_style() needs, because only then can a condition see the
+# is what tfl_plan_cell_style() needs, because only then can a condition see the
 # rows that will be printed.
 #' @rdname plan_verbs
 #' @export
 # `vars` is derivable and was being written twice: the row keys are the
-# names of table_plan(rows = ), the label column is the name of its
+# names of tfl_plan(rows = ), the label column is the name of its
 # `label = `, and a grouping carrier is not part of the stub.  Left out,
 # it is worked out from what has already been declared.
-plan_stub <- function(plan, vars = NULL, into = NULL, indent = NULL,
+tfl_plan_stub <- function(plan, vars = NULL, into = NULL, indent = NULL,
                       group_summary = NULL, before = FALSE) {
-  # `into` rather than `label`: table_plan(label = ) is the column whose
+  # `into` rather than `label`: tfl_plan(label = ) is the column whose
   # VALUES are the row text, and this is the NAME of the column the
   # row keys are folded into.  One letter of difference is not worth
   # the two of them being confusable.
@@ -1286,7 +1280,7 @@ plan_stub <- function(plan, vars = NULL, into = NULL, indent = NULL,
 # logical attribute takes a logical vector and a valued one takes the
 # value (or NA for "leave the column default alone").
 #
-#     plan_cell_style(bold  = ~ is.na(term),
+#     tfl_plan_cell_style(bold  = ~ is.na(term),
 #                 color = list(Placebo = ~ ifelse(n > 50, "#CC0000", NA)))
 #
 # A bare formula covers the whole row; a NAMED list scopes it to columns,
@@ -1294,7 +1288,7 @@ plan_stub <- function(plan, vars = NULL, into = NULL, indent = NULL,
 # and `col_spec`, whose numbers move when the stub does.
 #' @rdname plan_verbs
 #' @export
-plan_cell_style <- function(plan, ...) .plan_keyed(plan, "styles", list(...))
+tfl_plan_cell_style <- function(plan, ...) .plan_keyed(plan, "styles", list(...))
 
 # Build the `cell_styles` list rtftable() wants: one element per row, each
 # NULL or a named list of per-column vectors.
@@ -1330,21 +1324,21 @@ plan_cell_style <- function(plan, ...) .plan_keyed(plan, "styles", list(...))
       f <- parts[[i]]
       if (!inherits(f, "formula") || length(f) != 2L) {
         .ard_stop(paste0(
-          "plan_cell_style(", att, "): each entry is a one-sided formula ",
+          "tfl_plan_cell_style(", att, "): each entry is a one-sided formula ",
           "over the table's columns,\n  for example ",
-          "`plan_cell_style(bold = ~ is.na(label))`."))
+          "`tfl_plan_cell_style(bold = ~ is.na(label))`."))
       }
       cols <- if (is.na(keys[i])) seq_len(m) else match(keys[i], nms)
       if (anyNA(cols)) {
         .ard_stop(paste0(
-          "plan_cell_style(", att, "): no printed column ", sQuote(keys[i]),
+          "tfl_plan_cell_style(", att, "): no printed column ", sQuote(keys[i]),
           ".\n  Available: ", paste(nms, collapse = ", ")))
       }
       val <- eval(f[[2L]], frame, environment(f))
       if (length(val) == 1L) val <- rep(val, n)
       if (length(val) != n) {
         .ard_stop(paste0(
-          "plan_cell_style(", att, "): the condition gave ", length(val),
+          "tfl_plan_cell_style(", att, "): the condition gave ", length(val),
           " values for ", n, " rows."))
       }
       for (r in seq_len(n)) {
@@ -1379,15 +1373,15 @@ plan_cell_style <- function(plan, ...) .plan_keyed(plan, "styles", list(...))
 # own page, and the page is NAMED after it, which is the line
 # rtf_tables(auto_section = TRUE) cuts a section on.  It is the
 # outermost division there is and has nothing to do with rows -- which
-# is why it is not plan_row_group(), whose subject is how repeated
+# is why it is not tfl_plan_row_group(), whose subject is how repeated
 # values look down the body.
 #
-# `col` may be left out and read off table_plan(rows = ), so which column
+# `col` may be left out and read off tfl_plan(rows = ), so which column
 # to hide is not known here.  Record the answer and let
 # .plan_rtf_args() do it once the roles are in hand.
 #' @rdname plan_verbs
 #' @export
-plan_paginate_group <- function(plan, col = NULL, show = TRUE) {
+tfl_plan_paginate_group <- function(plan, col = NULL, show = TRUE) {
   .plan_layer(plan, "group",
               list(group_col = col, .show = show, .page = TRUE))
 }
@@ -1395,11 +1389,11 @@ plan_paginate_group <- function(plan, col = NULL, show = TRUE) {
 # What a row GROUP is inside the body -- where one run of equal values
 # ends and the next begins -- and whether the repeat is printed.  It
 # does NOT make the row headings; folding the keys into one heading
-# column, indenting them and adding a summary row is plan_stub().
+# column, indenting them and adding a summary row is tfl_plan_stub().
 # In six reports this and the page group were never used together.
 #' @rdname plan_verbs
 #' @export
-plan_row_group <- function(plan, mode = NULL, collapse = NULL,
+tfl_plan_row_group <- function(plan, mode = NULL, collapse = NULL,
                            col = NULL) {
   .plan_layer(plan, "group",
               list(group_col = col, group_by = mode,
@@ -1411,7 +1405,7 @@ plan_row_group <- function(plan, mode = NULL, collapse = NULL,
 # read as "columns I regret".
 #' @rdname plan_verbs
 #' @export
-plan_hide <- function(plan, ...) {
+tfl_plan_hide <- function(plan, ...) {
   cols <- unlist(list(...), use.names = FALSE)
   .plan_layer(plan, "hide", list(drop_cols = cols))
 }
@@ -1424,7 +1418,7 @@ plan_hide <- function(plan, ...) {
 # that would be the same duplication the roles just lost.
 #' @rdname plan_verbs
 #' @export
-plan_sort <- function(plan, ..., desc = NULL, show = TRUE) {
+tfl_plan_sort <- function(plan, ..., desc = NULL, show = TRUE) {
   v <- list(...)
   keys <- if (length(v) == 1L && is.logical(v[[1L]])) v[[1L]]
           else unlist(v, use.names = FALSE)
@@ -1440,7 +1434,7 @@ plan_sort <- function(plan, ..., desc = NULL, show = TRUE) {
 
 #' @rdname plan_verbs
 #' @export
-plan_blanks <- function(plan, where = NULL, first = NULL, last = NULL,
+tfl_plan_blanks <- function(plan, where = NULL, first = NULL, last = NULL,
                         counted = NULL) {
   .plan_layer(plan, "blanks",
               list(blank_rows = where, blank_row_first = first,
@@ -1453,8 +1447,8 @@ plan_blanks <- function(plan, where = NULL, first = NULL, last = NULL,
 # the grouping carrier, a sort carrier.  A column can be needed and not
 # wanted, and the verb that needs it is the one place that knows -- so
 # it says so there, rather than the name being written a second time in
-# a plan_hide().
-plan_paginate_rows <- function(plan, max_rows = NULL, split = NULL,
+# a tfl_plan_hide().
+tfl_plan_paginate_rows <- function(plan, max_rows = NULL, split = NULL,
                                break_before = NULL, by = NULL,
                                min_group_rows = NULL,
                                cont_label = NULL, show = TRUE) {
@@ -1470,7 +1464,7 @@ plan_paginate_rows <- function(plan, max_rows = NULL, split = NULL,
 # arguments in order to be complete.
 #' @rdname plan_verbs
 #' @export
-plan_style <- function(plan, border = NULL, widths = NULL, ...) {
+tfl_plan_style <- function(plan, border = NULL, widths = NULL, ...) {
   .plan_layer(plan, "style",
               c(list(border = border, col_rel_width = widths),
                 list(...)))
@@ -1485,8 +1479,8 @@ plan_style <- function(plan, border = NULL, widths = NULL, ...) {
 # `n` lives here because the header is the only thing that uses it, and
 # because it already knows which columns there are: `TRUE` means "the
 # denominator each percentage used", read with the SAME `cols` and
-# `levels` table_plan() was given, so nothing is written twice.  A
-# function of the ARD covers a denominator ard_pull() cannot find; a
+# `levels` tfl_plan() was given, so nothing is written twice.  A
+# function of the ARD covers a denominator tfl_ard_pull() cannot find; a
 # named list covers a header that needs more than one.
 # There is ONE way to write a header: rtf_col_header(), the same
 # constructor as everywhere else.  What the plan adds is that its
@@ -1497,7 +1491,7 @@ plan_style <- function(plan, border = NULL, widths = NULL, ...) {
 # the table exists.  A row that is already the right length, and a
 # cell with no token in it, are untouched; a short row is an error
 # today, so nothing that works now changes meaning.
-plan_col_header <- function(plan, header = NULL, n = NULL,
+tfl_plan_col_header <- function(plan, header = NULL, n = NULL,
                             values = NULL) {
   .plan_layer(plan, "header",
               list(header = header, n = n, values = values))
@@ -1518,7 +1512,7 @@ plan_col_header <- function(plan, header = NULL, n = NULL,
 .plan_block <- function(plan, kind, dots, pages) {
   if (length(dots) && !is.null(pages)) {
     .ard_stop(paste0(
-      "plan_", kind, "(): give the rows of one block, or `pages = ` ",
+      "tfl_plan_", kind, "(): give the rows of one block, or `pages = ` ",
       "with one block per page.\n  Not both."))
   }
   .plan_layer(plan, kind,
@@ -1534,7 +1528,7 @@ plan_col_header <- function(plan, header = NULL, n = NULL,
 # arguments, unchanged.
 #' @rdname plan_verbs
 #' @export
-plan_listing <- function(plan, ..., type = NULL, sep = NULL,
+tfl_plan_listing <- function(plan, ..., type = NULL, sep = NULL,
                          spacer = NULL, spacer_rel_width = NULL,
                          blank_row = NULL, blank_row_first = NULL,
                          align = NULL, layout = NULL, wrap = NULL,
@@ -1549,13 +1543,13 @@ plan_listing <- function(plan, ..., type = NULL, sep = NULL,
 
 #' @rdname plan_verbs
 #' @export
-plan_titles <- function(plan, ..., pages = NULL) {
+tfl_plan_titles <- function(plan, ..., pages = NULL) {
   .plan_block(plan, "titles", list(...), pages)
 }
 
 #' @rdname plan_verbs
 #' @export
-plan_footnotes <- function(plan, ..., pages = NULL) {
+tfl_plan_footnotes <- function(plan, ..., pages = NULL) {
   .plan_block(plan, "footnotes", list(...), pages)
 }
 
@@ -1565,13 +1559,13 @@ plan_footnotes <- function(plan, ..., pages = NULL) {
 # pretended otherwise would need a field per argument of each.
 #' @rdname plan_verbs
 #' @export
-plan_after <- function(plan, ...) {
+tfl_plan_after <- function(plan, ...) {
   fs <- list(...)
   bad <- !vapply(fs, is.function, logical(1L))
   if (any(bad)) {
     .ard_stop(paste0(
-      "plan_after() takes functions of the pages, one per step -- for ",
-      "example\n    plan_after(\\(x) set_decimal_split(x, cols = 3:5))"))
+      "tfl_plan_after() takes functions of the pages, one per step -- for ",
+      "example\n    tfl_plan_after(\\(x) set_decimal_split(x, cols = 3:5))"))
   }
   .plan_layer(plan, "after", list(steps = fs))
 }
@@ -1581,11 +1575,11 @@ plan_after <- function(plan, ...) {
 
 #' Run a plan, or look inside it (SPIKE)
 #'
-#' Resolves an [table_plan()]'s layers and runs the conversion.  `stage` stops
+#' Resolves an [tfl_plan()]'s layers and runs the conversion.  `stage` stops
 #' it early, so the same one pass answers "what does this do" and "what did it
 #' do" --- there is no second code path that could disagree with the first.
 #'
-#' @param plan An [table_plan()].
+#' @param plan An [tfl_plan()].
 #' @param stage How far to go.  `"auto"`, the default, is **as far as the
 #'   plan declares**: a plan that says nothing about the display stops at
 #'   the table `data.frame`; one that carries a display verb goes on
@@ -1594,17 +1588,17 @@ plan_after <- function(plan, ...) {
 #'   for looking inside: `"long"`, `"args"`, `"table"`, `"pages"`.
 #'
 #'   The named stages: `"table"` returns the table
-#'   `data.frame`, the same object [ard_spread()] returns.  `"long"`
+#'   `data.frame`, the same object [tfl_ard_spread()] returns.  `"long"`
 #'   returns the frame going in, with the ARD column names the roles
 #'   renamed.  `"args"` returns the resolved argument lists
 #'   without running anything --- the call the plan amounts to, as
-#'   `$spread` ([ard_spread()]'s) and `$rtf` ([as_rtftables()]'s).  Both
+#'   `$spread` ([tfl_ard_spread()]'s) and `$rtf` ([as_rtftables()]'s).  Both
 #'   are resolved from layers and either can be the one that
 #'   surprises: a page budget declared twice is last-wins, and the
 #'   call you are editing may not be the one that decides, so
-#'   `apply_plan(p, "args")$rtf$max_rows` is the way to ask.
+#'   `tfl_apply_plan(p, "args")$rtf$max_rows` is the way to ask.
 #'   `"pages"` goes all the way: [fmt_numeric()], [stub_cols()],
-#'   [as_rtftables()], [set_col_header()] and whatever `plan_after()`
+#'   [as_rtftables()], [set_col_header()] and whatever `tfl_plan_after()`
 #'   declared, giving the RTF pages.
 #'
 #' @return A data frame; for `stage = "args"` the resolved argument list;
@@ -1612,34 +1606,34 @@ plan_after <- function(plan, ...) {
 #'   return.
 #'
 #' @section Lifecycle:
-#' **Spike.**  See [table_plan()].
+#' **Spike.**  See [tfl_plan()].
 #'
 #' @examples
 #' if (requireNamespace("cards", quietly = TRUE)) {
 #'   p <- cards::ard_stack(
 #'          cards::ADSL, .by = ARM,
 #'          cards::ard_continuous(variables = AGE)) |>
-#'     ard_normalize() |>
-#'     table_plan(cols = "ARM", rows = c(group = "variable")) |>
-#'     plan_cells(continuous = c("Mean (SD)" = "{mean} ({sd})")) |>
-#'     plan_digits(2) |>
-#'     plan_digits(AGE = 0)
+#'     tfl_ard_normalize() |>
+#'     tfl_plan(cols = "ARM", rows = c(group = "variable")) |>
+#'     tfl_plan_cells(continuous = c("Mean (SD)" = "{mean} ({sd})")) |>
+#'     tfl_plan_digits(2) |>
+#'     tfl_plan_digits(AGE = 0)
 #'
-#'   str(apply_plan(p, "args")$cells)   # AGE won
-#'   apply_plan(p)
+#'   str(tfl_apply_plan(p, "args")$cells)   # AGE won
+#'   tfl_apply_plan(p)
 #' }
-#' @seealso [table_plan()], [plan_verbs]
+#' @seealso [tfl_plan()], [plan_verbs]
 #' @export
-apply_plan <- function(plan, stage = c("auto", "long", "args",
+tfl_apply_plan <- function(plan, stage = c("auto", "long", "args",
                                        "table", "pages")) {
-  if (!inherits(plan, "table_plan")) {
-    .ard_stop("Expected a table_plan; start from table_plan(ard).")
+  if (!inherits(plan, "tfl_plan")) {
+    .ard_stop("Expected a tfl_plan; start from tfl_plan(ard).")
   }
   stage <- match.arg(stage)
   if (identical(stage, "auto")) stage <- .plan_reach(plan)
 
   # A LISTING never goes near an ARD.  Its source is SDTM or ADaM -- an
-  # ordinary frame of subject records -- and plan_listing() is what says
+  # ordinary frame of subject records -- and tfl_plan_listing() is what says
   # so, because the columns cannot.  Nothing is normalised or spread; the
   # rows are the rows.
   if (length(.plan_of(plan, "listing"))) {
@@ -1648,10 +1642,10 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
     if (stage %in% c("table", "long")) return(d)
     return(.plan_to_pages(plan, d))
   }
-  # A table somebody already built -- with ard_spread(), with dplyr, with
+  # A table somebody already built -- with tfl_ard_spread(), with dplyr, with
   # anything -- is a legitimate source for the display half on its own.
   # Asking for the ARD half is what says otherwise: the roles and
-  # plan_cells() need statistics, and a finished table has none.
+  # tfl_plan_cells() need statistics, and a finished table has none.
   if (identical(plan$kind, "wide")) {
     ard_half <- vapply(plan$layers, function(l)
       l$kind %in% c("cells", "digits", "round", "levels", "labels"),
@@ -1660,13 +1654,13 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
     if (!length(plan$layers)) {
       .ard_stop(paste0(
         "This source has no statistics to read -- no `stat_name` / `stat`, ",
-        "and none of\n  the columns ard_normalize() adds -- and the ",
+        "and none of\n  the columns tfl_ard_normalize() adds -- and the ",
         "plan declares nothing.\n",
-        "  A table to lay out : keep the display verbs (plan_stub, ",
+        "  A table to lay out : keep the display verbs (tfl_plan_stub, ",
         "plan_pages, ...).\n",
-        "  A listing of records: add plan_listing(listing_col(...), ...).\n",
-        "  An ARD to convert  : name the roles on table_plan(), add ",
-        "plan_cells().\n",
+        "  A listing of records: add tfl_plan_listing(listing_col(...), ...).\n",
+        "  An ARD to convert  : name the roles on tfl_plan(), add ",
+        "tfl_plan_cells().\n",
         "  Columns seen       : ", paste(utils::head(names(plan$data), 8L),
                                          collapse = ", ")))
     }
@@ -1678,23 +1672,23 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
     }
     .ard_stop(paste0(
       "This source has no statistics to read -- no `stat_name` / `stat`, ",
-      "and none of\n  the columns ard_normalize() adds -- but ",
-      "table_plan(cols = ) / plan_cells() need them.\n",
+      "and none of\n  the columns tfl_ard_normalize() adds -- but ",
+      "tfl_plan(cols = ) / tfl_plan_cells() need them.\n",
       "  If it is already the table, drop those and keep the display ",
       "verbs.\n",
-      "  If it is a listing of records, add plan_listing(...).\n",
+      "  If it is a listing of records, add tfl_plan_listing(...).\n",
       "  Columns seen : ", paste(utils::head(names(plan$data), 8L),
                                  collapse = ", ")))
   }
 
-  # 1. the long-frame seam.  Nothing is flattened here: ard_normalize()
+  # 1. the long-frame seam.  Nothing is flattened here: tfl_ard_normalize()
   #    ran before the plan, which is why the roles could be checked
   #    against real column names when they were declared.
   x <- .plan_prepare(plan, plan$data)
   .plan_remember(plan, "long", x)
   if (identical(stage, "long")) return(x)
 
-  # 2. the spread arguments.  The roles were said once, on table_plan();
+  # 2. the spread arguments.  The roles were said once, on tfl_plan();
   #    `levels` and `labels` are layers and merge one KEY at a time, so a
   #    later one adds a variable without restating the rest.
   s_args <- .plan_spread_args(plan)
@@ -1705,13 +1699,13 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
   rnd   <- .plan_merge(.plan_of(plan, "round"))
 
   # 4. Expand to one entry per variable.  This is the step that NEEDS the ARD,
-  #    and the reason the plan holds it: `plan_digits(AGE = 0)` cannot be
+  #    and the reason the plan holds it: `tfl_plan_digits(AGE = 0)` cannot be
   #    turned into a template until we know which entry AGE would have got.
   if (length(cells)) {
     #  a) one entry per analysis variable, where a variable-specific layer
     #     can win.  A frame with no `variable` column -- somebody's own long
     #     summary -- has nothing to expand, and (b) still applies.
-    # a key variable's own tabulation is no cell (ard_spread() leaves it
+    # a key variable's own tabulation is no cell (tfl_ard_spread() leaves it
     # out), so it asks for no template either
     body <- if (".key_own" %in% names(x)) !(x$.key_own %in% TRUE) else
       rep(TRUE, nrow(x))
@@ -1745,7 +1739,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
       else for (k in names(got)) filled[[k]] <- got[[k]]
     }
     #  b) every key the caller actually wrote, filled with the digits THAT
-    #     key resolves to.  Without this a plan-wide `plan_digits()` reached
+    #     key resolves to.  Without this a plan-wide `tfl_plan_digits()` reached
     #     nothing at all when there were no variables to expand.
     for (k in names(cells)) {
       if (k %in% names(filled)) next
@@ -1768,7 +1762,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
     miss <- setdiff(names(dig), reached)
     if (length(miss)) {
       .ard_stop(paste0(
-        "plan_digits() names ", paste(sQuote(miss), collapse = ", "),
+        "tfl_plan_digits() names ", paste(sQuote(miss), collapse = ", "),
         ", which matched nothing.\n",
         "  A key is an analysis variable, a context, a kind ",
         "(continuous / categorical)\n  or \"default\".  ",
@@ -1780,7 +1774,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
   }
 
   # 5. one rounding family for the run; a per-variable one would have to reach
-  #    into `ard_spread()`, which a spike does not do.  Named keys are read so
+  #    into `tfl_ard_spread()`, which a spike does not do.  Named keys are read so
   #    the shape is there, and a disagreement is reported rather than guessed.
   # One rounding family for the run, last wins like every other layer.
   if (length(rnd)) s_args$rounding <- rnd$rounding
@@ -1792,7 +1786,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
     # the one that decides.
     return(list(spread = s_args, rtf = .plan_rtf_args(plan)))
   }
-  tbl <- .plan_stage(do.call(ard_spread, c(list(x = x), s_args)),
+  tbl <- .plan_stage(do.call(tfl_ard_spread, c(list(x = x), s_args)),
                      plan, c("spread", "cells", "digits", "round", "levels", "labels"))
   # the table-side seam: a column the table can only know once it exists
   .plan_remember(plan, "table", tbl)
@@ -1803,7 +1797,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
 
 
 # A frame that did not come from cards has its own names for the three
-# columns ard_spread() reads by name -- which statistic a row is, what
+# columns tfl_ard_spread() reads by name -- which statistic a row is, what
 # it is worth, and which analysis variable it belongs to.  Saying so is
 # a rename, in the `c(new = old)` vocabulary `rows` and `cols` already
 # use, done once here rather than asked for again in every verb.
@@ -1812,7 +1806,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
 # tfrmt has the same problem, because a continuous row is labelled by
 # its statistic and a categorical one by its level, and they are not
 # the same column.  `label = c("CAT", "PARAM")` COALESCES -- first
-# non-missing wins -- which is what ard_normalize() does for a cards
+# non-missing wins -- which is what tfl_ard_normalize() does for a cards
 # ARD when it builds `.label`.
 .plan_prepare <- function(plan, d) {
   if (!is.data.frame(d)) return(d)
@@ -1822,7 +1816,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
     src <- as.character(src)[1L]
     if (!src %in% names(d)) {
       .ard_stop(sprintf(
-        "table_plan(%s = %s): no such column.\n  Columns: %s",
+        "tfl_plan(%s = %s): no such column.\n  Columns: %s",
         k, sQuote(src), paste(utils::head(names(d), 12L),
                               collapse = ", ")))
     }
@@ -1863,7 +1857,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
   list(name = out, from = unname(lb))
 }
 
-# `ard_spread()`'s arguments, assembled from the two places they are
+# `tfl_ard_spread()`'s arguments, assembled from the two places they are
 # declared: the roles, said once beside the data, and the keyed
 # layers, which merge one key at a time.
 .plan_spread_args <- function(plan) {
@@ -1895,7 +1889,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
       out[[nm]] <- l[[nm]]
     }
   }
-  # The row order goes to whichever half can do it: ard_spread() when
+  # The row order goes to whichever half can do it: tfl_ard_spread() when
   # there are statistics to sort on, as_rtftables() when the source is
   # already the table.
   srt <- .plan_merge(.plan_of(plan, "sort"))
@@ -1906,17 +1900,17 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
     if (!is.null(srt$sort_desc)) out$sort_desc <- srt$sort_desc
   }
   # Grouping by the outermost row key is the ordinary case, so
-  # plan_row_group() may leave `col` out and have it read off the roles.
+  # tfl_plan_row_group() may leave `col` out and have it read off the roles.
   gcol <- .plan_group_col(plan)
   if (!is.null(gcol)) out$group_col <- gcol
-  # plan_paginate_group() is as_rtftables(split = "by_value").  Two
+  # tfl_plan_paginate_group() is as_rtftables(split = "by_value").  Two
   # verbs asking for different splits is a mistake, not something to
   # resolve by order.
   if (isTRUE(.plan_merge(.plan_of(plan, "group"))$.page)) {
     if (!is.null(out$split) && !identical(out$split, "by_value")) {
       .ard_stop(paste0(
-        "plan_paginate_group() splits the pages by the group value, ",
-        "and\n  plan_paginate_rows(split = ",
+        "tfl_plan_paginate_group() splits the pages by the group value, ",
+        "and\n  tfl_plan_paginate_rows(split = ",
         sQuote(out$split), ") splits them another way.  Use one."))
     }
     out$split <- "by_value"
@@ -1930,15 +1924,15 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
       !is.null(out$split) &&
       out$split %in% c("by_value", "rows", "none")) {
     .ard_stop(paste0(
-      "plan_paginate_rows(max_rows = ", out$max_rows, ") has no ",
+      "tfl_plan_paginate_rows(max_rows = ", out$max_rows, ") has no ",
       "effect with split = ", sQuote(out$split), ".\n",
       if (identical(out$split, "by_value"))
         paste0("  A value split makes one page per group value, ",
                "however long it is --\n  it comes from ",
-               "plan_paginate_group().  For a row budget as well, ",
+               "tfl_plan_paginate_group().  For a row budget as well, ",
                "page\n  the rows and hide the group key ",
                "instead:\n",
-               "    plan_paginate_rows(max_rows = ", out$max_rows,
+               "    tfl_plan_paginate_rows(max_rows = ", out$max_rows,
                ", split = \"group_safe\")\n",
                "  or drop the budget and keep the value split.")
       else paste0("  That split cuts where it is told, not by a ",
@@ -1951,12 +1945,12 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
                          use.names = FALSE))
   if (length(named) > 1L) {
     .ard_stop(paste0(
-      "plan_paginate_group() and plan_row_group() name different ",
+      "tfl_plan_paginate_group() and tfl_plan_row_group() name different ",
       "columns:\n  ", paste(sQuote(named), collapse = ", "),
       ".  There is one grouping column."))
   }
-  # Hiding is the one thing that ADDS rather than replaces: two plan_hide()s
-  # mean both columns go, and plan_row_group(show = FALSE) writes one of its own.
+  # Hiding is the one thing that ADDS rather than replaces: two tfl_plan_hide()s
+  # mean both columns go, and tfl_plan_row_group(show = FALSE) writes one of its own.
   # Last-wins there would silently un-hide whatever was named first.
   hid <- unique(unlist(lapply(.plan_of(plan, "hide"), `[[`, "drop_cols"),
                        use.names = FALSE))
@@ -2018,10 +2012,10 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
       rep(list(unlist(l$block, use.names = FALSE)), length(pg))
     if (length(blocks) != length(pg)) {
       .ard_stop(paste0(
-        "plan_", kind, "(pages = ) has ", length(blocks), " block",
+        "tfl_plan_", kind, "(pages = ) has ", length(blocks), " block",
         if (length(blocks) == 1L) "" else "s", " for ", length(pg),
         " page", if (length(pg) == 1L) "" else "s", ".\n",
-        "  The page count is decided by plan_paginate_rows(); print(x) after a ",
+        "  The page count is decided by tfl_plan_paginate_rows(); print(x) after a ",
         "run shows it.", .plan_blame(plan, kind)))
     }
     at <- if (identical(kind, "titles")) "rtf_titles" else "rtf_footnotes"
@@ -2031,7 +2025,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
 }
 
 # The stub is the row keys plus the label column, minus any column that is
-# only there to group by.  All of that was said on table_plan(), so saying it
+# only there to group by.  All of that was said on tfl_plan(), so saying it
 # again is a place for the two to disagree.
 # What the label column is called in the spread table.
 .plan_label_name <- function(plan) {
@@ -2056,8 +2050,8 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
   v <- intersect(v, names(tbl))
   if (!length(v)) {
     .ard_stop(paste0(
-      "plan_stub(): nothing to fold.  The row keys and label column are ",
-      "worked out from\n  table_plan(rows = , label = ) less ",
+      "tfl_plan_stub(): nothing to fold.  The row keys and label column are ",
+      "worked out from\n  tfl_plan(rows = , label = ) less ",
       "whatever `show = FALSE` hides, and none\n  of them is in ",
       "the table.  ",
       "Name them with `vars = `.\n  Columns: ",
@@ -2079,7 +2073,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
 # as_rtftables() has its own answer, and two reports group without
 # naming a column at all.  The exception is `show = FALSE`: a carrier
 # that is not printed has to be NAMED to be hidden, and that name is
-# always the outermost row key, which table_plan(rows = ) has already
+# always the outermost row key, which tfl_plan(rows = ) has already
 # given.  Deriving it there and nowhere else is the difference between
 # removing a duplicate and guessing.
 .plan_group_col <- function(plan) {
@@ -2092,9 +2086,9 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
   if (length(k)) k[1L] else NULL
 }
 
-# A table splits on THREE axes and plan_paginate_rows() only ever covered one.
+# A table splits on THREE axes and tfl_plan_paginate_rows() only ever covered one.
 # The column blocks were reachable only through
-# plan_after(paginate_cols(...)) -- a lambda around the very call the
+# tfl_plan_after(paginate_cols(...)) -- a lambda around the very call the
 # plan exists to take apart, and two of the six reports wrote one.
 # This is that axis, with paginate_cols()'s own arguments, and
 # `order` is where the three nest: "group" (a value split), "rows"
@@ -2102,7 +2096,7 @@ apply_plan <- function(plan, stage = c("auto", "long", "args",
 # first, or the shorthands "across" / "down".
 #' @rdname plan_verbs
 #' @export
-plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
+tfl_plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
                                by = NULL, every = NULL, carry = NULL,
                                col_header = NULL, width = NULL,
                                allow_span_break = NULL,
@@ -2431,7 +2425,7 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
   out
 }
 
-# The denominator, read once, with the keys table_plan() already has.
+# The denominator, read once, with the keys tfl_plan() already has.
 .plan_n_values <- function(plan, n, data = plan$data, page = NULL) {
   if (is.null(n)) return(NULL)
   sp <- .plan_spread_args(plan)
@@ -2463,21 +2457,21 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
                       v %in% c("page", "table")) v
     if (is.character(v) && is.null(scope)) {
       .ard_stop(sprintf(paste0(
-        "plan_col_header(n = %s): a population is \"page\" (each ",
+        "tfl_plan_col_header(n = %s): a population is \"page\" (each ",
         "page's own) or \"table\"\n  (the analysis set); numbers are ",
         "given as numbers, or a function of the data."), sQuote(v[1L])))
     }
     if (!is.null(scope)) {
       if (is.null(sp$cols)) {
         .ard_stop(paste0(
-          "plan_col_header(n = TRUE) reads the denominator with the ",
-          "same `cols` table_plan()\n  was given, and this plan ",
+          "tfl_plan_col_header(n = TRUE) reads the denominator with the ",
+          "same `cols` tfl_plan()\n  was given, and this plan ",
           "has none.  Give a function of the data instead."))
       }
       # Only a number the ARD STATES as a population size, at every
       # depth of the keys; what it does not state is left out, and the
       # header prints NA there and says why (see .plan_n_read()).
-      # ard_pull() is not asked: it reads an analysis variable's `N`,
+      # tfl_ard_pull() is not asked: it reads an analysis variable's `N`,
       # the count of its non-missing values.
       return(read(scope))
     }
@@ -2546,7 +2540,7 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
                    "page%s %s --"), if (length(pages) > 1L) "s" else "",
             paste(sQuote(utils::head(pages, 4L)), collapse = ", ")),
     "  the page's own (e.g. the subjects with that test) and the table's (the analysis set).",
-    "  {n} used the page's.  Say which: plan_col_header(n = \"page\") or n = \"table\"",
+    "  {n} used the page's.  Say which: tfl_plan_col_header(n = \"page\") or n = \"table\"",
     "  (tables sheet: header_n = page | table), or both: n = list(n = \"page\", N = \"table\")."),
     collapse = "\n"), call. = FALSE)
 }
@@ -2632,13 +2626,13 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
     # rtftable() would reject the length with nothing to say about why.
     if (!is.null(rtf$stub_vars)) {
       .ard_stop(paste0(
-        "plan_cell_style() needs plan_stub(before = TRUE).\n",
+        "tfl_plan_cell_style() needs tfl_plan_stub(before = TRUE).\n",
         "  Folded inside as_rtftables(), the stub adds group heading rows ",
         "the conditions\n  never saw, so a style would land on the ",
         "wrong row."))
     }
     if (!is.null(rtf$cell_styles)) {
-      .ard_stop("plan_cell_style() and a cell_styles = of your own: use one.")
+      .ard_stop("tfl_plan_cell_style() and a cell_styles = of your own: use one.")
     }
     rtf$cell_styles <- .plan_cell_styles(st, tbl, pre)
   }
@@ -2654,7 +2648,7 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
   if (length(colset$widths) && is.null(rtf$col_rel_width)) {
     out <- .plan_col_widths(out, colset$widths, spread)
   }
-  # what as_table_spec() reads back: the columns and widths before the
+  # what tfl_as_table_spec() reads back: the columns and widths before the
   # column axis cuts them into blocks
   fp <- if (inherits(out, "rtftable")) out else out[[1L]]
   .plan_remember(plan, "pre_cols", list(
@@ -2733,7 +2727,7 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
   }
   # The column axis comes LAST: cutting the table into blocks renumbers
   # its columns, and everything that names a column by position -- a
-  # plan_after() step like set_decimal_split(cols = 3:31) -- means the
+  # tfl_plan_after() step like set_decimal_split(cols = 3:31) -- means the
   # table as it was written, not the first block of it.
   cp <- .plan_merge(.plan_of(plan, "colpages"))
   cp <- cp[!vapply(cp, is.null, logical(1L))]
@@ -2745,7 +2739,7 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
   # the blocks that sit above and below the table on each page
   out <- .plan_blocks(plan, out)
 
-  # the names plan_cell_style() / plan_style(widths = ) / plan_col_header() use:
+  # the names tfl_plan_cell_style() / tfl_plan_style(widths = ) / tfl_plan_col_header() use:
   # read off the finished page rather than predicted
   first <- if (inherits(out, "rtftable")) out else out[[1L]]
   if (!is.null(first$data)) .plan_remember(plan, "printed", first$data)
@@ -2989,9 +2983,9 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
     paste0("  the column variable's own tabulation (ard_stack(.by = )), ",
            "or a denominator several"),
     "  variables agree on.  Otherwise give the numbers yourself:",
-    paste0("    plan_col_header(n = c(\"Placebo\" = 86, ...))  -- names at any ",
+    paste0("    tfl_plan_col_header(n = c(\"Placebo\" = 86, ...))  -- names at any ",
            "level (\"Placebo\", \"Placebo____F\"),"),
-    "    or n = function(data) ... , or n = ard_pull(ard, cols, variable = \"AGE\").")
+    "    or n = function(data) ... , or n = tfl_ard_pull(ard, cols, variable = \"AGE\").")
   warning(paste(msg, collapse = "\n"), call. = FALSE)
 }
 
@@ -3031,7 +3025,7 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
 
 
 # ============================================================================
-#  plan_template()
+#  tfl_plan_template()
 # ============================================================================
 
 # One `verb(` line, its arguments indented under it, and the pipe on the
@@ -3049,26 +3043,26 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
 
 #' Write the plan for you (SPIKE)
 #'
-#' The counterpart of [ard_template()] for the deferred form: reads an ARD
-#' and prints a runnable [table_plan()] pipeline, filled in with the keys,
+#' The counterpart of [tfl_ard_template()] for the deferred form: reads an ARD
+#' and prints a runnable [tfl_plan()] pipeline, filled in with the keys,
 #' hierarchy, contexts and statistics it actually found.
 #'
 #' It writes **both halves** --- the ARD to the table, and the table to the
 #' RTF pages --- because a plan that stops at the table is a plan that made
 #' you look up `stub_vars` and the header somewhere else.  The display half
-#' is a starting point and is meant to be edited: only `plan_stub()` is
+#' is a starting point and is meant to be edited: only `tfl_plan_stub()` is
 #' derivable from the ARD, and the rest are display decisions nothing can
 #' guess.
 #'
-#' @inheritParams ard_template
+#' @inheritParams tfl_ard_template
 #' @param spec When `TRUE`, the generated plan reads its definition from a
-#'   workbook (`table_plan(spec = read_table_spec(...))`) instead of inlining
+#'   workbook (`tfl_plan(spec = tfl_read_table_spec(...))`) instead of inlining
 #'   the cells.
 #'
 #' @return The generated code, as a character vector, invisibly.
 #'
 #' @section Lifecycle:
-#' **Spike.**  See [table_plan()].
+#' **Spike.**  See [tfl_plan()].
 #'
 #' @examples
 #' if (requireNamespace("cards", quietly = TRUE)) {
@@ -3076,11 +3070,11 @@ plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
 #'     cards::ADSL, .by = ARM,
 #'     cards::ard_continuous(variables = AGE),
 #'     cards::ard_categorical(variables = SEX))
-#'   plan_template(ard, cols = "ARM")
+#'   tfl_plan_template(ard, cols = "ARM")
 #' }
-#' @seealso [table_plan()], [apply_plan()], [ard_template()]
+#' @seealso [tfl_plan()], [tfl_apply_plan()], [tfl_ard_template()]
 #' @export
-plan_template <- function(ard, cols = NULL, hierarchy = character(),
+tfl_plan_template <- function(ard, cols = NULL, hierarchy = character(),
                           spec = FALSE, file = NULL, pipe = NULL) {
   op <- .ard_pipe_op(pipe)
   f  <- .ard_template_facts(ard, cols, hierarchy)
@@ -3088,7 +3082,7 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
 
   L <- c(
     .ard_bar("", "="),
-    "#  generated by tflspec::plan_template()",
+    "#  generated by tflspec::tfl_plan_template()",
     "#",
     paste0("#  keys       : ", paste(f$keys, collapse = ", ")),
     paste0("#  variables  : ",
@@ -3096,7 +3090,7 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
            else "(none -- the rows come from `hierarchy`)"),
     paste0("#  kinds      : ", paste(f$kinds, collapse = ", ")),
     "#",
-    "#  ard_normalize() runs; the plan does not, until it is asked.",
+    "#  tfl_ard_normalize() runs; the plan does not, until it is asked.",
     "#  print(p) says how far it will go, and what its columns are called.",
     "#  A later layer wins, so tune one variable by ADDING a line.",
     if (f$guessed)
@@ -3135,43 +3129,43 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
   L <- c(L,
          .ard_bar("1. the ARD half"),
          paste0("p <- ard ", op),
-         if (length(norm)) .plan_call("ard_normalize", norm, op)
-         else paste0("  tflspec::ard_normalize() ", op))
+         if (length(norm)) .plan_call("tfl_ard_normalize", norm, op)
+         else paste0("  tflspec::tfl_ard_normalize() ", op))
   if (isTRUE(spec)) {
-    L <- c(L, .plan_call("table_plan",
+    L <- c(L, .plan_call("tfl_plan",
                          c(spread,
-                           paste0("spec = tflspec::read_table_spec(",
+                           paste0("spec = tflspec::tfl_read_table_spec(",
                                   "\"ard-spec.xlsx\")")),
                          op))
   } else {
-    L <- c(L, .plan_call("table_plan", spread, op))
+    L <- c(L, .plan_call("tfl_plan", spread, op))
     # already indented and comma-ed: a `c(` entry spans several lines,
     # so it cannot go through .plan_call(), which commas every argument.
-    L <- c(L, "  tflspec::plan_cells(", .plan_cell_lines(f),
+    L <- c(L, "  tflspec::tfl_plan_cells(", .plan_cell_lines(f),
            paste0("  ) ", op))
   }
 
   # -- 2. the display half -----------------------------------------------
   L <- c(L, "", .ard_bar("2. the display half -- edit this"))
-  n_ok <- !is.null(tryCatch(ard_pull(ard, cols = f$cols),
+  n_ok <- !is.null(tryCatch(tfl_ard_pull(ard, cols = f$cols),
                             error = function(e) NULL))
-  # `plan_stub()` rather than plan_rtf(stub_vars = ): the plan then sees the
-  # rows that will be printed, which plan_cell_style() needs.
-  # `vars` is left out on purpose: plan_stub() works it out from
-  # table_plan(rows = , label = ) less any plan_row_group(col = ).
-  L <- c(L, .plan_call("plan_stub",
+  # `tfl_plan_stub()` rather than plan_rtf(stub_vars = ): the plan then sees the
+  # rows that will be printed, which tfl_plan_cell_style() needs.
+  # `vars` is left out on purpose: tfl_plan_stub() works it out from
+  # tfl_plan(rows = , label = ) less any tfl_plan_row_group(col = ).
+  L <- c(L, .plan_call("tfl_plan_stub",
                        "into = \"row_label\"", op))
   # One concern per line.  Delete the ones this report does not want;
   # none of them has to be read in order to change another.
   L <- c(L,
-         paste0("  tflspec::plan_row_group(mode = \"indent\") ", op),
-         paste0("  tflspec::plan_blanks(\"between_groups\") ", op),
-         paste0("  tflspec::plan_paginate_rows(max_rows = 22, ",
+         paste0("  tflspec::tfl_plan_row_group(mode = \"indent\") ", op),
+         paste0("  tflspec::tfl_plan_blanks(\"between_groups\") ", op),
+         paste0("  tflspec::tfl_plan_paginate_rows(max_rows = 22, ",
                 "split = \"group_safe\") ", op),
-         paste0("  tflspec::plan_style(border = \"tfl\") ", op))
+         paste0("  tflspec::tfl_plan_style(border = \"tfl\") ", op))
   if (n_ok && length(f$cols) == 1L) {
     L <- c(L, .plan_call(
-      "plan_col_header",
+      "tfl_plan_col_header",
       c("n      = TRUE",
         paste0("header = function(n) c(\"Characteristic\", ",
                "paste0(names(n), \"\\nN = \", ",
@@ -3181,12 +3175,12 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
     L[length(L)] <- sub(paste0(" ", op), "", L[length(L)], fixed = TRUE)
     L <- c(L,
            "# Several column keys: as_rtftables(header_sep = ) rebuilds the",
-           "# spanning header from the \"____\" in the names, so plan_col_header()",
+           "# spanning header from the \"____\" in the names, so tfl_plan_col_header()",
            "# is only needed for text the data does not carry.")
   }
 
   L <- c(L, "",
-         "# rtf_tables() takes the plan directly -- apply_plan() is only for",
+         "# rtf_tables() takes the plan directly -- tfl_apply_plan() is only for",
          "# looking inside:",
          "#",
          "#   doc <- rtf_document() |>",
@@ -3194,7 +3188,7 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
          "#     rtf_tables(p)",
          "#",
          "#   print(p)        what it declares, and how far it goes",
-         "#   apply_plan(p)   the object itself")
+         "#   tfl_apply_plan(p)   the object itself")
 
   code <- L[!vapply(L, is.null, logical(1))]
   cat(paste(code, collapse = "\n"), "\n")
@@ -3256,18 +3250,18 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
 #  from how it was typed, so two plans that mean the same thing give the
 #  same workbook.  What a sheet cannot say -- a function, a guarded label,
 #  a positional list that no name reproduces -- is named, not dropped in
-#  silence, and the workbook is run back through table_plan(spec = ) against
+#  silence, and the workbook is run back through tfl_plan(spec = ) against
 #  the plan's own data to say whether it gives the same pages.
 
 #' Write a plan as a table definition workbook
 #'
 #' @description
-#' `as_table_spec()` turns an [table_plan()] --- typically one a report
-#' already has as code --- into a [table_spec()], the definition
-#' [write_table_spec()] writes as an Excel workbook.  It is how an existing
+#' `tfl_as_table_spec()` turns an [tfl_plan()] --- typically one a report
+#' already has as code --- into a [tfl_table_spec()], the definition
+#' [tfl_write_table_spec()] writes as an Excel workbook.  It is how an existing
 #' report becomes the **template for a new study**: write the workbook,
 #' edit its labels, levels and output ids, and read it back with
-#' `table_plan(data, spec = read_table_spec(path, output_id = ))`.
+#' `tfl_plan(data, spec = tfl_read_table_spec(path, output_id = ))`.
 #'
 #' Everything is read from what the plan **resolves to**, against its own
 #' data: the roles, levels, labels and cell templates (digits written in),
@@ -3278,48 +3272,48 @@ plan_template <- function(ard, cols = NULL, hierarchy = character(),
 #' one spanner per arm into `span = <key>`, so the header keeps up with a
 #' study that has a different number of arms or time points.
 #'
-#' What a workbook cannot say is **listed, not dropped**: a `plan_after()`
+#' What a workbook cannot say is **listed, not dropped**: a `tfl_plan_after()`
 #' step (except `set_decimal_split()`, which becomes
 #' `columns$decimal_split` on the value columns), a guarded label, a
-#' column-scoped `labels` entry, `plan_cell_style()`, a literal `n`.  The
-#' result is then run back through `table_plan(spec = )` on the plan's data,
+#' column-scoped `labels` entry, `tfl_plan_cell_style()`, a literal `n`.  The
+#' result is then run back through `tfl_plan(spec = )` on the plan's data,
 #' and whether it gives **the same pages** is reported.
 #'
-#' @param x An [table_plan()], a **named list** of them (the names are the
-#'   output ids; one workbook for the study), or anything [table_spec()]
+#' @param x An [tfl_plan()], a **named list** of them (the names are the
+#'   output ids; one workbook for the study), or anything [tfl_table_spec()]
 #'   takes.
 #' @param output_id The report the rows belong to.  `NULL` writes them as
 #'   defaults (blank `output_id`).
 #' @param check `TRUE` (default) rebuilds the pages from the workbook and
 #'   compares them with the plan's.
 #'
-#' @return A [table_spec()], with attributes `"not_converted"` (what the
+#' @return A [tfl_table_spec()], with attributes `"not_converted"` (what the
 #'   workbook could not carry) and `"same_pages"` (`TRUE` / `FALSE`, or
 #'   `NA` when not checked).
 #'
 #' @section Lifecycle:
-#' **Spike.**  See [table_plan()].
+#' **Spike.**  See [tfl_plan()].
 #'
 #' @examples
 #' \dontrun{
-#' p <- ard |> ard_normalize() |> table_plan(cols = "TRT01P") |> ...
-#' as_table_spec(p, output_id = "T14-1-1") |> write_table_spec("study.xlsx")
+#' p <- ard |> tfl_ard_normalize() |> tfl_plan(cols = "TRT01P") |> ...
+#' tfl_as_table_spec(p, output_id = "T14-1-1") |> tfl_write_table_spec("study.xlsx")
 #'
 #' # a whole study at once
-#' as_table_spec(list(DM = p_dm, AE = p_ae)) |> write_table_spec("study.xlsx")
+#' tfl_as_table_spec(list(DM = p_dm, AE = p_ae)) |> tfl_write_table_spec("study.xlsx")
 #' }
-#' @seealso [table_spec()], [write_table_spec()], [table_plan()]
+#' @seealso [tfl_table_spec()], [tfl_write_table_spec()], [tfl_plan()]
 #' @export
-as_table_spec <- function(x, output_id = NULL, check = TRUE) {
-  if (inherits(x, "table_spec")) return(x)
-  if (is.list(x) && !inherits(x, "table_plan") && length(x) &&
-      all(vapply(x, inherits, NA, "table_plan"))) {
+tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
+  if (inherits(x, "tfl_table_spec")) return(x)
+  if (is.list(x) && !inherits(x, "tfl_plan") && length(x) &&
+      all(vapply(x, inherits, NA, "tfl_plan"))) {
     ids <- names(x)
     if (is.null(ids) || any(!nzchar(ids)) || anyDuplicated(ids)) {
       .ard_stop(paste0("A list of plans needs unique names: they are the ",
                        "output ids of the workbook."))
     }
-    parts <- lapply(ids, function(id) as_table_spec(x[[id]], id, check))
+    parts <- lapply(ids, function(id) tfl_as_table_spec(x[[id]], id, check))
     rnd <- unique(stats::na.omit(vapply(parts, function(s)
       .ard_spec_study_value(s, "rounding"), "")))
     if (length(rnd) > 1L) {
@@ -3331,7 +3325,7 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
     out <- lapply(sheets, function(s) do.call(rbind, lapply(parts, `[[`, s)))
     names(out) <- sheets
     out$study <- if (length(rnd)) c(rounding = rnd) else NULL
-    sp <- table_spec(out)
+    sp <- tfl_table_spec(out)
     attr(sp, "not_converted") <- unlist(lapply(seq_along(parts), function(i)
       if (length(attr(parts[[i]], "not_converted")))
         paste0(ids[i], ": ", attr(parts[[i]], "not_converted"))))
@@ -3339,7 +3333,7 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
       vapply(parts, function(s) attr(s, "same_pages") %||% NA, NA), ids)
     return(sp)
   }
-  if (!inherits(x, "table_plan")) return(table_spec(x))
+  if (!inherits(x, "tfl_plan")) return(tfl_table_spec(x))
   .plan_to_spec(x, output_id, check)
 }
 
@@ -3350,9 +3344,9 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   q <- function(x) if (grepl("^\\s|\\s$", x)) paste0("\"", x, "\"") else x
   bar <- function(x) paste(x, collapse = " | ")
 
-  a <- suppressMessages(apply_plan(p, "args"))
+  a <- suppressMessages(tfl_apply_plan(p, "args"))
   s <- a$spread
-  pages <- suppressMessages(apply_plan(p, "pages"))
+  pages <- suppressMessages(tfl_apply_plan(p, "pages"))
   seen <- p$cache[["pre_cols"]]
   first <- if (inherits(pages, "rtftable")) pages else pages[[1L]]
   pnames <- seen$names %||% names(first$data)
@@ -3361,7 +3355,7 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   seen$h <- p$cache[["header_raw"]]
 
   for (r in intersect(c("variable", "stat_name", "stat"), names(p$roles))) {
-    miss("table_plan(%s = ): a column rename stays in code", r)
+    miss("tfl_plan(%s = ): a column rename stays in code", r)
   }
 
   # -- tables ---------------------------------------------------------------
@@ -3409,7 +3403,7 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
     plain <- vapply(lbl, function(v) is.character(v) && length(v) == 1L &&
                       is.null(names(v)), NA)
     if (any(!plain)) {
-      miss("labels: a column-scoped entry stays in code (plan_labels())")
+      miss("labels: a column-scoped entry stays in code (tfl_plan_labels())")
     }
     lbl <- unlist(lbl[plain])
   }
@@ -3430,7 +3424,7 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   cl <- list()
   cm <- s$cells
   if (!is.null(cm) && !identical(s$stats, "rows")) {
-    is_map <- is.list(cm) && !inherits(cm, "ard_cells") &&
+    is_map <- is.list(cm) && !inherits(cm, "tfl_ard_cells") &&
       any(nzchar(names(cm) %||% ""))
     if (!is_map) cm <- list(default = cm)
     for (k in names(cm)) {
@@ -3453,12 +3447,12 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   fm <- .plan_merge(.plan_of(p, "fmt"))
   if (length(fm)) {
     if (!identical(fm$by, .plan_label_name(p)) || !is.list(fm$formats)) {
-      miss("plan_fmt(): only by = <label column> with formats = converts")
+      miss("tfl_plan_fmt(): only by = <label column> with formats = converts")
     } else {
       if (!is.null(fm$cols) && !identical(sort(as.character(
           if (is.numeric(fm$cols)) names(first$data)[fm$cols] else fm$cols)),
           sort(spread))) {
-        miss("plan_fmt(cols = ): taken as the value columns")
+        miss("tfl_plan_fmt(cols = ): taken as the value columns")
       }
       for (st in names(fm$formats)) {
         f <- fm$formats[[st]]
@@ -3467,7 +3461,7 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
           if (!is.null(f$signif)) as.character(f$signif) else NA)
       }
       for (o in setdiff(names(fm), c("by", "formats", "cols"))) {
-        miss("plan_fmt(%s = ) stays in code", o)
+        miss("tfl_plan_fmt(%s = ) stays in code", o)
       }
     }
   }
@@ -3495,7 +3489,7 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   b <- .plan_merge(.plan_of(p, "blanks"))
   if (!is.null(b$blank_rows) && !(is.character(b$blank_rows) &&
                                    length(b$blank_rows) == 1L)) {
-    miss("plan_blanks(where = ): only a named rule (\"between_groups\") converts")
+    miss("tfl_plan_blanks(where = ): only a named rule (\"between_groups\") converts")
   } else put("blank_where", b$blank_rows)
   put("blank_first", b$blank_row_first); put("blank_last", b$blank_row_end)
   put("blank_counted", b$count_blank_rows)
@@ -3503,13 +3497,13 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   put("pages_max_rows", pg$max_rows); put("pages_split", pg$split)
   put("pages_by", pg$page_by); put("pages_min_group_rows", pg$min_group_rows)
   put("pages_cont_label", pg$cont_label)
-  if (!is.null(pg$split_rows)) miss("plan_paginate_rows(break_before = ) stays in code")
+  if (!is.null(pg$split_rows)) miss("tfl_plan_paginate_rows(break_before = ) stays in code")
   cp <- .plan_merge(.plan_of(p, "colpages"))
   put("colpages_every", cp$every); put("colpages_at", cp$at)
   put("colpages_carry", cp$carry); put("colpages_order", cp$page_order)
   for (o in intersect(c("cols", "by", "col_header", "width",
                         "allow_span_break"), names(cp))) {
-    miss("plan_paginate_cols(%s = ) stays in code", o)
+    miss("tfl_plan_paginate_cols(%s = ) stays in code", o)
   }
   layout <- if (length(lay) > 1L) as.data.frame(lay, stringsAsFactors = FALSE)
 
@@ -3522,10 +3516,10 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
     if (nm %in% names(.ard_spec_types$style)) {
       style[[nm]] <- if (is.logical(v)) as.character(v) else as.character(v)
     } else {
-      miss("plan_style(%s = ) stays in code", nm)
+      miss("tfl_plan_style(%s = ) stays in code", nm)
     }
   }
-  if (length(.plan_of(p, "styles"))) miss("plan_cell_style() stays in code")
+  if (length(.plan_of(p, "styles"))) miss("tfl_plan_cell_style() stays in code")
   style <- if (length(style) > 1L) as.data.frame(style, stringsAsFactors = FALSE)
 
   colw <- rep(NA_real_, length(pnames)); names(colw) <- pnames
@@ -3548,9 +3542,9 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
     for (f in l$steps) {
       if (any(grepl("set_decimal_split", deparse(f), fixed = TRUE))) {
         dec <- c(dec, ".values")
-        miss("plan_after(set_decimal_split()): taken as the value columns")
+        miss("tfl_plan_after(set_decimal_split()): taken as the value columns")
       } else {
-        miss("a plan_after() step stays in code")
+        miss("a tfl_plan_after() step stays in code")
       }
     }
   }
@@ -3590,19 +3584,19 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   } else if (!is.null(seen$h)) {
     col_header <- .plan_header_rows(seen$h, pnames, spread, p, id, q)
     if (!is.null(hd$n) && !isTRUE(hd$n) && is.null(.plan_scope_text(hd$n))) {
-      miss("plan_col_header(n = ): a literal N stays in code (use {n})")
+      miss("tfl_plan_col_header(n = ): a literal N stays in code (use {n})")
     }
   }
   tables$header_n <- .plan_scope_text(hd$n) %||% NA_character_
 
   study <- if (!is.null(s$rounding)) c(rounding = s$rounding)
-  sp <- table_spec(tables, variables, cells, study = study, layout = layout,
+  sp <- tfl_table_spec(tables, variables, cells, study = study, layout = layout,
                    columns = columns, style = style, col_header = col_header)
 
   same <- NA
   if (isTRUE(check)) {
-    back <- tryCatch(suppressMessages(apply_plan(
-      table_plan(p$data, spec = sp, notes = FALSE), "pages")),
+    back <- tryCatch(suppressMessages(tfl_apply_plan(
+      tfl_plan(p$data, spec = sp, notes = FALSE), "pages")),
       error = function(e) e)
     same <- !inherits(back, "error") && isTRUE(all.equal(back, pages))
     if (inherits(back, "error")) {
@@ -3611,7 +3605,7 @@ as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   }
   if (length(lost) || isFALSE(same)) {
     message(sprintf(
-      "as_table_spec()%s: %s\n%s",
+      "tfl_as_table_spec()%s: %s\n%s",
       if (is.na(id)) "" else paste0(" [", id, "]"),
       if (isTRUE(same)) "the workbook gives the same pages as the plan"
       else if (isFALSE(same)) "the workbook does NOT give the same pages"

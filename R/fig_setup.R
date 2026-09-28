@@ -6,7 +6,7 @@
 
 #' The helper script of a study's figure programs
 #'
-#' `fig_setup_code()` writes the figure style standard ([fig_style()]) as
+#' `tfl_fig_setup_code()` writes the figure style standard ([tfl_fig_style()]) as
 #' data -- `tfl_settings`, `tfl_palettes`, `tfl_markers` -- followed by
 #' helpers in plain ggplot2:
 #'
@@ -18,23 +18,23 @@
 #' * `tfl_km_risk(ard, fit)` -- a KM figure's number at risk from the KM
 #'   table's ARD (`cardx::ard_survival_survfit(times = )`), checked against
 #'   the curve;
-#' * `tfl_check(plot, levels = )` -- the checks of [check_figure()].
+#' * `tfl_check(plot, levels = )` -- the checks of [tfl_check_fig()].
 #'
 #' A figure program sources it (`source("programs/tfl/fig_setup.R")`) and
-#' ends with `tfl_check(plot)`.  `check_figure()` runs the same checks from
+#' ends with `tfl_check(plot)`.  `tfl_check_fig()` runs the same checks from
 #' R, against the style in use.
 #'
-#' @param style A figure style ([fig_style()]).
+#' @param style A figure style ([tfl_fig_style()]).
 #' @param date The date stamped in the banner.
 #' @param plot A ggplot (or a patchwork of them).
 #' @param levels The values the legend must show, in this order.
 #' @param quiet `TRUE` leaves out the summary message.
-#' @return `fig_setup_code()`: the script, one element per line.
-#'   `check_figure()`: invisibly, a list: `problems` (each also a warning
+#' @return `tfl_fig_setup_code()`: the script, one element per line.
+#'   `tfl_check_fig()`: invisibly, a list: `problems` (each also a warning
 #'   starting "Figure check:"), `notes`, `fingerprint` (an md5 of the drawn
 #'   data, to tell whether a figure changed between two runs).
 #' @export
-fig_setup_code <- function(style = fig_style(), date = Sys.Date()) {
+tfl_fig_setup_code <- function(style = tfl_fig_style(), date = Sys.Date()) {
   q <- function(x) ifelse(is.na(x), "NA", encodeString(as.character(x), quote = "\""))
   vec <- function(x) paste0("c(", paste(q(x), collapse = ", "), ")")
   df_code <- function(name, d) {
@@ -73,10 +73,10 @@ fig_setup_code <- function(style = fig_style(), date = Sys.Date()) {
     "")
 }
 
-#' @rdname fig_setup_code
+#' @rdname tfl_fig_setup_code
 #' @export
-check_figure <- function(plot, levels = NULL, quiet = FALSE) {
+tfl_check_fig <- function(plot, levels = NULL, quiet = FALSE) {
   e <- new.env(parent = globalenv())
-  eval(parse(text = fig_setup_code(), encoding = "UTF-8"), envir = e)
+  eval(parse(text = tfl_fig_setup_code(), encoding = "UTF-8"), envir = e)
   e$tfl_check(plot, levels = levels, quiet = quiet)
 }

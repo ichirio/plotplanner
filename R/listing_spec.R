@@ -19,12 +19,12 @@
 #'
 #' @param datasets The data catalog: a data frame with `dataset`, `path`
 #'   and `derive` (`NAME = R expression`, `|` between them), as the
-#'   `datasets` sheet of an [ard_spec()].
+#'   `datasets` sheet of an [tfl_ard_spec()].
 #' @param dataset The dataset to read.
 #' @return The code, one element per line.  A dataset the catalog does not
 #'   have gives a `stop()` line, so the program says so when it runs.
 #' @export
-read_data_code <- function(datasets, dataset) {
+tfl_read_data_code <- function(datasets, dataset) {
   r <- datasets[!is.na(datasets$dataset) & datasets$dataset == dataset, ,
                 drop = FALSE]
   if (!nrow(r) || is.na(r$path[1L])) {
@@ -65,14 +65,14 @@ read_data_code <- function(datasets, dataset) {
 #' @param cols Its columns, one row each: `vars` (`|` between variables
 #'   stacked in one column), `label` (`\n` for a line break), `width`,
 #'   `collapse_repeats` (`TRUE` prints a repeated value once).
-#' @param datasets The data catalog (see [read_data_code()]).
+#' @param datasets The data catalog (see [tfl_read_data_code()]).
 #' @param rework Code run on `data` before it is sorted, or `NULL`.
 #' @param type The listing type when `listing$type` is blank (one of
 #'   rtfreporter's `listing_spec()` types).
 #' @return The code, one element per line; `NULL` when the listing names no
 #'   dataset.
 #' @export
-listing_spec_code <- function(listing, cols, datasets, rework = NULL,
+tfl_listing_code <- function(listing, cols, datasets, rework = NULL,
                               type = "multiline") {
   l <- as.data.frame(listing, stringsAsFactors = FALSE)
   if (!nrow(l) || is.na(l$dataset[1L])) return(NULL)
@@ -95,7 +95,7 @@ listing_spec_code <- function(listing, cols, datasets, rework = NULL,
   }, "")
   type <- if (is.na(l$type)) type else l$type
   c(paste0("# the data: ", l$dataset, " (data catalog)"),
-    read_data_code(datasets, l$dataset),
+    tfl_read_data_code(datasets, l$dataset),
     sprintf("data <- %s", if (is.na(l$where)) obj else
       sprintf("subset(%s, %s)", obj, l$where)),
     if (!is.null(rework)) c("", "# rework", rework, ""),

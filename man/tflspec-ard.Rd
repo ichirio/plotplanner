@@ -10,21 +10,21 @@ A small family that turns an \strong{ARD} (Analysis Results Data, as produced by
 \code{\link[rtfreporter:as_rtftables]{rtfreporter::as_rtftables()}} consumes.  The target is \emph{one ARD record, one table row}.
 Layouts that print one record over two lines, or that need derived rows such
 as marginal totals, stay a human job -- do them on the returned data frame,
-or on the long frame from \code{\link[=ard_normalize]{ard_normalize()}}.
+or on the long frame from \code{\link[=tfl_ard_normalize]{tfl_ard_normalize()}}.
 }
 \section{The functions}{
 
 \describe{
-\item{\code{\link[=ard_keys]{ard_keys()}}}{What keys, variables, contexts and statistics an ARD
+\item{\code{\link[=tfl_ard_keys]{tfl_ard_keys()}}}{What keys, variables, contexts and statistics an ARD
 actually holds.}
-\item{\code{\link[=ard_normalize]{ard_normalize()}}}{ARD to a flat, explicitly keyed long table.}
-\item{\code{\link[=ard_spread]{ard_spread()}}}{Long table to the wide table data.frame.}
-\item{\code{\link[=ard_template]{ard_template()}}}{Emit runnable conversion code for a given ARD.}
-\item{\code{\link[=ard_overall]{ard_overall()}}}{Where the table's overall row comes from.}
-\item{\code{\link[=ard_pull]{ard_pull()}}}{A statistic keyed like the spread columns, for a
+\item{\code{\link[=tfl_ard_normalize]{tfl_ard_normalize()}}}{ARD to a flat, explicitly keyed long table.}
+\item{\code{\link[=tfl_ard_spread]{tfl_ard_spread()}}}{Long table to the wide table data.frame.}
+\item{\code{\link[=tfl_ard_template]{tfl_ard_template()}}}{Emit runnable conversion code for a given ARD.}
+\item{\code{\link[=tfl_ard_overall]{tfl_ard_overall()}}}{Where the table's overall row comes from.}
+\item{\code{\link[=tfl_ard_pull]{tfl_ard_pull()}}}{A statistic keyed like the spread columns, for a
 column header or an overall row.}
-\item{\code{\link[=table_spec]{table_spec()}}, \code{\link[=read_table_spec]{read_table_spec()}}, \code{\link[=write_table_spec]{write_table_spec()}},
-\code{\link[=table_spec_template]{table_spec_template()}}}{The spreadsheet definition file.}
+\item{\code{\link[=tfl_table_spec]{tfl_table_spec()}}, \code{\link[=tfl_read_table_spec]{tfl_read_table_spec()}}, \code{\link[=tfl_write_table_spec]{tfl_write_table_spec()}},
+\code{\link[=tfl_table_spec_template]{tfl_table_spec_template()}}}{The spreadsheet definition file.}
 }
 }
 
@@ -62,7 +62,7 @@ optional and an ARD built without \code{fmt_fun} would otherwise produce
 nothing.  The two differ for a proportion: \pkg{cards} writes \code{61.6} into
 \code{stat_fmt} while \code{stat} holds \code{0.616}, so \code{{p}} and \verb{\{p:.1f\\\%\}} agree and
 \verb{\{p:.1f\}} does not.  For \code{stats = "rows"}, where a value goes into the cell without
-a template, \code{ard_spread(value = )} makes the same choice.
+a template, \code{tfl_ard_spread(value = )} makes the same choice.
 A template whose statistics are not all present yields \code{NA}, which is what
 lets \code{c("{n} ({p})", "{n}")} act as a fallback chain.  A \strong{named} vector of
 templates produces one table row per element, the name being the row label:
@@ -102,7 +102,7 @@ Step 2 lets a context-specific entry win where you wrote one -- cardx's
 what keeps \code{continuous} / \code{categorical} (or \code{summary} / \code{tabulate}, either
 spelling) working when \pkg{cards} renames a verb again.
 
-\code{\link[=ard_keys]{ard_keys()}} prints both: the contexts, which are version-specific, and the
+\code{\link[=tfl_ard_keys]{tfl_ard_keys()}} prints both: the contexts, which are version-specific, and the
 kinds, which are not.
 }
 
@@ -116,16 +116,16 @@ writes an "any event" row as the sentinel variable
 \code{..ard_hierarchical_overall..}; summarise each level separately and bind
 the results and there is no sentinel -- that block counts the treatment
 itself, so the arm sits in \code{variable} / \code{variable_level}.
-\code{\link[=ard_overall]{ard_overall()}} says which.}
+\code{\link[=tfl_ard_overall]{tfl_ard_overall()}} says which.}
 \item{the denominator}{in one ARD \code{stat_name == "N"} is the per-arm
 denominator on the summary rows and the \strong{study} total on the by
 variable's own rows, where the per-arm count is \code{n} instead; and an
-author may compute their own.  \code{\link[=ard_pull]{ard_pull()}} names the statistic and
+author may compute their own.  \code{\link[=tfl_ard_pull]{tfl_ard_pull()}} names the statistic and
 lists the candidates when the choice is ambiguous.}
 }
 Column headers are rtfreporter's own job -- \code{col_header} takes a plain
-character vector -- so \code{\link[=ard_spread]{ard_spread()}} builds the body only, and
-\code{\link[=ard_pull]{ard_pull()}} is there when the header needs a number that must agree with
+character vector -- so \code{\link[=tfl_ard_spread]{tfl_ard_spread()}} builds the body only, and
+\code{\link[=tfl_ard_pull]{tfl_ard_pull()}} is there when the header needs a number that must agree with
 the percentages.
 }
 
