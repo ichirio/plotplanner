@@ -1,4 +1,4 @@
-# tflspec (development version)
+# tflspec 0.0.22
 
 * **Composed figures** (#39): a figure design may have `plots:` (name ->
   a whole figure design, each reading its own data) and `compose:`
