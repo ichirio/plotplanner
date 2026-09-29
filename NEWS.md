@@ -1,4 +1,4 @@
-# tflspec (development version)
+# tflspec 0.0.22
 
 * **Figure designs are written for ggplot2 3.5 or 4.0** (#37).
   `inst/fig/ggplot2_compat.csv` lists what differs between the two for a
