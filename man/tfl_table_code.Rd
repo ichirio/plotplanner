@@ -23,14 +23,14 @@ tfl_table_code(
 \item{plan}{The name the plan is assigned to.}
 
 \item{pipe}{\code{"|>"} or \code{"\%>\%"}; \code{NULL} follows
-\code{getOption("tflspec.ard_pipe")} (see \code{\link[=tfl_plan_template]{tfl_plan_template()}}).}
+\code{getOption("rtfreporter.ard_pipe")} (see \code{\link[rtfreporter:plan_template]{rtfreporter::plan_template()}}).}
 }
 \value{
 The code, one element per line.
 }
 \description{
-Writes the \code{\link[=tfl_plan]{tfl_plan()}} pipeline a table definition stands for: the
-roles of its \code{tables} sheet in \code{tfl_plan()}, and one \verb{tfl_plan_*()} verb
+Writes the \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}} pipeline a table definition stands for: the
+roles of its \code{tables} sheet in \code{table_plan()}, and one \verb{plan_*()} verb
 for each thing the other sheets say -- the same verbs, with the same
 values, that \code{tfl_table_plan(data, spec)} applies.  The program then no
 longer reads the workbook, and what the workbook cannot say (a cell style,

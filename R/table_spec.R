@@ -2,8 +2,8 @@
 #  The table and report definition: the workbook, read, written, checked,
 #  and turned into a plan (tfl_table_plan(), R/spec_code.R) or written from
 #  one (tfl_as_table_spec()).  This is the spec side of tflspec: it reaches
-#  the plan only through tfl_plan() and its verbs, tfl_apply_plan() and
-#  tfl_plan_layers() -- never through the plan's own fields.
+#  the plan only through table_plan() and its verbs, plan_apply() and
+#  plan_layers() -- never through the plan's own fields.
 # ============================================================================
 
 # ============================================================================
@@ -362,7 +362,7 @@
 #' A workbook-shaped definition of how an ARD becomes a table
 #'
 #' @description
-#' `tfl_table_spec()` validates the definition that [tfl_ard_spread()] accepts as
+#' `tfl_table_spec()` validates the definition that [rtfreporter::spread_ard()] accepts as
 #' `spec =`, and [tfl_read_table_spec()] builds one from a workbook.  It holds
 #' what would otherwise be repeated in every script --- which keys go
 #' across and down, the display label and order of each variable, and the
@@ -381,14 +381,14 @@
 #' | `col_header` | header cell | line, columns, span, text, borders |
 #'
 #' The first four say how the ARD becomes a table data frame; the last
-#' four how that becomes `rtftable` pages.  [tfl_plan()] reads them all
+#' four how that becomes `rtftable` pages.  [rtfreporter::table_plan()] reads them all
 #' (`tfl_table_plan(data, )`), as the first layers of a plan, so a verb
 #' written after it still wins.
 #'
 #' @section `study`:
 #' What is **one for the whole study** by definition, as `key` / `value`
 #' rows.  Today that is `rounding` --- `r` (half to even) or `sas` (half
-#' away from zero), see [round_num()] --- so that no two tables of one
+#' away from zero), see [rtfreporter::round_num()] --- so that no two tables of one
 #' study can round differently.  Blank leaves it to
 #' `getOption("rtfreporter.rounding")`.
 #'
@@ -400,7 +400,7 @@
 #' So one workbook can hold a house style and every report's own changes to
 #' it.  [tfl_read_table_spec()] narrows it to one report with `output_id =`.
 #'
-#' Explicit [tfl_ard_spread()] arguments win over the spec, and the spec wins
+#' Explicit [rtfreporter::spread_ard()] arguments win over the spec, and the spec wins
 #' over the defaults.
 #'
 #' Lists inside a cell are `|`-separated (`TR01AG1 | SEROSTAT`).  A column
@@ -418,7 +418,7 @@
 #'     (`label = AEDECOD`).  Blank keeps `.label`; `NA` builds it to tell
 #'     rows apart and then drops it; `NULL` leaves it out.}
 #'   \item{`stats`, `value`, `sep`, `sort_stat`, `na`}{As the
-#'     [tfl_ard_spread()] arguments of the same name.}
+#'     [rtfreporter::spread_ard()] arguments of the same name.}
 #'   \item{`sort`}{`TRUE`, `FALSE`, or the keys in order:
 #'     `.overall | group1 | .depth | -n | label`.}
 #'   \item{`header_n`}{Which population a `col_header` text's `{n}` is,
@@ -427,7 +427,7 @@
 #'     ARD rows without the page key).  Several at once name their
 #'     tokens: `n = page | N = table` gives `{n}` and `{N}`.  Blank: the
 #'     page's, with a warning when the ARD states both.  See
-#'     [tfl_plan_col_header()]'s `n`.}
+#'     [rtfreporter::plan_col_header()]'s `n`.}
 #' }
 #'
 #' @section `variables`:
@@ -459,23 +459,23 @@
 #' For a `stats = rows` table (one statistic per row, the raw value in the
 #' cell) a row with **no template** is instead that statistic's display
 #' format: `row` names the statistic as the label column prints it (`N`,
-#' `Mean`) and `digits` / `signif` say how many, as [fmt_numeric()] takes
+#' `Mean`) and `digits` / `signif` say how many, as [rtfreporter::fmt_numeric()] takes
 #' them (`fmt_numeric(by = <label column>, formats = )`).
 #'
 #' @section `layout`:
 #' One row per report, each column one argument of the plan verb its
 #' prefix names:
 #' \describe{
-#'   \item{`pages_*`}{[tfl_plan_paginate_rows()]: `max_rows`, `split`, `by`,
+#'   \item{`pages_*`}{[rtfreporter::plan_paginate_rows()]: `max_rows`, `split`, `by`,
 #'     `min_group_rows`, `cont_label`.}
-#'   \item{`group_*`}{`col`, `mode` and `collapse` of [tfl_plan_row_group()];
-#'     `group_page = TRUE` is [tfl_plan_paginate_group()], one page per value
+#'   \item{`group_*`}{`col`, `mode` and `collapse` of [rtfreporter::plan_row_group()];
+#'     `group_page = TRUE` is [rtfreporter::plan_paginate_group()], one page per value
 #'     of `group_col`, and `group_show = FALSE` hides that column.}
-#'   \item{`blank_*`}{[tfl_plan_blanks()]: `where`, `first`, `last`,
+#'   \item{`blank_*`}{[rtfreporter::plan_blanks()]: `where`, `first`, `last`,
 #'     `counted`.}
-#'   \item{`stub_*`}{[tfl_plan_stub()]: `vars`, `into`, `indent`, `summary`,
+#'   \item{`stub_*`}{[rtfreporter::plan_stub()]: `vars`, `into`, `indent`, `summary`,
 #'     `before`.}
-#'   \item{`colpages_*`}{[tfl_plan_paginate_cols()]: `every`, `at`, `carry`,
+#'   \item{`colpages_*`}{[rtfreporter::plan_paginate_cols()]: `every`, `at`, `carry`,
 #'     `order`.}
 #' }
 #'
@@ -488,7 +488,7 @@
 #'     when widths are given, every printed column needs one.}
 #'   \item{`row_title`}{`TRUE` for a row-heading column.}
 #'   \item{`decimal_split`}{`TRUE` to line up the decimal points
-#'     ([set_decimal_split()]).}
+#'     ([rtfreporter::set_decimal_split()]).}
 #'   \item{`hide`}{`TRUE` to use the column without printing it.}
 #' }
 #'
@@ -496,7 +496,7 @@
 #' One row per report: `border`, `align_count_pct`, `auto_width`,
 #' `row_height_twips`, `header_row_height_twips`,
 #' `blank_row_height_twips`, `font`, `font_size_half_points`,
-#' `table_align`, `cell_valign`, as [rtftable()] / [as_rtftables()] take
+#' `table_align`, `cell_valign`, as [rtfreporter::rtftable()] / [rtfreporter::as_rtftables()] take
 #' them.
 #'
 #' Values are checked where they are written: a number, `TRUE` / `FALSE`
@@ -515,17 +515,17 @@
 #'     per column.  A column key (`TR01AG1`): one cell per value of that
 #'     key, over its columns --- an arm's spanner, however many arms.}
 #'   \item{`text`}{The label.  A line break is Alt+Enter or `\\n`.  The
-#'     tokens of [tfl_plan_col_header()] work: `{col}` (the column's own
+#'     tokens of [rtfreporter::plan_col_header()] work: `{col}` (the column's own
 #'     value), `{col1}`, `{col2}` (its keys, outermost first), `{n}` (the
 #'     population of what the cell stands for: its column, or over an
 #'     arm's spanner the arm), `{n1}`, `{n2}` (the population at that
 #'     depth of the keys) and `{n:sum}` (the total over the cell's
 #'     columns).  `{n}` is read from the ARD whenever a text uses it; a
 #'     number the ARD does not state prints `NA` with a warning, and
-#'     `tfl_plan_col_header(n = )` after `tfl_table_plan()` supplies it.
+#'     `plan_col_header(n = )` after `tfl_table_plan()` supplies it.
 #'     Quote a text to keep leading spaces: `"  Category"`.}
 #'   \item{`align`, `bold`, `border_top`, `border_bottom`}{As
-#'     [col_cell()] / [rtf_border()] take them (`single`, `none`, ...).}
+#'     [rtfreporter::col_cell()] / [rtfreporter::rtf_border()] take them (`single`, `none`, ...).}
 #' }
 #'
 #' @section Reserved for the rest of the report:
@@ -547,7 +547,7 @@
 #'   frames.
 #'
 #' @section Lifecycle:
-#' **Experimental.**  See [tflspec-ard].
+#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_read_table_spec()], [tfl_write_table_spec()], [tfl_table_spec_template()]
 #' @export
@@ -749,9 +749,9 @@ print.tfl_table_spec <- function(x, ...) {
   v
 }
 
-# The table-wide arguments one `tables` row supplies, as tfl_ard_spread() takes
+# The table-wide arguments one `tables` row supplies, as spread_ard() takes
 # them.  Only what the row says is returned: an argument it leaves blank
-# keeps tfl_ard_spread()'s own default.
+# keeps spread_ard()'s own default.
 .ard_spec_table_args <- function(sp) {
   out <- list()
   r <- .ard_spec_study_value(sp, "rounding")
@@ -865,7 +865,7 @@ print.tfl_table_spec <- function(x, ...) {
   eval(call("~", cond, tpl), baseenv())
 }
 
-# The `cells` sheet as tfl_ard_spread()'s `cells` map.  Rows sharing variable /
+# The `cells` sheet as spread_ard()'s `cells` map.  Rows sharing variable /
 # context / row are one chain, in sheet order; the map key is the variable,
 # the context, both (a variable summarised two ways), or `default`.
 .ard_spec_cells <- function(sp) {
@@ -893,7 +893,7 @@ print.tfl_table_spec <- function(x, ...) {
     })
     guarded <- any(vapply(chains, is.list, NA))
     out[[k]] <- if (identical(labs, "")) chains[[1L]]
-                else if (guarded) do.call(tfl_ard_cells, stats::setNames(chains, labs))
+                else if (guarded) do.call(cell_rows, stats::setNames(chains, labs))
                 else stats::setNames(chains, labs)
   }
   out
@@ -973,14 +973,14 @@ print.tfl_table_spec <- function(x, ...) {
 #' @param output_id The report to narrow the workbook to.  Rows with a blank
 #'   `output_id` are the study's defaults and stay; a row naming this
 #'   report replaces the default with the same key.  `NULL` (default)
-#'   reads the whole workbook; what needs one report --- [tfl_plan()],
+#'   reads the whole workbook; what needs one report --- [rtfreporter::table_plan()],
 #'   [tfl_report()] --- then takes a workbook of one report as it is and
 #'   asks which of several.
 #'
 #' @return An [tfl_table_spec()].
 #'
 #' @section Lifecycle:
-#' **Experimental.**  See [tflspec-ard].
+#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_table_spec()], [tfl_write_table_spec()]
 #' @export
@@ -1036,7 +1036,7 @@ tfl_read_table_spec <- function(path, output_id = NULL) {
   sp <- .ard_spec_from_sheets(sheets, paste(basename(path), collapse = " + "))
   # the whole study, unless one report is asked for: a workbook is edited,
   # combined and compared whole, and whatever needs ONE report
-  # (tfl_plan(), tfl_report(), tfl_report_path()) narrows it and says so
+  # (table_plan(), tfl_report(), tfl_report_path()) narrows it and says so
   if (is.null(output_id)) sp else .ard_spec_scope(sp, output_id)
 }
 
@@ -1050,7 +1050,7 @@ tfl_read_table_spec <- function(path, output_id = NULL) {
 #' @return `path`, invisibly.
 #'
 #' @section Lifecycle:
-#' **Experimental.**  See [tflspec-ard].
+#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_table_spec()], [tfl_read_table_spec()]
 #' @export
@@ -1097,13 +1097,13 @@ tfl_write_table_spec <- function(spec, path) {
 #' @return An [tfl_table_spec()], invisibly when `path` is given.
 #'
 #' @section Lifecycle:
-#' **Experimental.**  See [tflspec-ard].
+#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
 #'
-#' @seealso [tfl_table_spec()], [tfl_ard_template()]
+#' @seealso [tfl_table_spec()], `plan_template(form = "spread")`
 #' @export
 tfl_table_spec_template <- function(ard, path = NULL, cols = NULL,
                               output_id = NULL) {
-  d <- tfl_ard_normalize(ard, drop_key_variables = FALSE)
+  d <- rtfreporter::normalize_ard(ard, drop_key_variables = FALSE)
   if (".key_own" %in% names(d)) d <- d[!(d$.key_own %in% TRUE), , drop = FALSE]
   vars <- .ard_first_seen(d$variable)
   id <- if (is.null(output_id)) NA_character_ else output_id
@@ -1217,7 +1217,7 @@ tfl_table_spec_template <- function(ard, path = NULL, cols = NULL,
 #' run-information line 99 in the default footer
 #' (`{PROGRAM}      Generated on: {DATETIME}`) closes every report's
 #' footnotes.  A line with no text is a blank line.  The page tokens
-#' (`{PAGE}`, `{TOTAL_PAGES}`, ...) and the run tokens ([generate_rtfreport()])
+#' (`{PAGE}`, `{TOTAL_PAGES}`, ...) and the run tokens ([rtfreporter::generate_rtfreport()])
 #' work in every cell.
 #'
 #' The sheets may be in **one workbook or several** --- a `report.xlsx` a
@@ -1235,7 +1235,7 @@ tfl_table_spec_template <- function(ard, path = NULL, cols = NULL,
 #' `type` (`table`, `listing`, `figure`; default `table`), `file` (default
 #' `{output_id}.rtf`), `program` (default `{output_id}`, joined to
 #' `study$program_dir` for `{PROGRAM}`), `auto_section`, `section_align`,
-#' `auto_title`, `title_align` (as [rtf_tables()] takes them), and
+#' `auto_title`, `title_align` (as [rtfreporter::rtf_tables()] takes them), and
 #' `table_font_size`, `title_font_size`, `footnote_font_size` (half-points),
 #' and `page_header` / `page_footer` (`FALSE` drops that running band for
 #' the report, the study's default lines included).
@@ -1243,12 +1243,12 @@ tfl_table_spec_template <- function(ard, path = NULL, cols = NULL,
 #' @section `page`:
 #' `paper_size`, `orientation`, `width_in`, `height_in`, `margin_top_in`,
 #' `margin_bottom_in`, `margin_left_in`, `margin_right_in`,
-#' `header_dist_in`, `footer_dist_in` (the page, as [rtf_document()] takes
+#' `header_dist_in`, `footer_dist_in` (the page, as [rtfreporter::rtf_document()] takes
 #' it), and `font_size_half_points`, `title_format`, `footnote_format`,
-#' `title_width`, `footnote_width`, `markup` ([rtf_default_format()]).
+#' `title_width`, `footnote_width`, `markup` ([rtfreporter::rtf_default_format()]).
 #'
 #' @section Lifecycle:
-#' **Experimental.**  See [tflspec-ard].
+#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_report()], [tfl_report_path()], [tfl_read_table_spec()]
 #' @export
@@ -1260,32 +1260,33 @@ tfl_read_report_spec <- function(path, output_id = NULL) {
 #'
 #' `tfl_report()` is the document half of a report definition: the page,
 #' the running header and footer, the titles and footnotes, and the
-#' table's pages --- an [tfl_plan()] or anything [rtf_tables()] takes ---
-#' in one [rtf_document()] ready for [generate_rtfreport()].  The document
+#' table's pages --- an [rtfreporter::table_plan()] or anything [rtfreporter::rtf_tables()] takes ---
+#' in one [rtfreporter::rtf_document()] ready for [rtfreporter::generate_rtfreport()].  The document
 #' carries its program, so `{PROGRAM}` needs nothing more.
 #'
 #' ```r
 #' spec <- tfl_read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = id)
-#' plan <- ard |> tfl_ard_normalize() |> tfl_table_plan(spec)
+#' plan <- ard |> normalize_ard() |> tfl_table_plan(spec)
 #' generate_rtfreport(tfl_report(spec, plan), tfl_report_path(spec),
 #'                    overwrite = TRUE)
 #' ```
 #'
 #' @param spec A report definition ([tfl_read_report_spec()]) narrowed to one
 #'   report, or the path(s) to read it from.
-#' @param content The report's content: an [tfl_plan()] or `rtftable`
+#' @param content The report's content: an [rtfreporter::table_plan()] or `rtftable`
 #'   pages for a table or listing, figures for a `type = figure` report.
 #' @param output_id The report, when `spec` is a path or still defines
 #'   several.
 #'
-#' @return An [rtf_document()].
+#' @return An [rtfreporter::rtf_document()].
 #'
 #' @section Lifecycle:
-#' **Experimental.**  See [tflspec-ard].
+#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_read_report_spec()], [tfl_report_path()]
 #' @export
 tfl_report <- function(spec, content, output_id = NULL) {
+  .spec_need_rtfreporter()
   sp <- .ard_spec_scope(if (is.character(spec))
                           tfl_read_report_spec(spec, output_id)
                         else tfl_table_spec(spec), output_id)
@@ -1302,13 +1303,13 @@ tfl_report <- function(spec, content, output_id = NULL) {
 #' Where a report's RTF file goes
 #'
 #' `file.path(study$output_path, report$file)`, with `{output_id}` filled:
-#' the path [generate_rtfreport()] writes to.
+#' the path [rtfreporter::generate_rtfreport()] writes to.
 #'
 #' @inheritParams tfl_report
 #' @return A single path.
 #'
 #' @section Lifecycle:
-#' **Experimental.**  See [tflspec-ard].
+#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_report()]
 #' @export
@@ -1324,7 +1325,7 @@ tfl_report_path <- function(spec, output_id = NULL) {
 #' Write a plan as a table definition workbook
 #'
 #' @description
-#' `tfl_as_table_spec()` turns an [tfl_plan()] --- typically one a report
+#' `tfl_as_table_spec()` turns an [rtfreporter::table_plan()] --- typically one a report
 #' already has as code --- into a [tfl_table_spec()], the definition
 #' [tfl_write_table_spec()] writes as an Excel workbook.  It is how an existing
 #' report becomes the **template for a new study**: write the workbook,
@@ -1340,14 +1341,14 @@ tfl_report_path <- function(spec, output_id = NULL) {
 #' one spanner per arm into `span = <key>`, so the header keeps up with a
 #' study that has a different number of arms or time points.
 #'
-#' What a workbook cannot say is **listed, not dropped**: a `tfl_plan_after()`
+#' What a workbook cannot say is **listed, not dropped**: a `plan_after()`
 #' step (except `set_decimal_split()`, which becomes
 #' `columns$decimal_split` on the value columns), a guarded label, a
-#' column-scoped `labels` entry, `tfl_plan_cell_style()`, a literal `n`.  The
+#' column-scoped `labels` entry, `plan_cell_style()`, a literal `n`.  The
 #' result is then run back through `tfl_table_plan()` on the plan's data,
 #' and whether it gives **the same pages** is reported.
 #'
-#' @param x An [tfl_plan()], a **named list** of them (the names are the
+#' @param x An [rtfreporter::table_plan()], a **named list** of them (the names are the
 #'   output ids; one workbook for the study), or anything [tfl_table_spec()]
 #'   takes.
 #' @param output_id The report the rows belong to.  `NULL` writes them as
@@ -1360,22 +1361,23 @@ tfl_report_path <- function(spec, output_id = NULL) {
 #'   `NA` when not checked).
 #'
 #' @section Lifecycle:
-#' **Spike.**  See [tfl_plan()].
+#' **Spike.**  See [rtfreporter::table_plan()].
 #'
 #' @examples
 #' \dontrun{
-#' p <- ard |> tfl_ard_normalize() |> tfl_plan(cols = "TRT01P") |> ...
+#' p <- ard |> normalize_ard() |> table_plan(cols = "TRT01P") |> ...
 #' tfl_as_table_spec(p, output_id = "T14-1-1") |> tfl_write_table_spec("study.xlsx")
 #'
 #' # a whole study at once
 #' tfl_as_table_spec(list(DM = p_dm, AE = p_ae)) |> tfl_write_table_spec("study.xlsx")
 #' }
-#' @seealso [tfl_table_spec()], [tfl_write_table_spec()], [tfl_plan()]
+#' @seealso [tfl_table_spec()], [tfl_write_table_spec()], [rtfreporter::table_plan()]
 #' @export
 tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
+  .spec_need_rtfreporter()
   if (inherits(x, "tfl_table_spec")) return(x)
-  if (is.list(x) && !inherits(x, "tfl_plan") && length(x) &&
-      all(vapply(x, inherits, NA, "tfl_plan"))) {
+  if (is.list(x) && !inherits(x, "table_plan") && length(x) &&
+      all(vapply(x, inherits, NA, "table_plan"))) {
     ids <- names(x)
     if (is.null(ids) || any(!nzchar(ids)) || anyDuplicated(ids)) {
       .ard_stop(paste0("A list of plans needs unique names: they are the ",
@@ -1401,7 +1403,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
       vapply(parts, function(s) attr(s, "same_pages") %||% NA, NA), ids)
     return(sp)
   }
-  if (!inherits(x, "tfl_plan")) return(tfl_table_spec(x))
+  if (!inherits(x, "table_plan")) return(tfl_table_spec(x))
   .plan_to_spec(x, output_id, check)
 }
 
@@ -1416,7 +1418,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
 #  a positional list that no name reproduces -- is named, not dropped in
 #  silence, and the workbook is run back through tfl_table_plan() against
 #  the plan's own data to say whether it gives the same pages.  All of it
-#  is read through tfl_plan_layers() and tfl_apply_plan(): nothing here
+#  is read through plan_layers() and plan_apply(): nothing here
 #  looks inside a plan.
 .plan_to_spec <- function(p, output_id, check) {
   id <- if (is.null(output_id)) NA_character_ else output_id
@@ -1427,17 +1429,17 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   bar <- function(x) paste(x, collapse = " | ")
 
   # everything is read from what the plan resolves to and from
-  # tfl_plan_layers(): never from the plan's own fields
-  a <- suppressMessages(tfl_apply_plan(p, "args"))
+  # plan_layers(): never from the plan's own fields
+  a <- suppressMessages(rtfreporter::plan_apply(p, "args"))
   s <- a$spread
-  L <- suppressMessages(tfl_plan_layers(p))
+  L <- suppressMessages(rtfreporter::plan_layers(p))
   pages <- L$pages
   pnames <- L$columns$names
   spread <- L$columns$spread
   ly <- L$layers
 
   for (r in intersect(c("variable", "stat_name", "stat"), names(L$roles))) {
-    miss("tfl_plan(%s = ): a column rename stays in code", r)
+    miss("table_plan(%s = ): a column rename stays in code", r)
   }
 
   # -- tables ---------------------------------------------------------------
@@ -1485,7 +1487,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
     plain <- vapply(lbl, function(v) is.character(v) && length(v) == 1L &&
                       is.null(names(v)), NA)
     if (any(!plain)) {
-      miss("labels: a column-scoped entry stays in code (tfl_plan_labels())")
+      miss("labels: a column-scoped entry stays in code (plan_labels())")
     }
     lbl <- unlist(lbl[plain])
   }
@@ -1521,12 +1523,12 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   fm <- ly$fmt
   if (length(fm)) {
     if (!identical(fm$by, L$label) || !is.list(fm$formats)) {
-      miss("tfl_plan_fmt(): only by = <label column> with formats = converts")
+      miss("plan_fmt(): only by = <label column> with formats = converts")
     } else {
       if (!is.null(fm$cols) && !identical(sort(as.character(
           if (is.numeric(fm$cols)) L$columns$page_names[fm$cols] else fm$cols)),
           sort(spread))) {
-        miss("tfl_plan_fmt(cols = ): taken as the value columns")
+        miss("plan_fmt(cols = ): taken as the value columns")
       }
       for (st in names(fm$formats)) {
         f <- fm$formats[[st]]
@@ -1535,7 +1537,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
           if (!is.null(f$signif)) as.character(f$signif) else NA)
       }
       for (o in setdiff(names(fm), c("by", "formats", "cols"))) {
-        miss("tfl_plan_fmt(%s = ) stays in code", o)
+        miss("plan_fmt(%s = ) stays in code", o)
       }
     }
   }
@@ -1563,7 +1565,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   b <- ly$blanks
   if (!is.null(b$blank_rows) && !(is.character(b$blank_rows) &&
                                    length(b$blank_rows) == 1L)) {
-    miss("tfl_plan_blanks(where = ): only a named rule (\"between_groups\") converts")
+    miss("plan_blanks(where = ): only a named rule (\"between_groups\") converts")
   } else put("blank_where", b$blank_rows)
   put("blank_first", b$blank_row_first); put("blank_last", b$blank_row_end)
   put("blank_counted", b$count_blank_rows)
@@ -1571,13 +1573,13 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   put("pages_max_rows", pg$max_rows); put("pages_split", pg$split)
   put("pages_by", pg$page_by); put("pages_min_group_rows", pg$min_group_rows)
   put("pages_cont_label", pg$cont_label)
-  if (!is.null(pg$split_rows)) miss("tfl_plan_paginate_rows(break_before = ) stays in code")
+  if (!is.null(pg$split_rows)) miss("plan_paginate_rows(break_before = ) stays in code")
   cp <- ly$colpages
   put("colpages_every", cp$every); put("colpages_at", cp$at)
   put("colpages_carry", cp$carry); put("colpages_order", cp$page_order)
   for (o in intersect(c("cols", "by", "col_header", "width",
                         "allow_span_break"), names(cp))) {
-    miss("tfl_plan_paginate_cols(%s = ) stays in code", o)
+    miss("plan_paginate_cols(%s = ) stays in code", o)
   }
   layout <- if (length(lay) > 1L) as.data.frame(lay, stringsAsFactors = FALSE)
 
@@ -1590,22 +1592,26 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
     if (nm %in% names(.ard_spec_types$style)) {
       style[[nm]] <- if (is.logical(v)) as.character(v) else as.character(v)
     } else {
-      miss("tfl_plan_style(%s = ) stays in code", nm)
+      miss("plan_style(%s = ) stays in code", nm)
     }
   }
-  if ("styles" %in% L$declared) miss("tfl_plan_cell_style() stays in code")
+  if ("styles" %in% L$declared) miss("plan_cell_style() stays in code")
   for (l in ly$restyle) {
-    miss("%s() stays in code", switch(l$fun, style_header = "tfl_plan_header_style",
-                                      style_cols = "tfl_plan_col_style",
-                                      "tfl_plan_zone_style"))
+    miss("%s() stays in code", switch(l$fun, style_header = "plan_header_style",
+                                      style_cols = "plan_col_style",
+                                      "plan_zone_style"))
   }
   style <- if (length(style) > 1L) as.data.frame(style, stringsAsFactors = FALSE)
 
   colw <- rep(NA_real_, length(pnames)); names(colw) <- pnames
   w <- L$columns$widths
-  if (!is.null(sty$col_rel_width) && length(w) == length(pnames)) colw[] <- w
   sc <- ly$columns
-  if (length(sc$widths)) {
+  # widths one a column in order: plan_columns(widths = ) without names
+  # (formerly plan_style(widths = )), read back from the pages
+  positional <- !is.null(sty$col_rel_width) ||
+    (length(sc$widths) && is.null(names(sc$widths)))
+  if (positional && length(w) == length(pnames)) colw[] <- w
+  if (length(sc$widths) && !is.null(names(sc$widths))) {
     for (k in names(sc$widths)) {
       if (identical(k, ".values")) colw[spread] <- sc$widths[[k]]
       else if (k %in% pnames) colw[[k]] <- sc$widths[[k]]
@@ -1621,9 +1627,9 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
     for (f in l$steps) {
       if (any(grepl("set_decimal_split", deparse(f), fixed = TRUE))) {
         dec <- c(dec, ".values")
-        miss("tfl_plan_after(set_decimal_split()): taken as the value columns")
+        miss("plan_after(set_decimal_split()): taken as the value columns")
       } else {
-        miss("a tfl_plan_after() step stays in code")
+        miss("a plan_after() step stays in code")
       }
     }
   }
@@ -1657,7 +1663,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
                                    stringsAsFactors = FALSE), hc)
   }
   if (identical(H$source, "resolved") && isTRUE(H$literal_n)) {
-    miss("tfl_plan_col_header(n = ): a literal N stays in code (use {n})")
+    miss("plan_col_header(n = ): a literal N stays in code (use {n})")
   }
   tables$header_n <- H$n_text %||% NA_character_
 
@@ -1667,7 +1673,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
 
   same <- NA
   if (isTRUE(check)) {
-    back <- tryCatch(suppressMessages(tfl_apply_plan(
+    back <- tryCatch(suppressMessages(rtfreporter::plan_apply(
       tfl_table_plan(L$data, sp, notes = FALSE), "pages")),
       error = function(e) e)
     same <- !inherits(back, "error") && isTRUE(all.equal(back, pages))

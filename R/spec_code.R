@@ -3,7 +3,7 @@
 # ----------------------------------------------------------------------------
 #  tfl_table_plan() and tfl_report() turn a definition workbook into an
 #  object.  tfl_table_code() and tfl_report_code() write the same thing as
-#  a program: the tfl_plan_*() verbs (tables) and the rtfreporter calls
+#  a program: the plan_*() verbs (tables) and the rtfreporter calls
 #  (reports) the workbook stands for.
 #
 #  Both halves come from ONE list of steps, so the object and the program
@@ -24,10 +24,28 @@
 # a name in the program (`doc`, `plan`): its value comes from `env` when run
 .spec_sym <- function(name) structure(list(name = name), class = "tfl_spec_sym")
 
+# A function a step names: tflspec's own, else rtfreporter's (the plan
+# verbs, rtf_document() and friends).
+.spec_fun <- function(name) {
+  if (exists(name, envir = asNamespace("tflspec"), inherits = FALSE)) {
+    return(get(name, envir = asNamespace("tflspec"), mode = "function"))
+  }
+  .spec_need_rtfreporter()
+  get(name, envir = asNamespace("rtfreporter"), mode = "function")
+}
+
+.spec_need_rtfreporter <- function() {
+  if (!requireNamespace("rtfreporter", quietly = TRUE)) {
+    .ard_stop(paste0("This needs the rtfreporter package (the table engine ",
+                     "and the RTF renderer): install it, and library(rtfreporter) ",
+                     "for the code tflspec writes."))
+  }
+}
+
 .spec_eval <- function(x, env) {
   if (inherits(x, "tfl_spec_sym")) return(get(x$name, envir = env))
   if (inherits(x, "tfl_spec_call")) {
-    f <- get(x$fun, envir = asNamespace("tflspec"), mode = "function")
+    f <- .spec_fun(x$fun)
     return(do.call(f, lapply(x$args, .spec_eval, env = env)))
   }
   if (is.list(x) && !is.object(x)) {
@@ -68,9 +86,9 @@
   if (inherits(x, "tfl_spec_call")) {
     return(list(open = x$fun, items = x$args, names = nm(x$args)))
   }
-  if (inherits(x, "tfl_ard_cells")) {
+  if (inherits(x, "cell_rows")) {
     v <- unclass(x)
-    return(list(open = "tfl_ard_cells", items = v, names = nm(v)))
+    return(list(open = "cell_rows", items = v, names = nm(v)))
   }
   if (is.data.frame(x)) {
     v <- c(as.list(x), list(check.names = FALSE))
@@ -111,7 +129,7 @@
 
 # ---- tables ----------------------------------------------------------------
 
-# The roles a table definition gives tfl_plan() (its `tables` sheet).
+# The roles a table definition gives table_plan() (its `tables` sheet).
 .plan_spec_roles <- function(sp) {
   sa <- .ard_spec_table_args(sp)
   sa[intersect(c("cols", "rows", "label", "stats", "sep", "value", "na",
@@ -143,14 +161,14 @@
   st <- list()
   add <- function(fun, ...) st[[length(st) + 1L]] <<- .spec_call(fun, ...)
   sa <- .ard_spec_table_args(sp)
-  if (!is.null(sa[["sort"]])) add("tfl_plan_sort", sa[["sort"]])
-  if (!is.null(sa[["rounding"]])) add("tfl_plan_digits", rounding = sa[["rounding"]])
+  if (!is.null(sa[["sort"]])) add("plan_sort", sa[["sort"]])
+  if (!is.null(sa[["rounding"]])) add("plan_digits", rounding = sa[["rounding"]])
   lv <- .ard_spec_levels(sp)
-  if (length(lv)) do.call(add, c(list("tfl_plan_levels"), as.list(lv)))
+  if (length(lv)) do.call(add, c(list("plan_levels"), as.list(lv)))
   lb <- .ard_spec_labels(sp)
-  if (length(lb)) do.call(add, c(list("tfl_plan_labels"), as.list(lb)))
+  if (length(lb)) do.call(add, c(list("plan_labels"), as.list(lb)))
   cm <- .ard_spec_cells(sp)
-  if (length(cm)) do.call(add, c(list("tfl_plan_cells"), cm))
+  if (length(cm)) do.call(add, c(list("plan_cells"), cm))
 
   # rows with no template: the display format of one statistic, for a
   # table that lays the statistics out as rows
@@ -178,7 +196,7 @@
       if (!is.na(f$signif[i])) list(signif = as.integer(f$signif[i]))
       else list(digits = as.integer(f$digits[i]))
     })
-    add("tfl_plan_fmt", by = .spec_label_name(roles),
+    add("plan_fmt", by = .spec_label_name(roles),
         formats = stats::setNames(fm, f$row))
   }
 
@@ -194,26 +212,26 @@
   }
   a <- pick("stub_", c(vars = "vars", into = "into", indent = "indent",
                        summary = "group_summary", before = "before"))
-  if (length(a)) do.call(add, c(list("tfl_plan_stub"), a))
+  if (length(a)) do.call(add, c(list("plan_stub"), a))
   if (isTRUE(lay[["group_page"]])) {
-    add("tfl_plan_paginate_group", col = lay[["group_col"]],
+    add("plan_paginate_group", col = lay[["group_col"]],
         show = !identical(lay[["group_show"]], FALSE))
   }
   a <- pick("group_", c(mode = "mode", collapse = "collapse"))
   if (length(a) || (!is.null(lay[["group_col"]]) && !isTRUE(lay[["group_page"]]))) {
     a$col <- lay[["group_col"]]
-    do.call(add, c(list("tfl_plan_row_group"), a))
+    do.call(add, c(list("plan_row_group"), a))
   }
   a <- pick("blank_", c(where = "where", first = "first", last = "last",
                         counted = "counted"))
-  if (length(a)) do.call(add, c(list("tfl_plan_blanks"), a))
+  if (length(a)) do.call(add, c(list("plan_blanks"), a))
   a <- pick("pages_", c(max_rows = "max_rows", split = "split", by = "by",
                         min_group_rows = "min_group_rows",
                         cont_label = "cont_label"))
-  if (length(a)) do.call(add, c(list("tfl_plan_paginate_rows"), a))
+  if (length(a)) do.call(add, c(list("plan_paginate_rows"), a))
   a <- pick("colpages_", c(every = "every", at = "at", carry = "carry",
                            order = "order"))
-  if (length(a)) do.call(add, c(list("tfl_plan_paginate_cols"), a))
+  if (length(a)) do.call(add, c(list("plan_paginate_cols"), a))
 
   sty <- if (nrow(sp$style)) .ard_spec_typed(sp$style[1L, ], "style")
          else list()
@@ -222,20 +240,20 @@
     .ard_spec_typed(cl[i, , drop = FALSE], "columns"))
   flag <- function(k) vapply(ct, function(r) isTRUE(r[[k]]), NA)
   if (any(flag("row_title"))) sty$row_title <- cl$column[flag("row_title")]
-  if (length(sty)) do.call(add, c(list("tfl_plan_style"), sty))
-  if (any(flag("hide"))) add("tfl_plan_hide", cl$column[flag("hide")])
+  if (length(sty)) do.call(add, c(list("plan_style"), sty))
+  if (any(flag("hide"))) add("plan_hide", cl$column[flag("hide")])
   hd <- sp$col_header
   if (nrow(hd)) {
     cells <- hd[setdiff(names(hd), "output_id")]
     keep <- vapply(cells, function(v) any(!is.na(v)), NA)
     cells <- cells[keep]
     rownames(cells) <- NULL
-    add("tfl_plan_col_header", header = cells,
+    add("plan_col_header", header = cells,
         n = .ard_spec_table_args(sp)[["header_n"]])
   }
   w <- vapply(ct, function(r) r[["width"]] %||% NA_real_, NA_real_)
   if (any(!is.na(w)) || any(flag("decimal_split"))) {
-    add("tfl_plan_columns",
+    add("plan_columns",
         widths = if (any(!is.na(w)))
           stats::setNames(w[!is.na(w)], cl$column[!is.na(w)]),
         decimal = if (any(flag("decimal_split"))) cl$column[flag("decimal_split")])
@@ -245,8 +263,8 @@
 
 #' The code of a table's plan, from its definition
 #'
-#' Writes the [tfl_plan()] pipeline a table definition stands for: the
-#' roles of its `tables` sheet in `tfl_plan()`, and one `tfl_plan_*()` verb
+#' Writes the [rtfreporter::table_plan()] pipeline a table definition stands for: the
+#' roles of its `tables` sheet in `table_plan()`, and one `plan_*()` verb
 #' for each thing the other sheets say -- the same verbs, with the same
 #' values, that `tfl_table_plan(data, spec)` applies.  The program then no
 #' longer reads the workbook, and what the workbook cannot say (a cell style,
@@ -259,7 +277,7 @@
 #' @param data The name of the normalized ARD in the program.
 #' @param plan The name the plan is assigned to.
 #' @param pipe `"|>"` or `"%>%"`; `NULL` follows
-#'   `getOption("tflspec.ard_pipe")` (see [tfl_plan_template()]).
+#'   `getOption("rtfreporter.ard_pipe")` (see [rtfreporter::plan_template()]).
 #' @return The code, one element per line.
 #' @seealso [tfl_report_code()] for the report around it.
 #' @examples
@@ -274,7 +292,7 @@ tfl_table_code <- function(spec, output_id = NULL, data = "data",
                         else tfl_table_spec(spec), output_id)
   roles <- .plan_spec_roles(sp)
   op <- .ard_pipe_op(pipe)
-  head <- do.call(.spec_call, c(list("tfl_plan", .spec_sym(data)), roles))
+  head <- do.call(.spec_call, c(list("table_plan", .spec_sym(data)), roles))
   steps <- .plan_spec_steps(roles, sp)
   lines <- c(.spec_call_code(head, 0L),
              vapply(steps, function(s) paste0("  ", .spec_call_code(s)), ""))
@@ -285,31 +303,32 @@ tfl_table_code <- function(spec, output_id = NULL, data = "data",
 
 #' A table's plan from its definition
 #'
-#' Builds the [tfl_plan()] a table definition stands for: the roles of its
-#' `tables` sheet go into `tfl_plan()`, and the other sheets become the
+#' Builds the [rtfreporter::table_plan()] a table definition stands for: the roles of its
+#' `tables` sheet go into `table_plan()`, and the other sheets become the
 #' plan's first layers through the same verbs [tfl_table_code()] writes ---
 #' so a verb written afterwards still wins, which is how one report departs
-#' from the study's workbook in a line of code.  Like `tfl_plan()`, the data
+#' from the study's workbook in a line of code.  Like `table_plan()`, the data
 #' comes first, so it pipes.
 #'
-#' @param data The normalized ARD, as [tfl_plan()] takes it.
+#' @param data The normalized ARD, as [rtfreporter::table_plan()] takes it.
 #' @param spec A table definition ([tfl_read_table_spec()],
 #'   [tfl_table_spec()]), or the path(s) of its workbook(s).
 #' @param output_id The table, when the definition has several.
-#' @param ... Passed to [tfl_plan()]: a role given here (`cols`, `rows`,
+#' @param ... Passed to [rtfreporter::table_plan()]: a role given here (`cols`, `rows`,
 #'   `label`, `stats`, `sep`, `value`, `na`, `sort_stat`) wins over the
 #'   workbook's; `notes` as there.
-#' @return An [tfl_plan()].
+#' @return An [rtfreporter::table_plan()].
 #' @seealso [tfl_table_code()], the same steps as code; [tfl_as_table_spec()],
 #'   the other way round.
 #' @examples
 #' \dontrun{
 #' spec <- tfl_read_table_spec("study.xlsx", output_id = "DM")
-#' plan <- ard |> tfl_ard_normalize() |> tfl_table_plan(spec)
-#' plan |> tfl_plan_paginate_rows(max_rows = 40)   # this report's own change
+#' plan <- ard |> normalize_ard() |> tfl_table_plan(spec)
+#' plan |> plan_paginate_rows(max_rows = 40)   # this report's own change
 #' }
 #' @export
 tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
+  .spec_need_rtfreporter()
   sp <- .ard_spec_scope(if (is.character(spec))
                           tfl_read_table_spec(spec, output_id)
                         else tfl_table_spec(spec), output_id)
@@ -319,9 +338,9 @@ tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
                                   "value", "na", "sort_stat"))
   for (r in own) if (!is.null(dots[[r]])) roles[[r]] <- dots[[r]]
   dots[own] <- NULL
-  p <- do.call(tfl_plan, c(list(data), roles, dots))
+  p <- do.call(rtfreporter::table_plan, c(list(data), roles, dots))
   for (st in .plan_spec_steps(roles, sp)) {
-    f <- get(st$fun, envir = asNamespace("tflspec"), mode = "function")
+    f <- .spec_fun(st$fun)
     p <- do.call(f, c(list(p), lapply(st$args, .spec_eval, env = emptyenv())))
   }
   p

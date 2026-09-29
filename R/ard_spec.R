@@ -584,7 +584,7 @@ tfl_build_ard <- function(spec, dir = ".", output_id = NULL, save = TRUE,
 #'
 #' @param ard The study ARD ([tfl_build_ard()]).
 #' @param output_id The output.
-#' @return Its rows, without the id columns: what [tfl_ard_normalize()]
+#' @return Its rows, without the id columns: what [rtfreporter::normalize_ard()]
 #'   takes.
 #' @export
 tfl_ard_for <- function(ard, output_id) {

@@ -15,7 +15,7 @@ so it is an Excel workbook and nothing else.}
 \item{output_id}{The report to narrow the workbook to.  Rows with a blank
 \code{output_id} are the study's defaults and stay; a row naming this
 report replaces the default with the same key.  \code{NULL} (default)
-reads the whole workbook; what needs one report --- \code{\link[=tfl_plan]{tfl_plan()}},
+reads the whole workbook; what needs one report --- \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}},
 \code{\link[=tfl_report]{tfl_report()}} --- then takes a workbook of one report as it is and
 asks which of several.}
 }
@@ -27,7 +27,7 @@ Read an ARD table definition from a workbook
 }
 \section{Lifecycle}{
 
-\strong{Experimental.}  See \link{tflspec-ard}.
+\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{

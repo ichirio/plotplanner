@@ -8,14 +8,14 @@ GUI on top.
 ```
 tflplanner   the GUI; installing it installs the other two
     |
-tflspec      for programmers: library(tflspec) also attaches rtfreporter
+tflspec      Excel / YAML specs -> objects and code (needs rtfreporter at run time)
     |
 rtfreporter  the RTF renderer; usable on its own
 ```
 
 | Part | What it does | Entry points |
 |---|---|---|
-| Tables (ARD) | a cards/cardx ARD -> a table data.frame -> rtfreporter pages, declared once as a plan or in an Excel table spec | `tfl_ard_normalize()`, `tfl_ard_spread()`, `tfl_plan()` + `tfl_plan_*()`, `tfl_table_spec()`, `tfl_table_plan()`, `tfl_read_report_spec()`, `tfl_report()` |
+| Tables | an Excel table spec -> a plan (rtfreporter's `table_plan()`), its pages, or the `table_plan() |> plan_*()` code; a plan back to a spec | `tfl_table_spec()`, `tfl_table_plan()`, `tfl_table_code()`, `tfl_as_table_spec()`, `tfl_read_report_spec()`, `tfl_report()` |
 | Listings | an Excel listing spec (sheets `listings`, `listing_cols`) -> the listing program, or its pages | `tfl_read_listing_spec()`, `tfl_listing_code()`, `tfl_listing()` |
 | Figures | an Excel plot spec -> a ggplot2 skeleton script | `tfl_fig_spec()`, `tfl_fig_code()`, `tfl_fig_km()`, `tfl_fig_waterfall()`, `tfl_fig_swimmer()` |
 
@@ -31,14 +31,15 @@ was tflspec. Discussion and sample code:
 ## Tables
 
 ```r
-library(tflspec)     # attaches rtfreporter too (Depends)
+library(rtfreporter)   # the table engine and the renderer
+library(tflspec)       # the specs
 
 tbl <- ard |>
-  tfl_ard_normalize() |>
-  tfl_plan(cols = "TRT01A", rows = c(group = "variable")) |>
-  tfl_plan_cells(continuous = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
+  normalize_ard() |>
+  table_plan(cols = "TRT01A", rows = c(group = "variable")) |>
+  plan_cells(continuous = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
              categorical = "{n} ({p:%})") |>
-  tfl_plan_digits(1)
+  plan_digits(1)
 
 doc <- rtf_document() |> rtf_tables(tbl)
 generate_rtfreport(doc, "t_dm.rtf")
@@ -52,7 +53,7 @@ spec <- tfl_read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = "DM")
 plan <- tfl_table_plan(data, spec)        # the plan, read from the workbook
 doc  <- tfl_report(spec, plan)             # the document around it
 
-tfl_table_code(spec)                       # or the program: tfl_plan() + tfl_plan_*()
+tfl_table_code(spec)                       # or the program: table_plan() + plan_*()
 tfl_report_code(spec, content = "plan")    #   and rtf_document() + rtf_*()
 ```
 

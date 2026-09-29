@@ -381,6 +381,7 @@ tfl_listing_code <- function(spec, output_id = NULL, datasets,
 #' length(pages)
 #' @export
 tfl_listing <- function(spec, data, output_id = NULL, type = "multiline") {
+  .spec_need_rtfreporter()
   x <- .listing_one(spec, output_id)
   l <- x$listing
   cols <- x$cols

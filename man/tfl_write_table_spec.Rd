@@ -21,7 +21,7 @@ Write an ARD table definition to a workbook
 }
 \section{Lifecycle}{
 
-\strong{Experimental.}  See \link{tflspec-ard}.
+\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{

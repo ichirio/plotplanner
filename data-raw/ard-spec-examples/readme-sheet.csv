@@ -32,12 +32,12 @@ cells,signif,有効桁（digits より優先）。,4
 cells,（template 空欄の行）,stats = rows の帳票だけ：統計量ごとの表示桁。row = 統計量名（ラベル列の値）、digits / signif を書く（fmt_numeric と同じ）。variable / context は空欄。,row = Mean / signif = 4
 (全体),（読み方）,ここまでの 4 シートで table data.frame、以下の 4 シート（layout / columns / style / col_header）で列ヘッダー付きの rtftable のページまで。tfl_table_plan(data; tfl_read_table_spec(path; output_id = )) で読む。後に書いた plan_*() が勝つ。,
 layout,,1 行 = 1 帳票。ページ・グループ・空行・スタブ。列名の接頭辞が対応する plan_*() を表す。,
-layout,pages_max_rows / pages_split / pages_by / pages_min_group_rows / pages_cont_label,tfl_plan_paginate_rows() の max_rows / split / by / min_group_rows / cont_label。先頭・末尾の空白を残すときは引用符で囲む。,"26 / group_force / "" (Cont.)"""
-layout,group_col / group_mode / group_collapse,tfl_plan_row_group() の col / mode / collapse。collapse は TRUE か列（名前・位置）の | 区切り。,value / 1 | 2
-layout,group_page / group_show,group_page = TRUE で group_col の値ごとに改ページ（tfl_plan_paginate_group）。group_show = FALSE でその列を表示しない。,TRUE / FALSE
-layout,blank_where / blank_first / blank_last / blank_counted,tfl_plan_blanks() の where / first / last / counted。,between_groups / TRUE
-layout,stub_vars / stub_into / stub_indent / stub_summary / stub_before,tfl_plan_stub() の vars / into / indent / group_summary / before。,row_label / TRUE
-layout,colpages_every / colpages_at / colpages_carry / colpages_order,tfl_plan_paginate_cols() の every / at / carry / order（列方向のページ分割）。,16 | 29 / 1 | 2
+layout,pages_max_rows / pages_split / pages_by / pages_min_group_rows / pages_cont_label,plan_paginate_rows() の max_rows / split / by / min_group_rows / cont_label。先頭・末尾の空白を残すときは引用符で囲む。,"26 / group_force / "" (Cont.)"""
+layout,group_col / group_mode / group_collapse,plan_row_group() の col / mode / collapse。collapse は TRUE か列（名前・位置）の | 区切り。,value / 1 | 2
+layout,group_page / group_show,group_page = TRUE で group_col の値ごとに改ページ（plan_paginate_group）。group_show = FALSE でその列を表示しない。,TRUE / FALSE
+layout,blank_where / blank_first / blank_last / blank_counted,plan_blanks() の where / first / last / counted。,between_groups / TRUE
+layout,stub_vars / stub_into / stub_indent / stub_summary / stub_before,plan_stub() の vars / into / indent / group_summary / before。,row_label / TRUE
+layout,colpages_every / colpages_at / colpages_carry / colpages_order,plan_paginate_cols() の every / at / carry / order（列方向のページ分割）。,16 | 29 / 1 | 2
 columns,,1 行 = 印字される列 1 つ。列は名前で指定（畳んだスタブは stub_into の名前）。.values = 展開された値の列すべて。,
 columns,column,列名、または .values。,row_label
 columns,width,相対幅。幅を書くなら印字される全列に必要（.values でまとめて指定できる）。,5
