@@ -1,5 +1,5 @@
 # The code a table / report definition stands for: what tfl_table_code() and
-# tfl_report_code() write must make what tfl_plan(spec = ) / tfl_report() make.
+# tfl_report_code() write must make what tfl_table_plan() / tfl_report() make.
 
 sc_ard <- function() {
   adsl <- cards::ADSL
@@ -52,7 +52,7 @@ test_that("tfl_table_code() writes the plan the definition makes", {
   expect_false(any(grepl("tfl_read_table_spec", code, fixed = TRUE)))
 
   by_code <- sc_run(code, d)
-  by_spec <- tfl_plan(d, spec = sp, notes = FALSE)
+  by_spec <- tfl_table_plan(d, sp, notes = FALSE)
   expect_equal(sc_pages(by_code), sc_pages(by_spec))
   expect_equal(sc_pages(by_code), sc_pages(sc_plan(d)))
 
@@ -90,7 +90,7 @@ test_that("a spanning header, widths by name and a hidden column go over too", {
   expect_true(any(grepl("tfl_plan_columns(", code, fixed = TRUE)))
   expect_true(any(grepl("tfl_plan_sort(TRUE)", code, fixed = TRUE)))
   expect_equal(sc_pages(sc_run(code, d)),
-               sc_pages(tfl_plan(d, spec = sp, notes = FALSE)))
+               sc_pages(tfl_table_plan(d, sp, notes = FALSE)))
 })
 
 test_that("the example workbooks write code that runs to the same plan", {
@@ -169,6 +169,6 @@ test_that("a table and its report, written out, make the report the objects make
   env <- new.env(parent = asNamespace("tflspec"))
   env$data <- d
   suppressMessages(eval(parse(text = code), env))
-  by_objects <- tfl_report(rsp, tfl_plan(d, spec = tsp, notes = FALSE))
+  by_objects <- tfl_report(rsp, tfl_table_plan(d, tsp, notes = FALSE))
   expect_identical(sc_render(env$doc), sc_render(by_objects))
 })

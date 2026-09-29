@@ -1,7 +1,7 @@
 # ============================================================================
 #  A table or report definition -> the R code that makes it
 # ----------------------------------------------------------------------------
-#  tfl_plan(spec = ) and tfl_report() turn a definition workbook into an
+#  tfl_table_plan() and tfl_report() turn a definition workbook into an
 #  object.  tfl_table_code() and tfl_report_code() write the same thing as
 #  a program: the tfl_plan_*() verbs (tables) and the rtfreporter calls
 #  (reports) the workbook stands for.
@@ -118,10 +118,28 @@
                  "sort_stat"), names(sa))]
 }
 
+# The label column's name the roles give, as the plan will call it: one
+# column is itself, several coalesce into `label` (or the name given).
+.spec_label_name <- function(roles) {
+  lb <- roles[["label"]]
+  if (is.null(lb)) return("label")
+  if (length(lb) == 1L && !is.list(lb) && is.na(lb)) return(character(0))
+  nm <- names(lb)
+  if (is.list(lb)) {
+    if (length(lb) == 1L && is.character(lb[[1L]]) && length(lb[[1L]]) >= 2L) {
+      return(if (is.null(nm) || !nzchar(nm[1L])) "label" else nm[1L])
+    }
+  } else if (is.character(lb) && length(lb) >= 2L) {
+    return(if (is.null(nm) || !any(nzchar(nm))) "label" else nm[nzchar(nm)][1L])
+  }
+  if (!is.null(nm) && nzchar(nm[1L])) nm[1L] else "label"
+}
+
 # The verbs a table definition stands for, in the order a report is built:
-# what tfl_plan(spec = ) runs, and what tfl_table_code() writes.  `p` is the
-# plan they will go on (its roles decide the label column's name).
-.plan_spec_steps <- function(p, sp) {
+# what tfl_table_plan() runs, and what tfl_table_code() writes.  `roles` are
+# the plan's (the workbook's, and any given in the call), which decide the
+# label column's name.
+.plan_spec_steps <- function(roles, sp) {
   st <- list()
   add <- function(fun, ...) st[[length(st) + 1L]] <<- .spec_call(fun, ...)
   sa <- .ard_spec_table_args(sp)
@@ -138,7 +156,7 @@
   # table that lays the statistics out as rows
   f <- sp$cells[is.na(sp$cells$template), , drop = FALSE]
   if (nrow(f)) {
-    if (!identical(p$roles$stats, "rows")) {
+    if (!identical(roles$stats, "rows")) {
       .ard_stop(paste0(
         "The `cells` sheet has rows with no `template` -- a statistic's ",
         "display format --
@@ -160,7 +178,7 @@
       if (!is.na(f$signif[i])) list(signif = as.integer(f$signif[i]))
       else list(digits = as.integer(f$digits[i]))
     })
-    add("tfl_plan_fmt", by = .plan_label_name(p),
+    add("tfl_plan_fmt", by = .spec_label_name(roles),
         formats = stats::setNames(fm, f$row))
   }
 
@@ -230,7 +248,7 @@
 #' Writes the [tfl_plan()] pipeline a table definition stands for: the
 #' roles of its `tables` sheet in `tfl_plan()`, and one `tfl_plan_*()` verb
 #' for each thing the other sheets say -- the same verbs, with the same
-#' values, that `tfl_plan(data, spec = )` applies.  The program then no
+#' values, that `tfl_table_plan(data, spec)` applies.  The program then no
 #' longer reads the workbook, and what the workbook cannot say (a cell style,
 #' a step after the pages are made) is written under it by hand.
 #' [tfl_as_table_spec()] goes the other way.
@@ -255,15 +273,58 @@ tfl_table_code <- function(spec, output_id = NULL, data = "data",
                           tfl_read_table_spec(spec, output_id)
                         else tfl_table_spec(spec), output_id)
   roles <- .plan_spec_roles(sp)
-  p <- structure(list(roles = roles), class = "tfl_plan")
   op <- .ard_pipe_op(pipe)
   head <- do.call(.spec_call, c(list("tfl_plan", .spec_sym(data)), roles))
-  steps <- .plan_spec_steps(p, sp)
+  steps <- .plan_spec_steps(roles, sp)
   lines <- c(.spec_call_code(head, 0L),
              vapply(steps, function(s) paste0("  ", .spec_call_code(s)), ""))
   lines[-length(lines)] <- paste(lines[-length(lines)], op)
   lines[1L] <- paste(plan, "<-", lines[1L])
   unlist(strsplit(lines, "\n", fixed = TRUE))
+}
+
+#' A table's plan from its definition
+#'
+#' Builds the [tfl_plan()] a table definition stands for: the roles of its
+#' `tables` sheet go into `tfl_plan()`, and the other sheets become the
+#' plan's first layers through the same verbs [tfl_table_code()] writes ---
+#' so a verb written afterwards still wins, which is how one report departs
+#' from the study's workbook in a line of code.  Like `tfl_plan()`, the data
+#' comes first, so it pipes.
+#'
+#' @param data The normalized ARD, as [tfl_plan()] takes it.
+#' @param spec A table definition ([tfl_read_table_spec()],
+#'   [tfl_table_spec()]), or the path(s) of its workbook(s).
+#' @param output_id The table, when the definition has several.
+#' @param ... Passed to [tfl_plan()]: a role given here (`cols`, `rows`,
+#'   `label`, `stats`, `sep`, `value`, `na`, `sort_stat`) wins over the
+#'   workbook's; `notes` as there.
+#' @return An [tfl_plan()].
+#' @seealso [tfl_table_code()], the same steps as code; [tfl_as_table_spec()],
+#'   the other way round.
+#' @examples
+#' \dontrun{
+#' spec <- tfl_read_table_spec("study.xlsx", output_id = "DM")
+#' plan <- ard |> tfl_ard_normalize() |> tfl_table_plan(spec)
+#' plan |> tfl_plan_paginate_rows(max_rows = 40)   # this report's own change
+#' }
+#' @export
+tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
+  sp <- .ard_spec_scope(if (is.character(spec))
+                          tfl_read_table_spec(spec, output_id)
+                        else tfl_table_spec(spec), output_id)
+  roles <- .plan_spec_roles(sp)
+  dots <- list(...)
+  own <- intersect(names(dots), c("cols", "rows", "label", "stats", "sep",
+                                  "value", "na", "sort_stat"))
+  for (r in own) if (!is.null(dots[[r]])) roles[[r]] <- dots[[r]]
+  dots[own] <- NULL
+  p <- do.call(tfl_plan, c(list(data), roles, dots))
+  for (st in .plan_spec_steps(roles, sp)) {
+    f <- get(st$fun, envir = asNamespace("tflspec"), mode = "function")
+    p <- do.call(f, c(list(p), lapply(st$args, .spec_eval, env = emptyenv())))
+  }
+  p
 }
 
 # ---- reports ---------------------------------------------------------------

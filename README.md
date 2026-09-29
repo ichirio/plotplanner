@@ -15,7 +15,7 @@ rtfreporter  the RTF renderer; usable on its own
 
 | Part | What it does | Entry points |
 |---|---|---|
-| Tables (ARD) | a cards/cardx ARD -> a table data.frame -> rtfreporter pages, declared once as a plan or in an Excel table spec | `tfl_ard_normalize()`, `tfl_ard_spread()`, `tfl_plan()` + `tfl_plan_*()`, `tfl_table_spec()`, `tfl_read_report_spec()`, `tfl_report()` |
+| Tables (ARD) | a cards/cardx ARD -> a table data.frame -> rtfreporter pages, declared once as a plan or in an Excel table spec | `tfl_ard_normalize()`, `tfl_ard_spread()`, `tfl_plan()` + `tfl_plan_*()`, `tfl_table_spec()`, `tfl_table_plan()`, `tfl_read_report_spec()`, `tfl_report()` |
 | Listings | an Excel listing spec (sheets `listings`, `listing_cols`) -> the listing program, or its pages | `tfl_read_listing_spec()`, `tfl_listing_code()`, `tfl_listing()` |
 | Figures | an Excel plot spec -> a ggplot2 skeleton script | `tfl_fig_spec()`, `tfl_fig_code()`, `tfl_fig_km()`, `tfl_fig_waterfall()`, `tfl_fig_swimmer()` |
 
@@ -49,7 +49,7 @@ The same table from an Excel definition, as an object or as code:
 ```r
 spec <- tfl_read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = "DM")
 
-plan <- tfl_plan(data, spec = spec)        # the plan, read from the workbook
+plan <- tfl_table_plan(data, spec)        # the plan, read from the workbook
 doc  <- tfl_report(spec, plan)             # the document around it
 
 tfl_table_code(spec)                       # or the program: tfl_plan() + tfl_plan_*()

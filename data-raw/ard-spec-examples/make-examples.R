@@ -9,7 +9,7 @@
 #  For each report this script
 #    1. builds the example ARD (the same code as Discussion #473),
 #    2. writes its definition workbook to inst/extdata/ard-spec/<id>.xlsx,
-#    3. reads the workbook back and runs tfl_plan(spec = ) on the ARD,
+#    3. reads the workbook back and runs tfl_table_plan() on the ARD,
 #    4. checks the table data frame is IDENTICAL to tfl_ard_spread() written
 #       out, and the finished rtftable pages to the report's plan code --
 #       and that tfl_as_table_spec(<plan code>) gives those pages back.
@@ -51,9 +51,9 @@ tbl <- function(...) {
 check <- function(id, ard_n, spec_path, code_tbl, code_plan, header,
                   pages_n = ard_n) {
   sp <- tfl_read_table_spec(spec_path, output_id = id)
-  from_spec <- tfl_apply_plan(tfl_plan(ard_n, spec = sp, notes = FALSE), "table")
+  from_spec <- tfl_apply_plan(tfl_table_plan(ard_n, sp, notes = FALSE), "table")
   ok <- isTRUE(all.equal(as.data.frame(from_spec), as.data.frame(code_tbl)))
-  pg_spec <- tfl_apply_plan(tfl_plan(pages_n, spec = sp, notes = FALSE), "pages")
+  pg_spec <- tfl_apply_plan(tfl_table_plan(pages_n, sp, notes = FALSE), "pages")
   pg_code <- tfl_apply_plan(code_plan, "pages")
   ok_pg <- isTRUE(all.equal(pg_spec, pg_code))
   # and the other way: the plan code written back as a workbook
@@ -723,7 +723,7 @@ pages_n <- list(DM = tfl_ard_normalize(ard_dm), AE = ae_n, ORR = orr_n,
 tmp <- tempfile("rtf"); dir.create(tmp)
 for (id in names(code_plans)) {
   sp <- tfl_read_report_spec(c(report_book, study_path), output_id = id)
-  p <- tfl_plan(pages_n[[id]], spec = sp, notes = FALSE)
+  p <- tfl_table_plan(pages_n[[id]], sp, notes = FALSE)
   a <- file.path(tmp, "code.rtf"); b <- file.path(tmp, "spec.rtf")
   generate_rtfreport(code_doc(id, code_plans[[id]]), a, overwrite = TRUE)
   generate_rtfreport(tfl_report(sp, p), b, overwrite = TRUE)
