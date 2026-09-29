@@ -1,4 +1,4 @@
-# tflspec 0.0.18
+# tflspec 0.0.19
 
 * **The plan no longer reads the spec** (#29; step 1 of plan E, Discussion
   #23).  Inside tflspec the ARD / plan code (`R/ard.R`, `R/plan.R`,
@@ -18,6 +18,20 @@
     rows, pages).  `tfl_as_table_spec()` reads only that and
     `tfl_apply_plan()`.
   - `tfl_plan_template()` loses `spec =`.
+
+# tflspec 0.0.18
+
+* **Advice on figure designs** (#28): `tfl_fig_advice(design, adam)` says
+  what is usually wanted and is missing or unusual -- a KM figure without
+  the number at risk or censor marks, a time axis still in days, a legend
+  inside the panel with many groups, more groups than the palette has
+  colours, a group colouring with no legend, text visits with no order, a
+  waterfall without its +20% / -30% marks, no analysis set kept, nothing
+  drawn ...  Each line names its part (`data`, `stats`, `plot`, `layers`)
+  and its level (`info`, `warning`), and where one change would do it
+  carries a fix that `tfl_fig_apply_fix()` makes (a layer or step added, a
+  setting changed).  The checks stay [tfl_check_fig_design()]: errors
+  there, advice here.
 
 # tflspec 0.0.17
 
