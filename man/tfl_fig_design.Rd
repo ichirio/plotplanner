@@ -60,13 +60,17 @@ A figure as four parts (see \code{\link[=tfl_fig_parts]{tfl_fig_parts()}} for ev
 \item \code{stats}: what is computed from \code{df} (\code{survfit}, \code{summary},
 \code{stats_code}), each with its \code{name};
 \item \code{plot}: the figure-wide settings (title, axes, colours, theme, legend,
-size);
+size), plus \code{add}: a list of \code{call}s (below) written after the
+figure's settings and before any panels -- for \code{theme()}, \verb{scale_*},
+\verb{coord_*}, \verb{facet_*}, \code{labs}, \code{guides} and the like;
 \item \code{layers}: what is drawn, in order -- each a list with \code{layer}
 (\code{km_curve}, \code{km_ci}, \code{censor_mark}, \code{risk_table}, \code{n_table},
 \code{ref_label}; any layer of the geom catalog -- \code{line}, \code{point},
 \code{errorbar}, \code{col}, \code{text}, \code{hline}, \code{ribbon}, \code{boxplot} ... see
-\code{\link[=tfl_fig_add_layer]{tfl_fig_add_layer()}}; \code{geom} (any function by name), \code{layer_code}, or
-\code{figure}: a figure type's whole script) and its fields.
+\code{\link[=tfl_fig_add_layer]{tfl_fig_add_layer()}}; \code{geom} (any function by name), \code{call} (any
+function, by \code{fn}, \code{package}, \code{data}, \code{aes}, \code{pos}, \code{args} -- checked
+against its own arguments; see \code{\link[=tfl_fig_r]{tfl_fig_r()}} for raw R in \code{aes}/\code{args}),
+\code{layer_code}, or \code{figure}: a figure type's whole script) and its fields.
 }
 
 \code{\link[=tfl_fig_template]{tfl_fig_template()}} makes one for a kind of figure; it is kept as one

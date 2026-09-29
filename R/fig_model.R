@@ -193,12 +193,32 @@
     layer_code = list(section = "layers", label = "R code",
       help = "Code that adds to the plot `p` (e.g. p <- p + annotate(...)).",
       fields = rbind(.ff("code", "code", "Code", required = TRUE))),
+    call = list(section = "layers", label = "Any function (call)",
+      help = "p <- p + fn(data, aes(...), args...): any ggplot2 or extension function, checked against its own arguments.",
+      fields = rbind(
+        .ff("fn", "text", "Function", required = TRUE, help = "e.g. geom_label, add_quantile, or pkg::fn"),
+        .ff("package", "text", "Package", help = "Defaults to the search order ggplot2 -> ggsurvfit -> patchwork."),
+        .ff("data", "object", "Data", "df"),
+        .ff("aes", "raw", "Aesthetics (map)", help = "x: AVAL | label: n -- values are expressions."),
+        .ff("pos", "raw", "Positional arguments (sequence)"),
+        .ff("args", "raw", "Named arguments (map)"),
+        .ff("base", "logical", "First layer (p <- fn(...))", "FALSE"))),
     figure = list(section = "layers", label = "Whole figure (type)",
       help = "A figure type not yet in parts: its script as tfl_fig_<type>() writes it; the other parts are then unused.",
       fields = rbind(
         .ff("type", "choice", "Type", required = TRUE),
         .ff("style", "text", "Style"),
-        .ff("args", "named", "Arguments")))
+        .ff("args", "named", "Arguments"))),
+    # ---- plot.add (a call, without `layer`/`base`; see `call` above)
+    plot_add = list(section = "plot", label = "Add a call (figure-wide)",
+      help = "p <- p + fn(...), after the figure's settings (scales, axes, labs, theme, legend) and before any panels: theme(), scale_*, coord_*, facet_*, guides, labs ...",
+      fields = rbind(
+        .ff("fn", "text", "Function", required = TRUE, help = "e.g. theme, facet_grid, scale_y_log10, or pkg::fn"),
+        .ff("package", "text", "Package", help = "Defaults to the search order ggplot2 -> ggsurvfit -> patchwork."),
+        .ff("data", "object", "Data"),
+        .ff("aes", "raw", "Aesthetics (map)"),
+        .ff("pos", "raw", "Positional arguments (sequence)"),
+        .ff("args", "raw", "Named arguments (map)")))
   ), .fig_geom_pieces())
 }
 
@@ -229,7 +249,9 @@
     .ff("width", "number", "Width", 7.5),
     .ff("height", "number", "Height", 4.5),
     .ff("units", "choice", "Units", "in", c("in", "cm", "px")),
-    .ff("dpi", "number", "DPI", 300))
+    .ff("dpi", "number", "DPI", 300),
+    .ff("add", "pieces", "Additional calls (plot.add)", of = "plot_add",
+        help = "Any ggplot2/extension call, after the figure's settings and before any panels."))
 }
 
 #' The pieces of a figure design
@@ -280,13 +302,17 @@ tfl_fig_types_implemented <- function() {
 #' * `stats`: what is computed from `df` (`survfit`, `summary`,
 #'   `stats_code`), each with its `name`;
 #' * `plot`: the figure-wide settings (title, axes, colours, theme, legend,
-#'   size);
+#'   size), plus `add`: a list of `call`s (below) written after the
+#'   figure's settings and before any panels -- for `theme()`, `scale_*`,
+#'   `coord_*`, `facet_*`, `labs`, `guides` and the like;
 #' * `layers`: what is drawn, in order -- each a list with `layer`
 #'   (`km_curve`, `km_ci`, `censor_mark`, `risk_table`, `n_table`,
 #'   `ref_label`; any layer of the geom catalog -- `line`, `point`,
 #'   `errorbar`, `col`, `text`, `hline`, `ribbon`, `boxplot` ... see
-#'   [tfl_fig_add_layer()]; `geom` (any function by name), `layer_code`, or
-#'   `figure`: a figure type's whole script) and its fields.
+#'   [tfl_fig_add_layer()]; `geom` (any function by name), `call` (any
+#'   function, by `fn`, `package`, `data`, `aes`, `pos`, `args` -- checked
+#'   against its own arguments; see [tfl_fig_r()] for raw R in `aes`/`args`),
+#'   `layer_code`, or `figure`: a figure type's whole script) and its fields.
 #'
 #' [tfl_fig_template()] makes one for a kind of figure; it is kept as one
 #' YAML file per figure (`tfl_write_fig_design()` / `tfl_read_fig_design()`)
@@ -353,7 +379,7 @@ tfl_write_fig_design <- function(design, path) {
 #' @rdname tfl_fig_design
 #' @export
 tfl_read_fig_design <- function(path) {
-  x <- yaml::read_yaml(path)
+  x <- yaml::read_yaml(path, handlers = list(r = tfl_fig_r))
   .fig_design_from_list(x)
 }
 
@@ -657,6 +683,13 @@ tfl_read_fig_design <- function(path) {
         libs = if (grepl("::", v("geom"), fixed = TRUE)) character() else NULL)
     },
     layer_code = list(code = c(lbl("your code"), l$code)),
+    call = {
+      res <- .fig_call_code(l, target = "p", plus = !isTRUE(l$base))
+      out <- list(libs = res$libs)
+      if (length(res$pkgs)) out$package <- res$pkgs
+      if (isTRUE(l$base)) out$base <- res$line else out$code <- c(lbl(paste0("call: ", l$fn)), res$line)
+      out
+    },
     {
       g <- .fig_pieces()[[k]]$geom
       if (is.null(g)) stop("Unknown layer: ", k, call. = FALSE)
@@ -749,9 +782,10 @@ tfl_fig_design_code <- function(design, plot_id = "fig") {
   ax <- .fig_axis_code(plot, any(kinds == "risk_table"), fit_of(), clip)
   base <- if (length(lc) && !is.null(lc[[1L]]$base)) lc[[1L]]$base else "p <- ggplot()"
   panels <- Filter(Negate(is.null), lapply(lc, `[[`, "panel"))
-  libs <- unique(c("dplyr", "ggplot2", s$libs, unlist(lapply(lc, `[[`, "libs"))))
+  add_res <- .fig_plot_add_code(plot$add %||% list())
+  libs <- unique(c("dplyr", "ggplot2", s$libs, unlist(lapply(lc, `[[`, "libs")), add_res$libs))
   # a catalog layer of another package is called as pkg::fn; it must be there
-  needs <- setdiff(unique(unlist(lapply(lc, `[[`, "package"))), "ggplot2")
+  needs <- setdiff(unique(c(unlist(lapply(lc, `[[`, "package")), add_res$pkgs)), "ggplot2")
   if (any(kinds %in% c("km_curve", "km_ci", "censor_mark"))) libs <- unique(c(libs, "ggsurvfit"))
   uses_pd <- any(vapply(layers, function(l) .lgl(l$dodge), logical(1)))
   lab <- function(f) { x <- .pv(plot, f); if (!is.null(x)) q(x) }
@@ -809,6 +843,7 @@ tfl_fig_design_code <- function(design, plot_id = "fig") {
     "# ---- the figure's settings ----",
     plus_code("p", finish, append = TRUE),
     unlist(lapply(lc, `[[`, "after")),
+    add_res$lines,
     panel_code,
     "",
     "# ---- assemble ----",
@@ -1003,6 +1038,40 @@ tfl_check_fig_design <- function(design, adam = NULL) {
         x <- .fv(l, vf, k)
         if (!is.null(x)) need_var(part, vf, x, objects[[obj]], obj)
       }
+    }
+    if (k == "call") {
+      extra <- .fig_check_call(l, part)
+      for (r in seq_len(nrow(extra))) add(extra$part[r], extra$field[r], extra$problem[r])
+      if (grepl(.fig_plotwide_re, .fig_bare_fn_name(l$fn %||% ""))) {
+        add(part, "fn", paste0("'", .fig_bare_fn_name(l$fn), "' is a figure-wide function; use plot.add instead of layers"))
+      }
+      if (!is.null(l$aes) && !is.null(obj) && obj %in% names(objects) && !is.null(objects[[obj]])) {
+        for (nm in names(l$aes)) {
+          val <- l$aes[[nm]]
+          if (is.character(val) && length(val) == 1L && !.is_fig_r(val)) need_var(part, paste0("aes$", nm), val, objects[[obj]], obj)
+        }
+      }
+    }
+  }
+  add_list <- design$plot$add %||% list()
+  for (i in seq_along(add_list)) {
+    a <- add_list[[i]]
+    part <- sprintf("plot.add[%d]", i)
+    extra <- .fig_check_call(a, part)
+    for (r in seq_len(nrow(extra))) add(extra$part[r], extra$field[r], extra$problem[r])
+    fnname <- .fig_bare_fn_name(a$fn %||% "")
+    if (grepl("^facet_", fnname) && !is.null(design$plot$facet_by)) {
+      add(part, "fn", "overrides plot$facet_by (a facet_* is also in plot.add)")
+    }
+    if (grepl("^scale_colou?r_", fnname) && !is.null(design$plot$colour_by)) {
+      add(part, "fn", "overrides plot$colour_by (a scale_colour_*/scale_color_* is also in plot.add)")
+    }
+    if (grepl("^coord_", fnname) &&
+        any(vapply(design$plot[c("x_min", "x_max", "y_min", "y_max")], Negate(is.null), logical(1)))) {
+      add(part, "fn", "overrides plot$x_min/x_max/y_min/y_max (a coord_* is also in plot.add)")
+    }
+    if (grepl("^scale_x_", fnname) && .lgl(design$plot$x_log %||% FALSE)) {
+      add(part, "fn", "overrides plot$x_log (a scale_x_* is also in plot.add)")
     }
   }
   out

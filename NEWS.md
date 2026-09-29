@@ -1,3 +1,44 @@
+# tflspec 0.0.21
+
+* **A generic `call` piece for figure designs** (#34): a `layers:` element
+  `{layer: call, fn, package, data, aes, pos, args, base}` writes
+  `p <- p + fn(data = ..., aes(...), pos..., args...)` for *any* ggplot2
+  or extension function (`add_quantile`, `add_risktable`, `geom_label` with
+  settings the catalog does not have ...), in its place among the other
+  layers. `plot: {add: [...]}` writes the same shape *after* the figure's
+  settings (scales, axes, labs, theme preset, legend) and before any
+  panels -- for `theme()`, `scale_*`, `coord_*`, `facet_*`, `labs`,
+  `guides` and the like, which would otherwise be overridden by (or
+  override, in a confusing order) the design's own settings.
+  `tfl_fig_parts()` gains the `call` and `plot_add` pieces (and `plot`
+  gains the `add` field) without changing any existing piece or field.
+* Argument values follow a small YAML -> R table: numbers, logicals, `~`
+  (`NULL`) and `.inf` write as R literals; a sequence (even of length 1)
+  writes as `c()`; a map without `fn` writes as a named vector (quoting a
+  non-syntactic name); a map with `fn` writes as a nested call
+  (`element_text(...)`, `unit(...)`, `arrow(...)` ...); strings inside
+  `aes:`/`vars()` are written as expressions, not quoted. The YAML tag
+  `!r` (e.g. `theme: !r theme_risktable_default(axis.text.y.size = 9)`)
+  is raw R, kept verbatim; `tfl_fig_r()` makes one in R, and
+  `tfl_read_fig_design()`/`tfl_write_fig_design()` round-trip it. Every
+  generated call is checked with `parse()` before being handed back.
+* `tfl_check_fig_design()` validates a `call`/`plot.add`: an unresolved
+  package is a warning (code generation still qualifies it as `pkg::fn`);
+  an unknown argument to a function without `...` is an error, with an
+  `agrep()` suggestion; an unknown `geom_*`/`stat_*` parameter or
+  aesthetic is a warning (checked against that geom/stat's own
+  aesthetics and parameters); an unknown `theme()` element is an error
+  (checked against `ggplot2::get_element_tree()`); other `...` functions
+  (`labs`, `aes`, `vars`, ggsurvfit's `add_*` ...) are not checked. A
+  figure-wide function (`theme*`, `scale_*`, `coord_*`, `facet_*`,
+  `labs`, `guides`, axis titles) used in `layers` warns to use `plot.add`
+  instead; a `plot.add` call that overrides `facet_by`, `colour_by`,
+  `x_min`/`x_max`/`y_min`/`y_max` or `x_log` warns.
+* Out of scope for this release (later): a ggplot2 3.5/4.0 compatibility
+  table and a two-version CI matrix; `compose:`/`plots:` for multiple
+  (patchwork) figures; ggsurvfit `add_*`-specific integration (risk-table
+  de-duplication, `ggsurvfit_build()` assembly).
+
 # tflspec 0.0.19
 
 * **Every figure type has a template** (#32): 27 templates in parts --
