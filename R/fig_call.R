@@ -146,30 +146,45 @@ tfl_fig_r <- function(code) {
 # A `call` layer or `plot.add` element's code: the assignment line(s), plus
 # what it needs (libs to add to library(), packages to note as "# also
 # needs"). Errors (not just warns) when the generated call does not parse.
-.fig_call_code <- function(spec, target = "p", plus = TRUE) {
+# `ggplot2_version`: the call is written for that version (fig_compat.R) --
+# renamed functions/arguments under its names, with a comment saying so.
+.fig_call_code <- function(spec, target = "p", plus = TRUE, ggplot2_version = NULL) {
   needs_env <- new.env(parent = emptyenv())
   needs_env$libs <- character()
   needs_env$pkgs <- character()
+  cw <- NULL
+  if (!is.null(ggplot2_version)) {
+    cw <- .fig_compat_walk(spec, ggplot2_version, "")
+    spec <- cw$spec
+  }
   call_text <- .fig_build_call(spec, needs_env)
   line <- if (plus) sprintf("%s <- %s + %s", target, target, call_text) else sprintf("%s <- %s", target, call_text)
+  if (length(cw$renames)) {
+    line <- sprintf("%s   # ggplot2 %s: %s", line, ggplot2_version,
+                    paste(unique(cw$renames), collapse = ", "))
+  }
   parsed <- tryCatch(parse(text = line), error = function(e) e)
   if (inherits(parsed, "error")) {
     stop("Could not generate valid R code for `", spec$fn %||% "?", "`: ", conditionMessage(parsed), call. = FALSE)
   }
-  list(line = line, call = call_text, libs = needs_env$libs, pkgs = needs_env$pkgs)
+  list(line = line, call = call_text, libs = needs_env$libs, pkgs = needs_env$pkgs,
+       guard = cw$guard, features = cw$features)
 }
 
 # plot.add: the lines after the figure-wide finish block, before panels.
-.fig_plot_add_code <- function(add) {
+.fig_plot_add_code <- function(add, ggplot2_version = NULL) {
   if (!length(add)) return(list(lines = character(), libs = character(), pkgs = character()))
-  libs <- character(); pkgs <- character()
+  libs <- character(); pkgs <- character(); guard <- character(); features <- character()
   lines <- unlist(lapply(add, function(a) {
-    res <- .fig_call_code(a)
+    res <- .fig_call_code(a, ggplot2_version = ggplot2_version)
     libs <<- union(libs, res$libs)
     pkgs <<- union(pkgs, res$pkgs)
+    guard <<- c(guard, res$guard)
+    features <<- c(features, res$features)
     res$line
   }))
-  list(lines = c("# ---- plot.add ----", lines), libs = libs, pkgs = pkgs)
+  list(lines = c("# ---- plot.add ----", lines), libs = libs, pkgs = pkgs,
+       guard = guard, features = features)
 }
 
 # ---- validation (tfl_check_fig_design(), design doc S2) --------------------
@@ -208,6 +223,8 @@ tfl_fig_r <- function(code) {
   pkg <- rf$pkg
   if (is.null(pkg)) {
     pkg <- .fig_find_pkg(fn_name)
+    # a ggplot2 function of the other version: the compat table's to judge
+    if (is.null(pkg) && .fig_compat_names(fn_name)$fn) return(out)
     if (is.null(pkg)) {
       add(part, "fn", paste0("function '", fn_name, "' not found in ggplot2/ggsurvfit/patchwork; specify package:"))
       return(out)
@@ -217,8 +234,12 @@ tfl_fig_r <- function(code) {
     .fig_check_nested(spec, part, out_env = environment())
     return(out)
   }
+  # what differs between ggplot2 3.5 and 4.0 is the compat table's to judge
+  # (fig_compat.R), not the installed version's
+  cn <- if (identical(pkg, "ggplot2")) .fig_compat_names(fn_name) else list(args = character(), arg_globs = character(), fn = FALSE)
+  in_table <- function(a) a %in% cn$args | vapply(a, function(x) any(.fig_glob(cn$arg_globs, x)), logical(1))
   if (!fn_name %in% getNamespaceExports(pkg)) {
-    add(part, "fn", paste0("'", fn_name, "' is not exported by ", pkg))
+    if (!cn$fn) add(part, "fn", paste0("'", fn_name, "' is not exported by ", pkg))
     return(out)
   }
   fn_obj <- getExportedValue(pkg, fn_name)
@@ -230,6 +251,7 @@ tfl_fig_r <- function(code) {
   if (!is.null(spec$aes)) given <- union(given, "mapping")
   if (!has_dots) {
     unknown <- setdiff(given, fm_names)
+    unknown <- unknown[!in_table(unknown)]
     for (u in unknown) add(part, paste0("args$", u), paste0(
       "'", u, "' is not an argument of ", fn_name, "()", .fig_suggest(u, fm_names)))
     no_default <- fm_names[vapply(fm, function(d) identical(d, quote(expr = )), logical(1))]
@@ -241,6 +263,7 @@ tfl_fig_r <- function(code) {
   } else if (identical(fn_name, "theme")) {
     known <- .fig_theme_elements()
     unknown <- setdiff(names(spec$args), known)
+    unknown <- unknown[!in_table(unknown)]
     for (u in unknown) add(part, paste0("args$", u), paste0(
       "'", u, "' is not a theme() element", .fig_suggest(u, known)))
   } else if (grepl("^(geom|stat)_", fn_name)) {
@@ -251,6 +274,7 @@ tfl_fig_r <- function(code) {
                         c("na.rm", "show.legend", "inherit.aes", "key_glyph", "orientation",
                           "mapping", "data", "position", "stat", "geom")))
       unknown <- setdiff(names(spec$args), known)
+      unknown <- unknown[!in_table(unknown)]
       for (u in unknown) add(part, paste0("args$", u), paste0(
         "'", u, "' is not a parameter of ", fn_name, "()", .fig_suggest(u, known)))
       unknown_aes <- setdiff(names(spec$aes), layer_obj$geom$aesthetics())

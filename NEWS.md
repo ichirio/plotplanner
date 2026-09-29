@@ -1,4 +1,4 @@
-# tflspec 0.0.22
+# tflspec (development version)
 
 * **tflspec is the spec side only** (#29; step 4 of plan E, Discussion #23).
   The table engine -- the ARD functions and the plan -- now lives in
@@ -19,6 +19,41 @@
     `tfl_ard_template()`) are gone from tflspec; no aliases.
   The five example reports and the Discussion #3 samples are byte-identical
   across the two packages.
+
+# tflspec 0.0.22
+
+* **Figure designs are written for ggplot2 3.5 or 4.0** (#37).
+  `inst/fig/ggplot2_compat.csv` lists what differs between the two for a
+  design's `call` pieces (functions and arguments added, renamed,
+  removed, deprecated); `tfl_fig_compat()` returns it (with
+  `ggplot2_version =`, what each row means for that version).
+  The target is the `ggplot2_version` argument of
+  `tfl_fig_design_code()` / `tfl_check_fig_design()` /
+  `tfl_fig_advice()`, else the design's top-level `ggplot2_version:`,
+  else `getOption("tflspec.ggplot2_version")`, else the installed
+  ggplot2's; `"3.5"` and `"4.0"` are allowed.
+  * The script writes renamed functions and arguments under the target's
+    names (`geom_label(label.size)` <-> `linewidth`, `coord_trans` <->
+    `coord_transform`, `layer_scales` -> `get_panel_scales` ...), with a
+    `# ggplot2 4.0: a -> b` comment; a version guard
+    (`stopifnot(utils::packageVersion("ggplot2") >= "4.0.0")`) only when
+    it uses a 4.0-only feature; `# Written for ggplot2 X` in its header
+    only when the target was set. The output of designs without `call`
+    pieces (every template) is unchanged.
+  * `tfl_check_fig_design()` reports what the target does not have
+    (`coord_cartesian(reverse =)` for 3.5, `element_geom()` ...) or drops
+    (`geom_bar()` / `geom_col()` `size =` in 4.0: not translated to
+    `linewidth`). Names of the other version are no longer reported as
+    unknown by the installed-version check.
+  * `tfl_fig_advice()` gives what the target deprecates (`size =` for
+    lines, a numeric `legend.position`, `geom_errorbarh()` ...) with a
+    fix, `op = "compat"`, that rewrites the call for it; and notes that
+    ggplot2 4.0 titles an untitled axis with its column's `label`
+    attribute (an ADaM variable label).
+* The CI checks the package with ggplot2 3.5.2 and the latest 4.0.x too;
+  a test checks the compat table's rows against the installed ggplot2.
+* `tfl_check_fig_design()` without data no longer reports "no data named
+  df" for a layer that reads `df`.
 
 # tflspec 0.0.21
 

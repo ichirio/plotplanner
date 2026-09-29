@@ -13,16 +13,17 @@ tfl_fig_design(
   stats = list(),
   plot = list(),
   layers = list(),
-  template = NULL
+  template = NULL,
+  ggplot2_version = NULL
 )
 
 tfl_write_fig_design(design, path)
 
 tfl_read_fig_design(path)
 
-tfl_fig_design_code(design, plot_id = "fig")
+tfl_fig_design_code(design, plot_id = "fig", ggplot2_version = NULL)
 
-tfl_check_fig_design(design, adam = NULL)
+tfl_check_fig_design(design, adam = NULL, ggplot2_version = NULL)
 }
 \arguments{
 \item{data, stats, layers}{Lists of pieces (each a named list).}
@@ -30,6 +31,12 @@ tfl_check_fig_design(design, adam = NULL)
 \item{plot}{A named list of the figure-wide settings.}
 
 \item{template}{The template it was made from (a note).}
+
+\item{ggplot2_version}{The ggplot2 the script is written for, \code{"3.5"} or
+\code{"4.0"} (see \code{\link[=tfl_fig_compat]{tfl_fig_compat()}}); \code{NULL}: the design's
+\code{ggplot2_version}, else the option \code{tflspec.ggplot2_version}, else the
+installed ggplot2's. Set (anywhere but the installed version), the
+script's header says \verb{# Written for ggplot2 X}.}
 
 \item{design}{A \code{tfl_fig_design}.}
 
@@ -47,7 +54,9 @@ design names are looked for in it.}
 
 \code{tfl_check_fig_design()}: a data frame of the problems
 (\code{part}, \code{field}, \code{problem}; \code{part} is e.g. \verb{data[2] join}); no rows
-when there are none.
+when there are none. With the target ggplot2 (\code{ggplot2_version}), a
+function or argument of a \code{call} the target does not have, or drops,
+is one; what it only deprecates is advice (\code{\link[=tfl_fig_advice]{tfl_fig_advice()}}).
 }
 \description{
 A figure as four parts (see \code{\link[=tfl_fig_parts]{tfl_fig_parts()}} for every piece):
