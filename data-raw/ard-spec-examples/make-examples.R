@@ -728,7 +728,18 @@ for (id in names(code_plans)) {
   generate_rtfreport(code_doc(id, code_plans[[id]]), a, overwrite = TRUE)
   generate_rtfreport(tfl_report(sp, p), b, overwrite = TRUE)
   same <- identical(readLines(a, warn = FALSE), readLines(b, warn = FALSE))
-  cat(sprintf("  %-4s -> %-14s identical RTF to the code: %s\n", id,
-              tfl_report_path(sp), if (same) "TRUE" else "FALSE  <-- MISMATCH"))
+  # and the program the definition writes: tfl_table_code() +
+  # tfl_report_code(), run, gives the same RTF again
+  prog <- c(tfl_table_code(sp, pipe = "|>"),
+            tfl_report_code(sp, content = "plan"))
+  env <- new.env(parent = asNamespace("tflspec"))
+  env$data <- pages_n[[id]]
+  suppressMessages(eval(parse(text = prog), env))
+  g <- file.path(tmp, "gen.rtf")
+  generate_rtfreport(env$doc, g, overwrite = TRUE)
+  gen <- identical(readLines(g, warn = FALSE), readLines(b, warn = FALSE))
+  cat(sprintf("  %-4s -> %-14s identical RTF to the code: %s; written program: %s\n",
+              id, tfl_report_path(sp), if (same) "TRUE" else "FALSE  <-- MISMATCH",
+              if (gen) "TRUE" else "FALSE  <-- MISMATCH"))
 }
 options(rtfreporter.render_time = NULL)

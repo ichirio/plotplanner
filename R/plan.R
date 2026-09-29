@@ -387,9 +387,10 @@
 #' @param stats `"cells"` (default) fills a template per cell; `"rows"`
 #'   makes each statistic a row of its own.
 #' @param sep Separator pasted between multiple `cols` keys.
-#' @param value,na,notes The remaining [tfl_ard_spread()] options,
+#' @param value,na,notes,sort_stat The remaining [tfl_ard_spread()] options,
 #'   unchanged: which of `stat` / `stat_fmt` a `{x}` reads, what fills a
-#'   cell no template could, and whether to report what was not used.
+#'   cell no template could, whether to report what was not used, and the
+#'   statistic totalled into `.sort_stat` for a frequency order.
 #' @param spec An [tfl_table_spec()] definition, or the path to a workbook as
 #'   [tfl_read_table_spec()] reads it (a workbook defining several reports must
 #'   be narrowed first, with `tfl_read_table_spec(path, output_id = )`).  It is
@@ -428,11 +429,12 @@ tfl_plan <- function(data = NULL, cols = NULL, rows = NULL,
                      label = NULL,
                      variable = NULL, stat_name = NULL, stat = NULL,
                      stats = NULL, sep = NULL, value = NULL,
-                     na = NULL, spec = NULL, notes = NULL) {
+                     na = NULL, spec = NULL, notes = NULL,
+                     sort_stat = NULL) {
   roles <- list(cols = cols, rows = rows, label = label,
                 variable = variable, stat_name = stat_name,
                 stat = stat, stats = stats, sep = sep, value = value,
-                na = na, spec = spec, notes = notes)
+                na = na, spec = spec, notes = notes, sort_stat = sort_stat)
   roles <- roles[!vapply(roles, is.null, logical(1L))]
   # A definition workbook can say the roles too (its `tables` sheet).  Read
   # it HERE, so they are the plan's roles like any other -- checked against
@@ -489,108 +491,11 @@ tfl_plan <- function(data = NULL, cols = NULL, rows = NULL,
 #  the same resolver, the same checks, and a verb written afterwards wins.
 
 .plan_from_spec <- function(p, sp) {
-  sa <- .ard_spec_table_args(sp)
-  if (!is.null(sa[["sort"]])) p <- .plan_layer(p, "sort", list(sort = sa[["sort"]]))
-  if (!is.null(sa[["rounding"]])) {
-    p <- .plan_layer(p, "round", list(rounding = sa[["rounding"]]))
-  }
-  lv <- .ard_spec_levels(sp)
-  if (length(lv)) p <- tfl_plan_levels(p, lv)
-  lb <- .ard_spec_labels(sp)
-  if (length(lb)) p <- tfl_plan_labels(p, lb)
-  cm <- .ard_spec_cells(sp)
-  if (length(cm)) p <- do.call(tfl_plan_cells, c(list(p), cm))
-
-  # rows with no template: the display format of one statistic, for a
-  # table that lays the statistics out as rows
-  f <- sp$cells[is.na(sp$cells$template), , drop = FALSE]
-  if (nrow(f)) {
-    if (!identical(p$roles$stats, "rows")) {
-      .ard_stop(paste0(
-        "The `cells` sheet has rows with no `template` -- a statistic's ",
-        "display format --
-  but the table is not `stats = rows`.  ",
-        "Give those rows a template, or set
-  `tables$stats` to `rows`."))
-    }
-    if (any(!is.na(f$variable) | !is.na(f$context))) {
-      .ard_stop(paste0(
-        "A `cells` row with no template formats one statistic across the ",
-        "table;
-  leave its `variable` and `context` blank."))
-    }
-    if (any(is.na(f$row))) {
-      .ard_stop(paste0("A `cells` row with no template needs `row`: the ",
-                       "statistic it formats, as the label column prints it."))
-    }
-    fm <- lapply(seq_len(nrow(f)), function(i) {
-      if (!is.na(f$signif[i])) list(signif = as.integer(f$signif[i]))
-      else list(digits = as.integer(f$digits[i]))
-    })
-    p <- tfl_plan_fmt(p, by = .plan_label_name(p),
-                  formats = stats::setNames(fm, f$row))
-  }
-
-  lay <- if (nrow(sp$layout)) .ard_spec_typed(sp$layout[1L, ], "layout")
-         else list()
-  pick <- function(prefix, map) {
-    out <- list()
-    for (k in names(map)) {
-      v <- lay[[paste0(prefix, k)]]
-      if (!is.null(v)) out[[map[[k]]]] <- v
-    }
-    out
-  }
-  a <- pick("stub_", c(vars = "vars", into = "into", indent = "indent",
-                       summary = "group_summary", before = "before"))
-  if (length(a)) p <- do.call(tfl_plan_stub, c(list(p), a))
-  if (isTRUE(lay[["group_page"]])) {
-    p <- tfl_plan_paginate_group(p, col = lay[["group_col"]],
-                             show = !identical(lay[["group_show"]], FALSE))
-  }
-  a <- pick("group_", c(mode = "mode", collapse = "collapse"))
-  if (length(a) || (!is.null(lay[["group_col"]]) && !isTRUE(lay[["group_page"]]))) {
-    a$col <- lay[["group_col"]]
-    p <- do.call(tfl_plan_row_group, c(list(p), a))
-  }
-  a <- pick("blank_", c(where = "where", first = "first", last = "last",
-                        counted = "counted"))
-  if (length(a)) p <- do.call(tfl_plan_blanks, c(list(p), a))
-  a <- pick("pages_", c(max_rows = "max_rows", split = "split", by = "by",
-                        min_group_rows = "min_group_rows",
-                        cont_label = "cont_label"))
-  if (length(a)) p <- do.call(tfl_plan_paginate_rows, c(list(p), a))
-  a <- pick("colpages_", c(every = "every", at = "at", carry = "carry",
-                           order = "order"))
-  if (length(a)) p <- do.call(tfl_plan_paginate_cols, c(list(p), a))
-
-  st <- if (nrow(sp$style)) .ard_spec_typed(sp$style[1L, ], "style")
-        else list()
-  cl <- sp$columns
-  ct <- lapply(seq_len(nrow(cl)), function(i)
-    .ard_spec_typed(cl[i, , drop = FALSE], "columns"))
-  flag <- function(k) vapply(ct, function(r) isTRUE(r[[k]]), NA)
-  if (any(flag("row_title"))) st$row_title <- cl$column[flag("row_title")]
-  if (length(st)) p <- do.call(tfl_plan_style, c(list(p), st))
-  if (any(flag("hide"))) p <- tfl_plan_hide(p, cl$column[flag("hide")])
-  hd <- sp$col_header
-  if (nrow(hd)) {
-    cells <- lapply(seq_len(nrow(hd)), function(i)
-      .ard_spec_typed(hd[i, , drop = FALSE], "col_header"))
-    txt <- vapply(cells, function(r) r[["text"]] %||% "", "")
-    # `tables$header_n` says WHICH population; a `{n` in a text is what
-    # asks for one at all
-    hn <- .ard_spec_table_args(sp)[["header_n"]]
-    p <- tfl_plan_col_header(p, header = structure(
-      list(cells = cells,
-           n = hn %||% any(grepl("{n", txt, fixed = TRUE))),
-      class = "plan_spec_col_header"))
-  }
-  w <- vapply(ct, function(r) r[["width"]] %||% NA_real_, NA_real_)
-  if (any(!is.na(w)) || any(flag("decimal_split"))) {
-    p <- .plan_layer(p, "columns", list(
-      widths  = stats::setNames(w[!is.na(w)], cl$column[!is.na(w)]),
-      decimal = cl$column[flag("decimal_split")]))
+  # the verbs the definition stands for (R/spec_code.R): run here, written
+  # out by tfl_table_code() -- one list, so the two cannot disagree
+  for (st in .plan_spec_steps(p, sp)) {
+    f <- get(st$fun, envir = asNamespace("tflspec"), mode = "function")
+    p <- do.call(f, c(list(p), lapply(st$args, .spec_eval, env = emptyenv())))
   }
   p
 }
@@ -960,8 +865,14 @@ print.tfl_plan <- function(x, ...) {
 #'   outermost first: `"group"`, `"rows"`, `"cols"`, or the shorthands
 #'   `"across"` and `"down"`.
 #' @param border,widths For `tfl_plan_style()`: the border set and the relative
-#'   column widths (`col_rel_width`).  Anything else [rtftable()]
-#'   understands goes through `...`.
+#'   column widths (`col_rel_width`), one a column in order.  Anything else
+#'   [rtftable()] understands goes through `...`.  For `tfl_plan_columns()`,
+#'   `widths` is **named by column** instead (`c(row_label = 5, .values = 2)`,
+#'   `.values` for every value column), so a reordered table keeps them ---
+#'   the `columns` sheet's `width`.
+#' @param decimal For `tfl_plan_columns()`: the columns whose numbers line
+#'   up at the decimal point (`.values` for every value column) --- the
+#'   `columns` sheet's `decimal_split`.
 #' @param type,sep,spacer,spacer_rel_width,blank_row,blank_row_first,align,layout,wrap,record
 #'   For `tfl_plan_listing()`: [listing_spec()]'s own arguments, unchanged.
 #'   `...` there takes the [listing_col()]s.
@@ -975,7 +886,10 @@ print.tfl_plan <- function(x, ...) {
 #' @param header For `tfl_plan_col_header()`: the header, built with the same
 #'   [rtf_col_header()] as everywhere else --- or a **function** of the
 #'   resolved `n` (and, with two arguments, the finished table) when it
-#'   has to be computed.  The plan adds two things to a header it is
+#'   has to be computed --- or a **data frame of cells**, one row a cell,
+#'   with the `col_header` sheet's columns (`line`, `cols`, `span`, `text`,
+#'   borders ...), placed on each page's columns when it is made; this is
+#'   how [tfl_table_code()] writes a workbook's header.  The plan adds two things to a header it is
 #'   given, both of which used to need a function:
 #'
 #'   * `{n:sum}` is that number **totalled over the columns the cell
@@ -1205,7 +1119,9 @@ tfl_plan_cells <- function(plan, ...) .plan_keyed(plan, "cells", list(...))
 #' @rdname plan_verbs
 #' @export
 tfl_plan_digits <- function(plan, ..., rounding = NULL) {
-  p <- .plan_keyed(plan, "digits", list(...))
+  d <- list(...)
+  p <- if (length(d) || is.null(rounding)) .plan_keyed(plan, "digits", d)
+       else plan
   if (is.null(rounding)) p
   else .plan_layer(p, "round", list(rounding = rounding))
 }
@@ -1492,8 +1408,29 @@ tfl_plan_style <- function(plan, border = NULL, widths = NULL, ...) {
 # today, so nothing that works now changes meaning.
 tfl_plan_col_header <- function(plan, header = NULL, n = NULL,
                             values = NULL) {
+  if (is.data.frame(header)) {
+    # the `col_header` sheet's cells (one row a cell: `row`, `cols`, `text`,
+    # `span` ...), resolved against each page's columns when it is made
+    cells <- lapply(seq_len(nrow(header)), function(i)
+      .ard_spec_typed(header[i, , drop = FALSE], "col_header"))
+    txt <- vapply(cells, function(r) r[["text"]] %||% "", "")
+    # `n` says WHICH population a `{n}` is; a `{n` in a text is what asks
+    # for one at all
+    header <- structure(
+      list(cells = cells, n = n %||% any(grepl("{n", txt, fixed = TRUE))),
+      class = "plan_spec_col_header")
+    n <- NULL
+  }
   .plan_layer(plan, "header",
               list(header = header, n = n, values = values))
+}
+
+# Widths by column NAME (a reordered table keeps them) and the columns
+# whose numbers line up at the decimal point: the `columns` sheet.
+#' @rdname plan_verbs
+#' @export
+tfl_plan_columns <- function(plan, widths = NULL, decimal = NULL) {
+  .plan_layer(plan, "columns", list(widths = widths, decimal = decimal))
 }
 
 # Titles and footnotes are NOT the section header and footer: those are

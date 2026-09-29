@@ -17,7 +17,8 @@ tfl_plan(
   value = NULL,
   na = NULL,
   spec = NULL,
-  notes = NULL
+  notes = NULL,
+  sort_stat = NULL
 )
 }
 \arguments{
@@ -59,9 +60,10 @@ makes each statistic a row of its own.}
 
 \item{sep}{Separator pasted between multiple \code{cols} keys.}
 
-\item{value, na, notes}{The remaining \code{\link[=tfl_ard_spread]{tfl_ard_spread()}} options,
+\item{value, na, notes, sort_stat}{The remaining \code{\link[=tfl_ard_spread]{tfl_ard_spread()}} options,
 unchanged: which of \code{stat} / \code{stat_fmt} a \code{{x}} reads, what fills a
-cell no template could, and whether to report what was not used.}
+cell no template could, whether to report what was not used, and the
+statistic totalled into \code{.sort_stat} for a frequency order.}
 
 \item{spec}{An \code{\link[=tfl_table_spec]{tfl_table_spec()}} definition, or the path to a workbook as
 \code{\link[=tfl_read_table_spec]{tfl_read_table_spec()}} reads it (a workbook defining several reports must

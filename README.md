@@ -44,6 +44,18 @@ doc <- rtf_document() |> rtf_tables(tbl)
 generate_rtfreport(doc, "t_dm.rtf")
 ```
 
+The same table from an Excel definition, as an object or as code:
+
+```r
+spec <- tfl_read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = "DM")
+
+plan <- tfl_plan(data, spec = spec)        # the plan, read from the workbook
+doc  <- tfl_report(spec, plan)             # the document around it
+
+tfl_table_code(spec)                       # or the program: tfl_plan() + tfl_plan_*()
+tfl_report_code(spec, content = "plan")    #   and rtf_document() + rtf_*()
+```
+
 ## Listings
 
 A listing is defined in two sheets keyed by `output_id`: `listings` (one row
