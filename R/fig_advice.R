@@ -109,13 +109,22 @@
   },
   legend_none = function(d, ctx) {
     n <- length(ctx$levels)
-    if (n > 1L && identical(.pv(d$plot, "legend"), "none")) .adv(
+    by <- d$plot$colour_by
+    # no legend needed when the groups are on an axis or in panels
+    on_axis <- !is.null(by) && (identical(d$plot$facet_by, by) ||
+      any(vapply(d$layers, function(l) identical(l$x, by) || identical(l$y, by), logical(1))))
+    if (n > 1L && !on_axis && identical(.pv(d$plot, "legend"), "none")) .adv(
       "legend_none", "warning", "plot",
       "%d groups are coloured, but there is no legend.",
       .fix("set_plot", legend = "bottom"), args = list(n))
   },
   no_colour = function(d, ctx) {
-    maps <- unlist(lapply(d$layers, function(l) c(l$colour, l$fill)))
+    pieces <- .fig_pieces()
+    maps <- unlist(lapply(d$layers, function(l) {
+      g <- pieces[[l$layer %||% ""]]$geom
+      if (is.null(g)) return(NULL)
+      c(if ("colour" %in% g$aes) l$colour, if ("fill" %in% g$aes) l$fill)
+    }))
     if (is.null(d$plot$colour_by) && length(maps)) .adv(
       "no_colour", "warning", "plot",
       "Layers colour by %s, but the figure's 'Colours by' is empty: the palette is not applied.",
@@ -123,7 +132,7 @@
   },
   # ---- mean over time
   mean_n = function(d, ctx) {
-    sm <- Filter(function(s) identical(s$step, "summary"), d$stats)
+    sm <- Filter(function(s) identical(s$step, "summary") && grepl("VISIT", toupper(s$by %||% "")), d$stats)
     if (length(sm) && .has_layer(d, "errorbar") && !.has_layer(d, "n_table")) {
       by <- .split_vals(sm[[1L]]$by)
       eb <- d$layers[[.layer_i(d, "errorbar")[1L]]]
@@ -210,7 +219,8 @@
 tfl_fig_advice <- function(design, adam = NULL) {
   ctx <- .fig_advice_ctx(design, adam)
   lines <- list()
-  for (r in .fig_advice_rules()) {
+  whole <- any(.layer_kinds(design) == "figure")
+  for (r in if (whole) list() else .fig_advice_rules()) {
     out <- tryCatch(r(design, ctx), error = function(e) NULL)
     if (inherits(out, "tfl_fig_advice_line")) lines <- c(lines, list(out))
   }

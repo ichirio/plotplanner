@@ -111,7 +111,7 @@
     # ---- legend and output
     a("legend", "legend", "choice", "basic", "Legend",
       "Where the legend goes (panel*: a legend drawn from an item table)."),
-    a("title", "output", "text", "basic", "Title", "The figure's own title."),
+    a("title", "output", "text", "basic", "Figure title", "The figure's own title."),
     a("width", "output", "number", "advanced", "Width", ""),
     a("height", "output", "number", "advanced", "Height", ""),
     a("dpi", "output", "number", "advanced", "DPI", ""),
