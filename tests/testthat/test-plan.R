@@ -392,6 +392,21 @@ test_that("tfl_plan_after() refuses anything that is not a function", {
   skip_if_no_cards2()
   expect_error(tfl_plan_after(disp_plan(), "set_decimal_split"),
                "takes functions")
+  expect_error(tfl_plan_after(disp_plan(), "set_decimal_split"),
+               "tfl_plan_columns(decimal = )", fixed = TRUE)
+})
+
+test_that("decimal alignment is a declaration: the same pages as an after() step", {
+  skip_if_no_cards2()
+  p <- base_plan()
+  by_step <- as_rtftables(
+    tfl_plan_after(p, function(x) set_decimal_split(x, cols = 3:5)))
+  by_decl <- as_rtftables(tfl_plan_columns(p, decimal = ".values"))
+  expect_identical(by_decl, by_step)
+  # by name, so it follows the columns wherever they go
+  by_name <- as_rtftables(tfl_plan_columns(p, decimal = c("Placebo",
+    "Xanomeline High Dose", "Xanomeline Low Dose")))
+  expect_identical(by_name, by_step)
 })
 
 test_that("the display verbs are last-wins too", {

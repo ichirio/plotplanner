@@ -399,6 +399,27 @@ the things a report really does declare twice.  Their arguments are
 the ones \code{\link[=tfl_ard_spread]{tfl_ard_spread()}} and \code{\link[rtfreporter:as_rtftables]{rtfreporter::as_rtftables()}} already take, so the
 layering is the only new idea.
 }
+\section{tfl_plan_after() is the way out, not the way in}{
+
+
+\code{tfl_plan_after()} runs functions of your own on the finished pages.  It
+is for what the plan cannot \strong{declare} --- a step with no verb --- and
+it is the only verb whose content the plan cannot read: a workbook
+(\code{\link[=tfl_as_table_spec]{tfl_as_table_spec()}}) cannot carry it, and the columns it names are
+positions on the pages, which a reordered table does not keep.  The usual
+reasons to reach for it each have a declaration, which names columns and
+goes into a workbook:\tabular{ll}{
+   Instead of \code{tfl_plan_after(...)} around \tab declare \cr
+   \code{set_decimal_split(x, cols = 3:31)} \tab \code{tfl_plan_columns(decimal = ".values")} \cr
+   \code{paginate_cols(x, ...)} \tab \code{tfl_plan_paginate_cols(every = , at = , carry = )} \cr
+   widths by position (\code{col_rel_width}) \tab \code{tfl_plan_columns(widths = c(Analyte = 3, .values = 2))} \cr
+   \code{set_col_header()} / \code{rtf_col_header()} \tab \code{tfl_plan_col_header()} \cr
+   \code{realign_count_pct()} \tab \code{tfl_plan_style(align_count_pct = TRUE)} \cr
+   \code{paginate()} \tab \code{tfl_plan_paginate_rows()} \cr
+   bold / colour / alignment of body cells \tab \code{tfl_plan_cell_style()} \cr
+}
+}
+
 \section{Lifecycle}{
 
 \strong{Spike.}  See \code{\link[=tfl_plan]{tfl_plan()}}.
