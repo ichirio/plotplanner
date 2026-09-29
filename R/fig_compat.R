@@ -288,6 +288,10 @@ tfl_fig_compat <- function(ggplot2_version = NULL) {
   add <- design$plot$add %||% list()
   for (i in seq_along(add)) out[[length(out) + 1L]] <- list(
     sec = "add", i = i, spec = add[[i]], part = sprintf("plot.add[%d]", i))
+  comp <- design$compose$add %||% list()
+  for (i in seq_along(comp)) out[[length(out) + 1L]] <- list(
+    sec = "compose", i = i, spec = comp[[i]][setdiff(names(comp[[i]]), "op")],
+    part = sprintf("compose.add[%d]", i))
   out
 }
 
@@ -309,6 +313,8 @@ tfl_fig_compat <- function(ggplot2_version = NULL) {
 .fig_compat_fix_piece <- function(design, sec, i, target) {
   if (sec == "layers") {
     design$layers[[i]] <- .fig_compat_walk(design$layers[[i]], target, "", fix = TRUE)$spec
+  } else if (sec == "compose") {
+    design$compose$add[[i]] <- .fig_compat_walk(design$compose$add[[i]], target, "", fix = TRUE)$spec
   } else {
     design$plot$add[[i]] <- .fig_compat_walk(design$plot$add[[i]], target, "", fix = TRUE)$spec
   }

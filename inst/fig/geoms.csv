@@ -21,3 +21,4 @@ hline,geom_hline,ggplot2,Horizontal lines,,"Reference lines, e.g. y = 0.5 (media
 vline,geom_vline,ggplot2,Vertical lines,,
 abline,geom_abline,ggplot2,Diagonal line,,
 text_repel,geom_text_repel,ggrepel,Text that avoids overlaps,,Labels pushed apart (ggrepel).
+sina,geom_sina,ggforce,Sina plot,,"Points spread by their density, e.g. a distribution per group (instead of box plot + jitter)."
