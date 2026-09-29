@@ -1,5 +1,8 @@
 # Standard R-CMD-check workflow, derived from r-lib/actions examples.
-# Matrix covers the platforms and R versions CRAN expects.
+# Matrix covers the platforms and R versions CRAN expects, plus the two
+# ggplot2 lines figure designs are written for (3.5.x and 4.0.x; see
+# inst/fig/ggplot2_compat.csv).
+# ggsurvfit >= 1.2.0 needs ggplot2 >= 4.0.0, so the 3.5.2 row pins ggsurvfit 1.1.0.
 on:
   push:
     branches: [main, master]
@@ -15,7 +18,7 @@ jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
 
-    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }}) ${{ matrix.config.gg || '' }}
 
     strategy:
       fail-fast: false
@@ -26,6 +29,8 @@ jobs:
           - {os: ubuntu-latest,  r: 'oldrel-1'}
           - {os: macos-latest,   r: 'release'}
           - {os: windows-latest, r: 'release'}
+          - {os: ubuntu-latest,  r: 'release', gg: 'ggplot2@3.5.2 ggsurvfit@1.1.0', want: '3.5.2'}
+          - {os: ubuntu-latest,  r: 'release', gg: 'ggplot2@>=4.0.0', want: '4.0'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -44,10 +49,21 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck
+          extra-packages: |
+            any::rcmdcheck
+            ${{ matrix.config.gg || 'any::ggplot2' }}
           needs: check
 
+      - name: Confirm the ggplot2 under test
+        if: matrix.config.want
+        run: |
+          v <- as.character(packageVersion("ggplot2")); message("ggplot2 ", v)
+          stopifnot(startsWith(v, "${{ matrix.config.want }}"))
+        shell: Rscript {0}
+
       - uses: r-lib/actions/check-r-package@v2
+        env:
+          TFLSPEC_GGPLOT2_UNDER_TEST: ${{ matrix.config.want }}
         with:
           upload-snapshots: true
           build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'

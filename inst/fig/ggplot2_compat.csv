@@ -1,0 +1,65 @@
+package,fn,arg,change,from,replacement,level,note
+ggplot2,coord_radial,,fn_added,3.5.0,,error,
+ggplot2,geom_boxplot,outliers,arg_added,3.5.0,,error,
+ggplot2,theme,legend.key.spacing*,arg_added,3.5.0,,error,also legend.ticks and legend.byrow (the 3.5.0 guide rewrite)
+ggplot2,element_geom,,fn_added,4.0.0,,error,
+ggplot2,element_point,,fn_added,4.0.0,,error,
+ggplot2,element_polygon,,fn_added,4.0.0,,error,
+ggplot2,stat_manual,,fn_added,4.0.0,,error,
+ggplot2,stat_connect,,fn_added,4.0.0,,error,
+ggplot2,theme,geom,arg_added,4.0.0,,error,theme(geom = element_geom()) sets every layer's default look
+ggplot2,theme,palette.*,arg_added,4.0.0,,error,"the palette.<aes>.<discrete|continuous> elements"
+ggplot2,theme_*,ink,arg_added,4.0.0,,error,
+ggplot2,theme_*,paper,arg_added,4.0.0,,error,
+ggplot2,theme_*,accent,arg_added,4.0.0,,error,
+ggplot2,coord_cartesian,reverse,arg_added,4.0.0,,error,
+ggplot2,coord_radial,reverse,arg_added,4.0.0,,error,
+ggplot2,coord_sf,reverse,arg_added,4.0.0,,error,
+ggplot2,labs,dictionary,arg_added,4.0.0,,error,
+ggplot2,geom_label,border.colour,arg_added,4.0.0,,error,also border.color
+ggplot2,geom_label,text.colour,arg_added,4.0.0,,error,also text.color
+ggplot2,stat_ydensity,quantiles,arg_added,4.0.0,,error,
+ggplot2,geom_label,label.size,arg_renamed,4.0.0,linewidth,warning,"linewidth is ignored before 4.0; label.size is deprecated in 4.0 (its message says 3.5.0)"
+ggplot2,scale_*,trans,arg_renamed,3.5.0,transform,warning,also sec_axis() / dup_axis()
+ggplot2,sec_axis,trans,arg_renamed,3.5.0,transform,warning,
+ggplot2,dup_axis,trans,arg_renamed,3.5.0,transform,warning,
+ggplot2,coord_trans,,fn_renamed,4.0.0,coord_transform,warning,
+ggplot2,borders,,fn_renamed,4.0.0,annotation_borders,warning,
+ggplot2,theme_get,,fn_renamed,4.0.0,get_theme,warning,
+ggplot2,theme_set,,fn_renamed,4.0.0,set_theme,warning,
+ggplot2,theme_update,,fn_renamed,4.0.0,update_theme,warning,
+ggplot2,theme_replace,,fn_renamed,4.0.0,replace_theme,warning,
+ggplot2,last_plot,,fn_renamed,4.0.0,get_last_plot,warning,
+ggplot2,layer_data,,fn_renamed,4.0.0,get_layer_data,warning,
+ggplot2,layer_grob,,fn_renamed,4.0.0,get_layer_grob,warning,
+ggplot2,layer_scales,,fn_renamed,4.0.0,get_panel_scales,warning,not a prefix swap: scales -> panel_scales
+ggplot2,geom_errorbarh,,fn_deprecated,4.0.0,"geom_errorbar(orientation = ""y"")",warning,
+ggplot2,geom_bar,size,arg_removed,4.0.0,linewidth,error,"dropped (not translated to linewidth) in 4.0: 'Ignoring unknown parameters: size'"
+ggplot2,geom_col,size,arg_removed,4.0.0,linewidth,error,"dropped (not translated to linewidth) in 4.0: 'Ignoring unknown parameters: size'"
+ggplot2,geom_bar,size,arg_deprecated,3.4.0,linewidth,warning,the line width of the bars' outline
+ggplot2,geom_col,size,arg_deprecated,3.4.0,linewidth,warning,the line width of the bars' outline
+ggplot2,geom_line,size,arg_deprecated,3.4.0,linewidth,warning,a line's width is linewidth (size is for points and text)
+ggplot2,geom_path,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,geom_step,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,geom_segment,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,geom_hline,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,geom_vline,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,geom_abline,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,geom_errorbar,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,geom_ribbon,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,geom_area,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,geom_rect,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,geom_tile,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,geom_polygon,size,arg_deprecated,3.4.0,linewidth,warning,
+ggplot2,theme,legend.text.align,arg_deprecated,3.5.0,,warning,use legend.text = element_text(hjust = )
+ggplot2,theme,legend.title.align,arg_deprecated,3.5.0,,warning,use legend.title = element_text(hjust = )
+ggplot2,geom_pointrange,fatten,arg_deprecated,4.0.0,,warning,
+ggplot2,geom_crossbar,fatten,arg_deprecated,4.0.0,,warning,use middle.linewidth / box.linewidth
+ggplot2,geom_boxplot,fatten,arg_deprecated,4.0.0,,warning,use median.linewidth
+ggplot2,geom_violin,draw_quantiles,arg_deprecated,4.0.0,,warning,use quantiles = (stat_ydensity) with quantile.linetype
+ggplot2,guide_colourbar,raster,arg_deprecated,4.0.0,,warning,"use display = ""raster"" / ""rectangles"" / ""gradient"""
+ggplot2,guide_colorbar,raster,arg_deprecated,4.0.0,,warning,"use display = ""raster"" / ""rectangles"" / ""gradient"""
+ggplot2,facet_wrap,as.table,arg_deprecated,4.0.0,,warning,use the two-letter dir = codes
+ggplot2,theme,legend.position,value_deprecated,3.5.0,legend.position.inside,warning,"a numeric position: legend.position = ""inside"" + legend.position.inside = c(x, y)"
+ggplot2,scale_*,guide,value_deprecated,3.3.4,none,warning,"guide = FALSE: use guide = ""none"""
+ggplot2,,label attribute,behaviour,4.0.0,,info,"a column's label attribute (an ADaM variable's label) titles its axis or legend when nothing else does"
