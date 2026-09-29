@@ -1,4 +1,4 @@
-# tflspec 0.0.22
+# tflspec (development version)
 
 * **Composed figures** (#39): a figure design may have `plots:` (name ->
   a whole figure design, each reading its own data) and `compose:`
@@ -26,6 +26,8 @@
   `package:`.
 * ggplot2 4.0's label-attribute advice also looks at joined datasets and
   counts an empty axis label as none.
+# tflspec 0.0.22
+
 * **Figure designs are written for ggplot2 3.5 or 4.0** (#37).
   `inst/fig/ggplot2_compat.csv` lists what differs between the two for a
   design's `call` pieces (functions and arguments added, renamed,
