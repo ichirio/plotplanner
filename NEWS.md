@@ -1,3 +1,16 @@
+# tflspec 0.0.16
+
+* **`tfl_plan_after()` is the way out, not the way in** (#24, Discussion
+  #23).  The usual reasons to reach for it have declarations, which name
+  columns and go into a workbook: `set_decimal_split()` ->
+  `tfl_plan_columns(decimal = ".values")`, `paginate_cols()` ->
+  `tfl_plan_paginate_cols()`, widths by position ->
+  `tfl_plan_columns(widths = c(<column> = , .values = ))`.  `?plan_verbs`
+  has the table; the error of `tfl_plan_after()` no longer suggests
+  `set_decimal_split()`.  The PK example is written with declarations only
+  (its RTF is byte-identical).  A test checks that `tfl_plan_columns(decimal
+  = )` gives exactly the pages a `set_decimal_split()` step gives.
+
 # tflspec 0.0.15
 
 * **Figure designs are now parts and layers** (#20): a design is four
