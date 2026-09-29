@@ -36,7 +36,11 @@
                   "inside_br", "inside_bl")
 
 # every piece: its section, label, help and fields
-.fig_pieces <- function() {
+# every piece: built once, then kept (see .fig_cached()); a field lookup
+# asks for it many times a design
+.fig_pieces <- function() .fig_cached("pieces", .fig_pieces_build)
+
+.fig_pieces_build <- function() {
   pal <- names(tfl_fig_palettes())
   shapes <- names(pp_shape_names)
   lty <- c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash")
@@ -223,7 +227,9 @@
 }
 
 # the figure-wide settings
-.fig_plot_fields <- function() {
+.fig_plot_fields <- function() .fig_cached("plot_fields", .fig_plot_fields_build)
+
+.fig_plot_fields_build <- function() {
   rbind(
     .ff("title", "text", "Figure title"),
     .ff("x_label", "text", "X label"),
@@ -267,7 +273,9 @@
 #'   `code`, `named` (`name = value | ...`)), `label`, `default`,
 #'   `choices` (`|` between them), `help`, `required`, `of`.
 #' @export
-tfl_fig_parts <- function() {
+tfl_fig_parts <- function() .fig_cached("parts", .fig_parts_build)
+
+.fig_parts_build <- function() {
   p <- .fig_pieces()
   rows <- lapply(names(p), function(k) {
     f <- p[[k]]$fields

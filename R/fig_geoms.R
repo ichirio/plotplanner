@@ -13,6 +13,19 @@
 
 .fig_registry <- new.env(parent = emptyenv())
 
+# A value built from the catalog and the figure style standard, kept until
+# either changes: tfl_fig_add_layer() bumps the registry's version, and a
+# new style (options(tflspec.fig_style =)) is a new key.
+.fig_cached <- function(what, build) {
+  key <- list(.fig_registry$version %||% 0L, getOption("tflspec.fig_style"))
+  hit <- .fig_registry$cache[[what]]
+  if (!is.null(hit) && identical(hit$key, key)) return(hit$value)
+  value <- build()
+  if (is.null(.fig_registry$cache)) .fig_registry$cache <- list()
+  .fig_registry$cache[[what]] <- list(key = key, value = value)
+  value
+}
+
 .fig_catalog <- function() {
   if (is.null(.fig_registry$geoms)) {
     rd <- function(f) utils::read.csv(
@@ -129,6 +142,7 @@ tfl_fig_add_layer <- function(layer, fn, package, label = fn, aes = character(),
   }
   g <- data.frame(layer = layer, fn = fn, package = package, label = label,
                   position = position, help = help, stringsAsFactors = FALSE)
+  .fig_registry$version <- (.fig_registry$version %||% 0L) + 1L
   .fig_registry$geoms <- rbind(cat$geoms[cat$geoms$layer != layer, ], g)
   .fig_registry$fields <- rbind(cat$fields[cat$fields$layer != layer, ],
                                 as_fields(aes, "aes"), as_fields(params, "param"))
