@@ -15,9 +15,13 @@
 # (.adv()); ctx holds what the rules read from the data: the levels of the
 # colour variable, the dataset's variables, the PARAMCDs.
 
-.adv <- function(rule, level, part, message, fix = NULL) {
-  structure(list(rule = rule, level = level, part = part, message = message,
-                 fix = fix), class = "tfl_fig_advice_line")
+# message = the line, or a template for sprintf() with `args` -- kept apart
+# so a GUI can translate the template and format it itself
+.adv <- function(rule, level, part, message, fix = NULL, args = list()) {
+  structure(list(rule = rule, level = level, part = part,
+                 message = if (length(args)) do.call(sprintf, c(list(message), args)) else message,
+                 template = message, args = args, fix = fix),
+            class = "tfl_fig_advice_line")
 }
 
 # a fix: op = add_layer | add_step | set_plot | set_piece | remove_layer
@@ -85,7 +89,7 @@
     n <- length(ctx$levels)
     if (n && is.null(names(ctx$palette)) && n > ctx$palette_n) .adv(
       "palette_short", "warning", "plot",
-      sprintf("%d groups, but the palette has %d colours: some groups get none.", n, ctx$palette_n))
+      "%d groups, but the palette has %d colours: some groups get none.", args = list(n, ctx$palette_n))
   },
   palette_names = function(d, ctx) {
     n <- length(ctx$levels)
@@ -93,30 +97,29 @@
       miss <- setdiff(ctx$levels, names(ctx$palette))
       if (length(miss)) .adv(
         "palette_names", "warning", "plot",
-        sprintf("The palette has no colour for %s (drawn grey).", paste(miss, collapse = ", ")))
+        "The palette has no colour for %s (drawn grey).", args = list(paste(miss, collapse = ", ")))
     }
   },
   legend_inside = function(d, ctx) {
     n <- length(ctx$levels)
     if (n > 4L && grepl("^inside", .pv(d$plot, "legend") %||% "")) .adv(
       "legend_inside", "info", "plot",
-      sprintf("%d groups: a legend inside the panel may cover the data; below is usual.", n),
-      .fix("set_plot", legend = "bottom"))
+      "%d groups: a legend inside the panel may cover the data; below is usual.",
+      .fix("set_plot", legend = "bottom"), args = list(n))
   },
   legend_none = function(d, ctx) {
     n <- length(ctx$levels)
     if (n > 1L && identical(.pv(d$plot, "legend"), "none")) .adv(
       "legend_none", "warning", "plot",
-      sprintf("%d groups are coloured, but there is no legend.", n),
-      .fix("set_plot", legend = "bottom"))
+      "%d groups are coloured, but there is no legend.",
+      .fix("set_plot", legend = "bottom"), args = list(n))
   },
   no_colour = function(d, ctx) {
     maps <- unlist(lapply(d$layers, function(l) c(l$colour, l$fill)))
     if (is.null(d$plot$colour_by) && length(maps)) .adv(
       "no_colour", "warning", "plot",
-      sprintf("Layers colour by %s, but the figure's 'Colours by' is empty: the palette is not applied.",
-              paste(unique(maps), collapse = ", ")),
-      .fix("set_plot", colour_by = unique(maps)[1L]))
+      "Layers colour by %s, but the figure's 'Colours by' is empty: the palette is not applied.",
+      .fix("set_plot", colour_by = unique(maps)[1L]), args = list(paste(unique(maps), collapse = ", ")))
   },
   # ---- mean over time
   mean_n = function(d, ctx) {
@@ -136,8 +139,9 @@
     ordered <- unlist(lapply(d$data, function(s) if (identical(s$step, "levels")) s$variable))
     for (x in setdiff(xs, ordered)) {
       return(.adv("visit_order", "warning", "data",
-        sprintf("%s is text: without an order its visits sort alphabetically. Order it by its number.", x),
-        .fix("add_step", step = list(step = "levels", variable = x, order_by = paste0(x, "N")))))
+        "%s is text: without an order its visits sort alphabetically. Order it by its number.",
+        .fix("add_step", step = list(step = "levels", variable = x, order_by = paste0(x, "N"))),
+        args = list(x)))
     }
   },
   # ---- waterfall
@@ -197,8 +201,10 @@
 #'   are counted against the palette and the legend.
 #' @param fix One row's `fix` (a list: `op` and its fields).
 #' @return `tfl_fig_advice()`: a data frame with `rule`, `level` (`info`,
-#'   `warning`), `part` (`data`, `stats`, `plot`, `layers`), `message` and
-#'   `fix` (a list column; `NULL` where there is no one-step fix).
+#'   `warning`), `part` (`data`, `stats`, `plot`, `layers`), `message`,
+#'   `template` and `args` (the message before `sprintf()` and its values,
+#'   for a GUI that translates it) and `fix` (a list column; `NULL` where
+#'   there is no one-step fix).
 #'   `tfl_fig_apply_fix()`: the design, changed.
 #' @export
 tfl_fig_advice <- function(design, adam = NULL) {
@@ -213,6 +219,8 @@ tfl_fig_advice <- function(design, adam = NULL) {
     level = vapply(lines, `[[`, "", "level"),
     part = vapply(lines, `[[`, "", "part"),
     message = vapply(lines, `[[`, "", "message"),
+    template = vapply(lines, `[[`, "", "template"),
+    args = I(lapply(lines, `[[`, "args")),
     fix = I(lapply(lines, `[[`, "fix")),
     stringsAsFactors = FALSE)
 }

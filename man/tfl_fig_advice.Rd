@@ -19,8 +19,10 @@ are counted against the palette and the legend.}
 }
 \value{
 \code{tfl_fig_advice()}: a data frame with \code{rule}, \code{level} (\code{info},
-\code{warning}), \code{part} (\code{data}, \code{stats}, \code{plot}, \code{layers}), \code{message} and
-\code{fix} (a list column; \code{NULL} where there is no one-step fix).
+\code{warning}), \code{part} (\code{data}, \code{stats}, \code{plot}, \code{layers}), \code{message},
+\code{template} and \code{args} (the message before \code{sprintf()} and its values,
+for a GUI that translates it) and \code{fix} (a list column; \code{NULL} where
+there is no one-step fix).
 \code{tfl_fig_apply_fix()}: the design, changed.
 }
 \description{
