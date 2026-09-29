@@ -546,12 +546,12 @@ pk_plan <- tfl_ard_normalize(ard_pk) |>
   tfl_plan_row_group(collapse = TRUE) |>
   tfl_plan_blanks(where = "between_groups", first = TRUE, last = TRUE) |>
   tfl_plan_paginate_rows(max_rows = 21) |>
-  tfl_plan_style(widths = c(3, 3, 2), row_title = 1:2) |>
+  tfl_plan_style(row_title = c("Analyte", "Statistics")) |>
   pk_header() |>
-  tfl_plan_after(function(x) {
-    d <- if (inherits(x, "rtftable")) x$data else x[[1L]]$data
-    set_decimal_split(x, cols = setdiff(names(d), c("Analyte", "Statistics")))
-  }) |>
+  # widths by column name and the decimal alignment of the values: a
+  # declaration, not a tfl_plan_after() step around set_decimal_split()
+  tfl_plan_columns(widths = c(Analyte = 3, Statistics = 3, .values = 2),
+                   decimal = ".values") |>
   tfl_plan_paginate_cols(every = 13, carry = 1:2)
 
 # ------------------------------------------------------ write and check

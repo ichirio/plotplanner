@@ -1032,6 +1032,26 @@ print.tfl_plan <- function(x, ...) {
 #'
 #' @return The plan, with one more layer.
 #'
+#' @section tfl_plan_after() is the way out, not the way in:
+#'
+#' `tfl_plan_after()` runs functions of your own on the finished pages.  It
+#' is for what the plan cannot **declare** --- a step with no verb --- and
+#' it is the only verb whose content the plan cannot read: a workbook
+#' ([tfl_as_table_spec()]) cannot carry it, and the columns it names are
+#' positions on the pages, which a reordered table does not keep.  The usual
+#' reasons to reach for it each have a declaration, which names columns and
+#' goes into a workbook:
+#'
+#' | Instead of `tfl_plan_after(...)` around | declare |
+#' |---|---|
+#' | `set_decimal_split(x, cols = 3:31)` | `tfl_plan_columns(decimal = ".values")` |
+#' | `paginate_cols(x, ...)` | `tfl_plan_paginate_cols(every = , at = , carry = )` |
+#' | widths by position (`col_rel_width`) | `tfl_plan_columns(widths = c(Analyte = 3, .values = 2))` |
+#' | `set_col_header()` / `rtf_col_header()` | `tfl_plan_col_header()` |
+#' | `realign_count_pct()` | `tfl_plan_style(align_count_pct = TRUE)` |
+#' | `paginate()` | `tfl_plan_paginate_rows()` |
+#' | bold / colour / alignment of body cells | `tfl_plan_cell_style()` |
+#'
 #' @section Lifecycle:
 #' **Spike.**  See [tfl_plan()].
 #'
@@ -1158,7 +1178,8 @@ tfl_plan_digits <- function(plan, ..., rounding = NULL) {
 #      tfl_plan_col_header()  set_col_header(), and the denominator `n` it needs
 #      tfl_plan_titles()  the block ABOVE the table, on each page
 #      tfl_plan_footnotes()  the block BELOW it
-#      tfl_plan_after()   set_decimal_split() / paginate_cols() / anything else
+#      tfl_plan_columns() widths by column name, decimal alignment
+#      tfl_plan_after()   the way out: a step no verb above declares
 
 
 #' @rdname plan_verbs
@@ -1489,10 +1510,11 @@ tfl_plan_footnotes <- function(plan, ..., pages = NULL) {
   .plan_block(plan, "footnotes", list(...), pages)
 }
 
-# Steps that run on the finished pages.  They are functions rather than
-# fields because that is what they are -- set_decimal_split() and
-# paginate_cols() take the object and give it back -- and a plan that
-# pretended otherwise would need a field per argument of each.
+# Steps that run on the finished pages: the way out for what no verb
+# declares.  They are functions, so the plan cannot read them (a workbook
+# cannot carry one); what they were once used for most --
+# set_decimal_split(), paginate_cols() -- has a declaration now
+# (tfl_plan_columns(decimal = ), tfl_plan_paginate_cols()).
 #' @rdname plan_verbs
 #' @export
 tfl_plan_after <- function(plan, ...) {
@@ -1501,7 +1523,9 @@ tfl_plan_after <- function(plan, ...) {
   if (any(bad)) {
     .ard_stop(paste0(
       "tfl_plan_after() takes functions of the pages, one per step -- for ",
-      "example\n    tfl_plan_after(\\(x) set_decimal_split(x, cols = 3:5))"))
+      "example\n    tfl_plan_after(\\(x) style_header(x, bold = TRUE))\n",
+      "  Decimal alignment and column pages are declarations: ",
+      "tfl_plan_columns(decimal = ), tfl_plan_paginate_cols()."))
   }
   .plan_layer(plan, "after", list(steps = fs))
 }
