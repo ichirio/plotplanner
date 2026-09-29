@@ -13,16 +13,24 @@ tfl_fig_template(
   param = NULL,
   pop = NULL,
   group = NULL,
-  time = "AVAL",
+  time = NULL,
   censor = "CNSR",
   time_unit = "months",
-  value = "AVAL",
+  value = NULL,
   visit = "AVISITN",
   visit_label = "AVISIT",
+  x = NULL,
+  y = NULL,
+  at_visit = NULL,
   response_data = "ADRS",
   response = "BOR",
+  category = "AVALC",
+  responders = "CR, PR",
+  id = "USUBJID",
+  duration = "TRTDURD",
   join_adsl = NULL,
-  title = NULL
+  title = NULL,
+  ...
 )
 }
 \arguments{
@@ -32,26 +40,42 @@ tfl_fig_template(
 flag and the group variable (joined from ADSL when \code{join_adsl}).}
 
 \item{time, censor, time_unit}{KM: the time, the censor variable, the axis's
-unit.}
+unit.  PK: \code{time} is the nominal time.}
 
-\item{value, visit, visit_label}{Mean: the value and the visit (number and
-label).}
+\item{value, visit, visit_label}{The value and the visit (number and
+label): mean, box, spaghetti, scatter.}
 
-\item{response_data, response}{Waterfall: the best response's dataset and
-PARAMCD.}
+\item{x, y}{Scatter: the two variables.}
 
-\item{join_adsl}{Join \code{group} (and \code{pop}) from ADSL (\code{TRUE} for mean;
-KM and waterfall read them from their own dataset).}
+\item{at_visit}{Box by group, shift: the visit kept (its label; empty =
+the last).}
+
+\item{response_data, response}{Best response: its dataset and PARAMCD.}
+
+\item{category, responders}{Bar: the category variable, and the values
+counted as response.}
+
+\item{id, duration}{Swimmer: the subject and the bar's length (days).}
+
+\item{join_adsl}{Join \code{group} (and \code{pop}) from ADSL (\code{TRUE} for the
+longitudinal kinds; KM, waterfall and swimmer read them from their own
+dataset).}
 
 \item{title}{The figure's title.}
+
+\item{...}{For a whole-script template: the type's other arguments.}
 }
 \value{
 \code{tfl_fig_templates()}: a data frame (\code{template}, \code{kind},
-\code{label}); \code{tfl_fig_template()}: a \code{tfl_fig_design}.
+\code{label}, \code{parts}); \code{tfl_fig_template()}: a \code{tfl_fig_design}.
 }
 \description{
 A template fills a figure design's four parts at once -- its data steps,
 statistics, settings and layers -- for a kind of figure; each piece is
 then edited on its own (\code{\link[=tfl_fig_design]{tfl_fig_design()}}).  Sizes, line widths and
-colours come from the figure style standard (\code{\link[=tfl_fig_style]{tfl_fig_style()}}).
+colours come from the figure style standard (\code{\link[=tfl_fig_style]{tfl_fig_style()}}).  The
+templates of the types not yet in parts (forest, AE dot, butterfly,
+eDISH, sankey, sunburst) give a design of one \code{figure} layer: the
+type's whole script, with its arguments (\code{parts = FALSE} in
+\code{tfl_fig_templates()}; see \code{\link[=tfl_fig_schema]{tfl_fig_schema()}} for the arguments).
 }

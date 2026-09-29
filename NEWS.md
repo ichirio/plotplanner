@@ -1,3 +1,27 @@
+# tflspec 0.0.19
+
+* **Every figure type has a template** (#32): 27 templates in parts --
+  KM (4), waterfall (2), swimmer (4: bars, by best response, with the
+  response at each assessment, with event markers), spider, bar (rate with
+  95% CI, 100% stacked, dodged), mean over time (4), spaghetti, box (3),
+  scatter (shift, xy), PK (mean, mean on a log axis, individual per
+  group) -- and 9 whole-script templates for the types not yet in parts
+  (forest hr / or, AE dot, butterfly, eDISH, sankey, sunburst): one
+  `figure` layer with the type's arguments.  `tfl_fig_templates()` gains
+  `parts`; `tfl_fig_template()` gains `x`, `y`, `at_visit`, `category`,
+  `responders`, `id`, `duration` and `...`.
+* New pieces for them: statistics `summary_by` (by group only), `rate`
+  (exact binomial CI, with a label), `count` (n and % of a category, with
+  a label) and `subset` (another dataset, or rows of `df`, as an object
+  the layers draw: assessments, ongoing subjects); `summary` gains
+  `positive` (no lower bar at or below 0, for a log axis).  Figure
+  settings gain `x_log`, `y_log`, `equal` and `facet_by` (one panel per
+  value).  Catalog layers gain `alpha`, `position` (R), `vjust`, an
+  `arrow` for segments, `na.rm` and a `group` for points.
+* Advice: a whole-script design gets none; no legend is asked for when
+  the groups are on an axis or in panels; the n panel is suggested only
+  for figures by visit.
+
 # tflspec 0.0.18
 
 * **Advice on figure designs** (#28): `tfl_fig_advice(design, adam)` says

@@ -109,7 +109,38 @@
         .ff("name", "text", "Name", "sm"),
         .ff("value", "variable", "Value", "AVAL", required = TRUE),
         .ff("by", "variables", "By", required = TRUE),
+        .ff("interval", "choice", "Interval (lo, hi)", "se", c("se", "sd", "ci")),
+        .ff("positive", "logical", "Lower bound only above 0", "FALSE",
+            help = "For a log axis: lo is left blank where it would be <= 0."))),
+    summary_by = list(section = "stats", label = "Summary by group",
+      help = "n, mean, SD, SE and an interval of a value by group only (one row a group): a mean marker per box ...",
+      fields = rbind(
+        .ff("name", "text", "Name", "sg"),
+        .ff("value", "variable", "Value", "AVAL", required = TRUE),
+        .ff("by", "variables", "By", required = TRUE),
         .ff("interval", "choice", "Interval (lo, hi)", "se", c("se", "sd", "ci")))),
+    rate = list(section = "stats", label = "Rate with 95% CI",
+      help = "Responders / n by group with the exact binomial interval: rate, lcl, ucl (%), and a label 'rate (x/n)'.",
+      fields = rbind(
+        .ff("name", "text", "Name", "rt"),
+        .ff("category", "variable", "Category", "AVALC", required = TRUE),
+        .ff("responders", "text", "Counted as response", "CR, PR", required = TRUE),
+        .ff("by", "variables", "By", required = TRUE))),
+    count = list(section = "stats", label = "Counts and percents",
+      help = "n and % of each category within each group: n, pct, and a label 'pct%'.",
+      fields = rbind(
+        .ff("name", "text", "Name", "ct"),
+        .ff("category", "variable", "Category", "AVALC", required = TRUE),
+        .ff("by", "variables", "By", required = TRUE),
+        .ff("levels", "text", "Categories, in order", help = "| between them; others follow"))),
+    subset = list(section = "stats", label = "Another dataset (as an object)",
+      help = "Rows of another dataset (or of `df`), by name, for layers that draw them: the assessments of a swimmer plot, the ongoing subjects ...",
+      fields = rbind(
+        .ff("name", "text", "Name", required = TRUE),
+        .ff("dataset", "dataset", "Dataset", required = TRUE, help = "or df"),
+        .ff("where", "expr", "Its rows (R)"),
+        .ff("from_df", "variables", "Variables taken from df", help = "Joined by the key: the y position of its subject, a colour ..."),
+        .ff("by", "variable", "Key", "USUBJID"))),
     stats_code = list(section = "stats", label = "R code",
       help = "Code that computes what the layers draw, from `df`.",
       fields = rbind(.ff("code", "code", "Code", required = TRUE))),
@@ -184,6 +215,11 @@
     .ff("y_min", "number", "Y min"),
     .ff("y_max", "number", "Y max"),
     .ff("y_by", "number", "Y step"),
+    .ff("x_log", "logical", "Log X axis", "FALSE"),
+    .ff("y_log", "logical", "Log Y axis", "FALSE"),
+    .ff("equal", "logical", "Equal X and Y scales", "FALSE",
+        help = "The same range on both axes, e.g. baseline vs post-baseline; needs X and Y min / max."),
+    .ff("facet_by", "variable", "One panel per", help = "A variable: one panel for each of its values."),
     .ff("colour_by", "variable", "Colours by", help = "The variable the palette's colours go to (groups, responses)."),
     .ff("palette", "choice", "Palette", "treatment", names(tfl_fig_palettes())),
     .ff("dodge", "number", "Dodge width", 0.3),
@@ -417,8 +453,9 @@ tfl_read_fig_design <- function(path) {
       flag = add(sprintf("filter(%s == %s)", v("variable"), q(v("value")))),
       filter = add(sprintf("filter(%s)", v("expr"))),
       derive = add(sprintf("mutate(%s = %s)", v("variable"), v("expr"))),
-      time_unit = add(sprintf("mutate(%s = %s / %s)   # days -> %s", v("variable"),
-                              v("variable"), format(.fig_units[[v("unit")]]), v("unit"))),
+      time_unit = add(sprintf("# days -> %s
+  mutate(%s = %s / %s)", v("unit"), v("variable"),
+                              v("variable"), format(.fig_units[[v("unit")]]))),
       levels = {
         var <- v("variable")
         lv <- .split_vals(v("levels"))
@@ -473,7 +510,56 @@ tfl_read_fig_design <- function(path) {
           sprintf("  filter(!is.na(%s)) %%>%%\n", val),
           sprintf("  group_by(%s) %%>%%\n", paste(by, collapse = ", ")),
           sprintf("  summarise(n = n(), mean = mean(%s), sd = sd(%s), .groups = \"drop\") %%>%%\n", val, val),
+          sprintf("  mutate(se = sd / sqrt(n), lo = %s, hi = %s)", lohi[1], lohi[2]),
+          if (.lgl(v("positive"))) " %>%\n  mutate(lo = ifelse(lo > 0, lo, NA))   # log axis: no lower bar at or below 0"), "")
+      },
+      summary_by = {
+        by <- .split_vals(v("by"))
+        val <- v("value")
+        lohi <- switch(v("interval"),
+          se = c("mean - se", "mean + se"),
+          sd = c("mean - sd", "mean + sd"),
+          ci = c("mean - qt(0.975, n - 1) * se", "mean + qt(0.975, n - 1) * se"))
+        out <- c(out, paste0(v("name"), " <- df %>%\n",
+          sprintf("  filter(!is.na(%s)) %%>%%\n", val),
+          sprintf("  group_by(%s) %%>%%\n", paste(by, collapse = ", ")),
+          sprintf("  summarise(n = n(), mean = mean(%s), sd = sd(%s), .groups = \"drop\") %%>%%\n", val, val),
           sprintf("  mutate(se = sd / sqrt(n), lo = %s, hi = %s)", lohi[1], lohi[2])), "")
+      },
+      rate = {
+        by <- .split_vals(v("by"))
+        resp <- .split_vals(v("responders"))
+        out <- c(out, paste0(v("name"), " <- df %>%\n",
+          sprintf("  group_by(%s) %%>%%\n", paste(by, collapse = ", ")),
+          sprintf("  summarise(n = n(), x = sum(%s %%in%% %s), .groups = \"drop\") %%>%%\n", v("category"), vec_code(resp)),
+          "  mutate(\n",
+          "    rate  = 100 * x / n,\n",
+          "    lcl   = 100 * mapply(function(x, n) binom.test(x, n)$conf.int[1], x, n),\n",
+          "    ucl   = 100 * mapply(function(x, n) binom.test(x, n)$conf.int[2], x, n),\n",
+          "    label = sprintf(\"%.1f%%\\n(%d/%d)\", rate, x, n)\n",
+          "  )"), "")
+      },
+      count = {
+        by <- .split_vals(v("by"))
+        cat <- v("category")
+        lv <- .split_vals(v("levels"))
+        out <- c(out, paste0(v("name"), " <- df %>%\n",
+          sprintf("  count(%s, %s) %%>%%\n", paste(by, collapse = ", "), cat),
+          sprintf("  group_by(%s) %%>%%\n", paste(by, collapse = ", ")),
+          "  mutate(pct = 100 * n / sum(n), label = sprintf(\"%.0f%%\", pct)) %>%\n",
+          "  ungroup()",
+          if (length(lv)) sprintf(" %%>%%\n  mutate(%s = factor(%s, levels = unique(c(intersect(%s, %s), sort(%s)))))",
+                                  cat, cat, vec_code(lv), cat, cat)), "")
+      },
+      subset = {
+        ds <- v("dataset")
+        src <- if (toupper(ds) == "DF") "df" else pp_ds_name(toupper(ds))
+        from <- .split_vals(v("from_df"))
+        w <- v("where")
+        out <- c(out, paste0(v("name"), " <- ", src,
+          if (!is.null(w)) sprintf(" %%>%%\n  filter(%s)", w),
+          if (length(from)) sprintf(" %%>%%\n  inner_join(df %%>%% select(%s), by = %s)",
+                                    paste(c(v("by"), from), collapse = ", "), q(v("by")))), "")
       },
       stats_code = out <- c(out, "# your code", s$code, ""),
       stop("Unknown statistics step: ", k, call. = FALSE))
@@ -607,11 +693,17 @@ tfl_read_fig_design <- function(path) {
   }
   xl <- if (x_breaks) "range(x_breaks)" else if (!is.null(x_min) && !is.null(x_max)) sprintf("c(%s, %s)", x_min, x_max)
   yl <- if (!is.null(y_min) && !is.null(y_max)) sprintf("c(%s, %s)", y_min, y_max)
-  if (!is.null(xl) || !is.null(yl) || clip) {
+  if (.lgl(.pv(plot, "x_log"))) terms <- c(terms, "scale_x_log10()")
+  if (.lgl(.pv(plot, "y_log"))) terms <- c(terms, "scale_y_log10()")
+  if (.lgl(.pv(plot, "equal")) && !is.null(xl)) {
+    terms <- c(terms, sprintf("coord_equal(xlim = %s, ylim = %s)", xl, yl %||% xl))
+  } else if (!is.null(xl) || !is.null(yl) || clip) {
     terms <- c(terms, sprintf("coord_cartesian(%s)", paste(c(
       if (!is.null(xl)) paste("xlim =", xl), if (!is.null(yl)) paste("ylim =", yl),
       if (clip) "clip = \"off\""), collapse = ", ")))
   }
+  fb <- .pv(plot, "facet_by")
+  if (!is.null(fb)) terms <- c(terms, sprintf("facet_wrap(vars(%s))", fb))
   list(pre = pre, terms = terms)
 }
 
@@ -843,10 +935,30 @@ tfl_check_fig_design <- function(design, adam = NULL) {
         need_var(part, "time", c(v("time"), v("censor"), v("by")))
         objects[[v("name")]] <- character()
       },
-      summary = {
+      summary = , summary_by = {
         by <- .split_vals(v("by"))
         need_var(part, "by", c(v("value"), by))
         objects[[v("name")]] <- c(by, "n", "mean", "sd", "se", "lo", "hi")
+      },
+      rate = {
+        by <- .split_vals(v("by"))
+        need_var(part, "by", c(v("category"), by))
+        objects[[v("name")]] <- c(by, "n", "x", "rate", "lcl", "ucl", "label")
+      },
+      count = {
+        by <- .split_vals(v("by"))
+        need_var(part, "by", c(v("category"), by))
+        objects[[v("name")]] <- c(by, v("category"), "n", "pct", "label")
+      },
+      subset = {
+        ds <- v("dataset")
+        d <- if (toupper(ds) == "DF") cols else if (!is.null(adam)) names(adam[[toupper(ds)]])
+        if (!is.null(adam) && toupper(ds) != "DF" && is.null(adam[[toupper(ds)]])) {
+          add(part, "dataset", paste0("no dataset ", ds))
+        }
+        from <- .split_vals(v("from_df"))
+        need_var(part, "from_df", from)
+        objects[[v("name")]] <- if (is.null(d)) NULL else union(d, from)
       },
       stats_code = objects["?"] <- list(NULL))
   }
@@ -899,17 +1011,41 @@ tfl_check_fig_design <- function(design, adam = NULL) {
 # ---- templates --------------------------------------------------------------
 
 .fig_templates <- function() {
-  data.frame(
-    template = c("km_risk_table", "km_simple", "km_ci", "km_single_arm",
-                 "mean_se", "mean_sd", "mean_ci", "mean_se_n",
-                 "waterfall_response", "waterfall_plain"),
-    kind = c(rep("km", 4), rep("mean", 4), rep("waterfall", 2)),
-    label = c("KM curves + number at risk", "KM curves", "KM curves + confidence bands + number at risk",
-              "One KM curve + number at risk",
-              "Mean +/- SE by visit", "Mean +/- SD by visit", "Mean (95% CI) by visit",
-              "Mean +/- SE by visit + n",
-              "Waterfall, bars by best response", "Waterfall"),
-    stringsAsFactors = FALSE)
+  t <- function(template, kind, label, parts = TRUE) data.frame(
+    template = template, kind = kind, label = label, parts = parts, stringsAsFactors = FALSE)
+  cat <- tfl_fig_catalog()
+  whole <- cat[cat$status == "implemented" & cat$type %in% c("forest", "ae_dot", "butterfly", "edish", "sankey", "sunburst") &
+                 !cat$style %in% c("estimates", "subgroups"), ]
+  rbind(
+    t("km_risk_table", "km", "KM curves + number at risk"),
+    t("km_simple", "km", "KM curves"),
+    t("km_ci", "km", "KM curves + confidence bands + number at risk"),
+    t("km_single_arm", "km", "One KM curve + number at risk"),
+    t("waterfall_response", "waterfall", "Waterfall, bars by best response"),
+    t("waterfall_plain", "waterfall", "Waterfall"),
+    t("swimmer_bar", "swimmer", "Swimmer: bars + ongoing arrows"),
+    t("swimmer_response", "swimmer", "Swimmer: bars by best response + ongoing arrows"),
+    t("swimmer_assessment", "swimmer", "Swimmer: bars by best response + response at each assessment"),
+    t("swimmer_full", "swimmer", "Swimmer: bars, assessments, event markers, ongoing arrows"),
+    t("individual_spider", "individual", "Spider: % change in tumour size per subject, by best response"),
+    t("bar_rate_ci", "bar", "Response rate by group with 95% CI"),
+    t("bar_stacked", "bar", "100% stacked bars of a category by group"),
+    t("bar_dodged", "bar", "Percent per category, groups side by side"),
+    t("mean_se", "mean", "Mean +/- SE by visit"),
+    t("mean_sd", "mean", "Mean +/- SD by visit"),
+    t("mean_ci", "mean", "Mean (95% CI) by visit"),
+    t("mean_se_n", "mean", "Mean +/- SE by visit + n"),
+    t("individual_spaghetti", "individual", "Spaghetti: one line per subject + group means"),
+    t("box_by_visit", "box", "Box plots by visit and group + mean marker"),
+    t("box_by_group", "box", "Box plot per group at one visit + points + mean marker"),
+    t("box_change", "box", "Box plots of change from baseline by visit + zero line"),
+    t("scatter_shift", "scatter", "Baseline vs post-baseline at one visit + identity line"),
+    t("scatter_xy", "scatter", "Two variables with a linear fit per group"),
+    t("pk_mean", "pk", "PK: mean +/- SD concentration by nominal time"),
+    t("pk_mean_log", "pk", "PK: mean +/- SD concentration, log axis"),
+    t("pk_individual", "pk", "PK: individual profiles, log axis, one panel per group"),
+    if (nrow(whole)) t(paste(whole$type, whole$style, sep = "_"), whole$type,
+                       paste0(whole$description, " (whole script)"), parts = FALSE))
 }
 
 #' Figure templates
@@ -917,33 +1053,47 @@ tfl_check_fig_design <- function(design, adam = NULL) {
 #' A template fills a figure design's four parts at once -- its data steps,
 #' statistics, settings and layers -- for a kind of figure; each piece is
 #' then edited on its own ([tfl_fig_design()]).  Sizes, line widths and
-#' colours come from the figure style standard ([tfl_fig_style()]).
+#' colours come from the figure style standard ([tfl_fig_style()]).  The
+#' templates of the types not yet in parts (forest, AE dot, butterfly,
+#' eDISH, sankey, sunburst) give a design of one `figure` layer: the
+#' type's whole script, with its arguments (`parts = FALSE` in
+#' `tfl_fig_templates()`; see [tfl_fig_schema()] for the arguments).
 #'
 #' @param template One of `tfl_fig_templates()$template`.
 #' @param data,param,pop,group The dataset, its PARAMCD, the analysis set
 #'   flag and the group variable (joined from ADSL when `join_adsl`).
 #' @param time,censor,time_unit KM: the time, the censor variable, the axis's
-#'   unit.
-#' @param value,visit,visit_label Mean: the value and the visit (number and
-#'   label).
-#' @param response_data,response Waterfall: the best response's dataset and
-#'   PARAMCD.
-#' @param join_adsl Join `group` (and `pop`) from ADSL (`TRUE` for mean;
-#'   KM and waterfall read them from their own dataset).
+#'   unit.  PK: `time` is the nominal time.
+#' @param value,visit,visit_label The value and the visit (number and
+#'   label): mean, box, spaghetti, scatter.
+#' @param x,y Scatter: the two variables.
+#' @param at_visit Box by group, shift: the visit kept (its label; empty =
+#'   the last).
+#' @param response_data,response Best response: its dataset and PARAMCD.
+#' @param category,responders Bar: the category variable, and the values
+#'   counted as response.
+#' @param id,duration Swimmer: the subject and the bar's length (days).
+#' @param join_adsl Join `group` (and `pop`) from ADSL (`TRUE` for the
+#'   longitudinal kinds; KM, waterfall and swimmer read them from their own
+#'   dataset).
 #' @param title The figure's title.
+#' @param ... For a whole-script template: the type's other arguments.
 #' @return `tfl_fig_templates()`: a data frame (`template`, `kind`,
-#'   `label`); `tfl_fig_template()`: a `tfl_fig_design`.
+#'   `label`, `parts`); `tfl_fig_template()`: a `tfl_fig_design`.
 #' @export
 tfl_fig_templates <- function() .fig_templates()
 
 #' @rdname tfl_fig_templates
 #' @export
 tfl_fig_template <- function(template, data = NULL, param = NULL, pop = NULL,
-                             group = NULL, time = "AVAL", censor = "CNSR",
-                             time_unit = "months", value = "AVAL",
+                             group = NULL, time = NULL, censor = "CNSR",
+                             time_unit = "months", value = NULL,
                              visit = "AVISITN", visit_label = "AVISIT",
+                             x = NULL, y = NULL, at_visit = NULL,
                              response_data = "ADRS", response = "BOR",
-                             join_adsl = NULL, title = NULL) {
+                             category = "AVALC", responders = "CR, PR",
+                             id = "USUBJID", duration = "TRTDURD",
+                             join_adsl = NULL, title = NULL, ...) {
   tp <- .fig_templates()
   if (!template %in% tp$template) {
     stop("Unknown template '", template, "': one of ",
@@ -955,105 +1105,268 @@ tfl_fig_template <- function(template, data = NULL, param = NULL, pop = NULL,
   size <- list(width = as.numeric(opt("width", 7.5)), height = as.numeric(opt("height", 4.5)),
                dpi = as.numeric(opt("dpi", 300)), units = opt("units", "in"),
                base_size = as.numeric(opt("base_size", 10)), theme = opt("theme", "boxed"))
+  # the design of a whole-script template: the type's function and its arguments
+  if (!tp$parts[tp$template == template]) {
+    style <- sub(paste0("^", kind, "_"), "", template)
+    args <- c(list(data = data, param = param, pop = pop, group = group, title = title), list(...))
+    args <- args[!vapply(args, is.null, logical(1))]
+    return(tfl_fig_design(template = template, layers = list(c(
+      list(layer = "figure", type = kind, style = style), if (length(args)) list(args = args)))))
+  }
+  read <- function(ds) list(step = "read", dataset = ds)
+  keep_param <- function(p) list(step = "param", value = p)
+  keep_pop <- function(p) if (!is.null(p)) list(step = "flag", variable = p)
+  join_step <- function(vars, ds = "ADSL") if (length(vars)) list(step = "join", dataset = ds, vars = paste(vars, collapse = ", "))
+  bor_join <- function() list(step = "join", dataset = response_data,
+                              where = sprintf("PARAMCD == %s", q(response)), vars = "BOR = AVALC")
+  bor_levels <- function() list(step = "levels", variable = "BOR", levels = "CR | PR | SD | PD | NE")
+  drop <- function(x) x[!vapply(x, is.null, logical(1))]
+  plot_of <- function(...) drop(c(list(title = title), list(...), size))
   switch(kind,
     km = {
       single <- template == "km_single_arm"
-      data <- data %||% "ADTTE"
-      param <- param %||% "OS"
-      pop <- pop %||% "FASFL"
+      data <- data %||% "ADTTE"; param <- param %||% "OS"; pop <- pop %||% "FASFL"
+      time <- time %||% "AVAL"
       group <- if (single) NULL else group %||% "TRT01P"
-      join <- isTRUE(join_adsl)
       tfl_fig_design(
         template = template,
-        data = c(list(list(step = "read", dataset = data)),
-                 if (join) list(list(step = "join", dataset = "ADSL",
-                                     vars = paste(c(group, pop), collapse = ", "))),
-                 list(list(step = "param", value = param)),
-                 if (!is.null(pop)) list(list(step = "flag", variable = pop)),
-                 list(list(step = "time_unit", variable = time, unit = time_unit))),
-        stats = list(list(step = "survfit", name = "fit", time = time, censor = censor,
-                          by = group)),
-        plot = c(list(title = title,
-                      x_label = sprintf("Time (%s)", tools::toTitleCase(time_unit)),
-                      y_label = "Survival Probability", colour_by = group,
-                      palette = "treatment", legend = if (single) "none" else "inside",
-                      x_min = 0, y_min = 0, y_max = 1, y_by = as.numeric(opt("y_by", 0.2))),
-                 size),
-        layers = c(
-          list(list(layer = "km_curve", linewidth = as.numeric(opt("line_width", 0.3)))),
-          if (template == "km_ci") list(list(layer = "km_ci")),
-          list(list(layer = "censor_mark", shape = opt("censor_shape", "x"),
-                    size = as.numeric(opt("censor_size", 3)),
-                    stroke = as.numeric(opt("censor_stroke", 0.6)))),
-          if (template != "km_simple") list(list(layer = "hline", yintercept = 0.5,
-                    linetype = opt("median_linetype", "twodash"),
-                    colour = opt("median_colour", "grey50"),
-                    linewidth = as.numeric(opt("median_line_width", 0.3)))),
-          if (template != "km_simple") list(list(layer = "risk_table",
-                    title = opt("risk_title", "Number of Patients at Risk"),
-                    size = as.numeric(opt("text_size", 3)),
-                    height = as.numeric(opt("risk_height", 0.167))))))
+        data = drop(list(read(data), if (isTRUE(join_adsl)) join_step(c(group, pop)),
+                         keep_param(param), keep_pop(pop),
+                         list(step = "time_unit", variable = time, unit = time_unit))),
+        stats = list(list(step = "survfit", name = "fit", time = time, censor = censor, by = group)),
+        plot = plot_of(x_label = sprintf("Time (%s)", tools::toTitleCase(time_unit)),
+                       y_label = "Survival Probability", colour_by = group, palette = "treatment",
+                       legend = if (single) "none" else "inside",
+                       x_min = 0, y_min = 0, y_max = 1, y_by = as.numeric(opt("y_by", 0.2))),
+        layers = drop(list(
+          list(layer = "km_curve", linewidth = as.numeric(opt("line_width", 0.3))),
+          if (template == "km_ci") list(layer = "km_ci"),
+          list(layer = "censor_mark", shape = opt("censor_shape", "x"),
+               size = as.numeric(opt("censor_size", 3)), stroke = as.numeric(opt("censor_stroke", 0.6))),
+          if (template != "km_simple") list(layer = "hline", yintercept = 0.5,
+               linetype = opt("median_linetype", "twodash"), colour = opt("median_colour", "grey50"),
+               linewidth = as.numeric(opt("median_line_width", 0.3))),
+          if (template != "km_simple") list(layer = "risk_table",
+               title = opt("risk_title", "Number of Patients at Risk"),
+               size = as.numeric(opt("text_size", 3)), height = as.numeric(opt("risk_height", 0.167))))))
+    },
+    waterfall = {
+      data <- data %||% "ADTR"; param <- param %||% "BPCHG"; pop <- pop %||% "FASFL"
+      value <- value %||% "AVAL"
+      resp <- template == "waterfall_response"
+      tfl_fig_design(
+        template = template,
+        data = drop(list(read(data), keep_param(param), keep_pop(pop),
+                         if (resp) bor_join(),
+                         list(step = "filter", expr = sprintf("!is.na(%s)", value)),
+                         list(step = "rank", by = value, descending = TRUE, variable = "INDEX"),
+                         if (resp) bor_levels())),
+        plot = plot_of(x_label = "Patients", y_label = "Best % Change in Sum of Target Lesion Diameters",
+                       colour_by = if (resp) "BOR", palette = if (resp) "response" else "treatment",
+                       legend = if (resp) "inside" else "none", x_text = FALSE,
+                       y_min = -100, y_max = 100, y_by = 20),
+        layers = list(
+          list(layer = "col", data = "df", x = "INDEX", y = value, fill = if (resp) "BOR"),
+          list(layer = "hline", yintercept = 0, linetype = "solid", colour = "black", linewidth = 0.5),
+          list(layer = "hline", yintercept = "20, -30", linetype = "dashed", colour = "grey", linewidth = 0.5),
+          list(layer = "ref_label", y = "20, -30", label = "{y}%")))
+    },
+    swimmer = {
+      data <- data %||% "ADSL"; pop <- pop %||% "FASFL"
+      resp <- template != "swimmer_bar"
+      assess <- template %in% c("swimmer_assessment", "swimmer_full")
+      full <- template == "swimmer_full"
+      div <- .fig_units[[time_unit]]
+      tfl_fig_design(
+        template = template,
+        data = drop(list(read(data), keep_pop(pop),
+                         if (resp) bor_join(),
+                         list(step = "filter", expr = sprintf("!is.na(%s)", duration)),
+                         if (div != 1) list(step = "time_unit", variable = duration, unit = time_unit),
+                         list(step = "derive", variable = "X0", expr = "0"),
+                         list(step = "derive", variable = "Y_ID", expr = sprintf("reorder(%s, %s)", id, duration)),
+                         list(step = "derive", variable = "X_ARROW", expr = sprintf("%s + max(%s) * 0.03", duration, duration)),
+                         if (resp) bor_levels())),
+        stats = drop(list(
+          list(step = "subset", name = "ongoing", dataset = "df", where = 'EOSSTT == "ONGOING"'),
+          if (assess) list(step = "subset", name = "assess", dataset = response_data,
+                           where = sprintf("PARAMCD == %s & !is.na(ADY)", q("OVR")), from_df = "Y_ID"),
+          if (assess && div != 1) list(step = "stats_code", code = sprintf("assess <- assess %%>%% mutate(ADY = ADY / %s)", format(div))))),
+        plot = plot_of(x_label = sprintf("Time (%s)", tools::toTitleCase(time_unit)), y_label = "Subject",
+                       colour_by = if (resp) "BOR", palette = if (resp) "response_light" else "treatment",
+                       legend = if (resp) "right" else "none", x_min = 0,
+                       height = as.numeric(opt("height", 6))),
+        layers = drop(list(
+          list(layer = "segment", data = "df", x = "X0", y = "Y_ID", xend = duration, yend = "Y_ID",
+               colour = if (resp) "BOR", linewidth = as.numeric(opt("bar_width", 4))),
+          list(layer = "segment", data = "ongoing", x = duration, y = "Y_ID", xend = "X_ARROW", yend = "Y_ID",
+               linewidth = 0.6, arrow = "arrow(length = unit(2, 'mm'), type = 'closed')"),
+          if (assess) list(layer = "point", data = "assess", x = "ADY", y = "Y_ID", colour = "AVALC",
+                           shape = "solid_square", size = as.numeric(opt("marker_size", 2))),
+          if (full) list(layer = "point", data = "df", x = "DTHADY", y = "Y_ID", shape = "solid_triangle", size = 2.5, na.rm = TRUE))))
+    },
+    individual = {
+      spider <- template == "individual_spider"
+      data <- data %||% if (spider) "ADTR" else "ADLB"
+      param <- param %||% if (spider) "SDIAM" else "ALT"
+      value <- value %||% if (spider) "PCHG" else "AVAL"
+      x <- x %||% if (spider) "ADY" else visit_label
+      pop <- pop %||% if (spider) "FASFL" else "SAFFL"
+      group <- if (spider) NULL else group %||% "TRT01A"
+      join <- join_adsl %||% !spider
+      div <- if (spider) .fig_units[[time_unit]] else 1
+      tfl_fig_design(
+        template = template,
+        data = drop(list(read(data), keep_param(param), if (join) join_step(c(group, pop)), keep_pop(pop),
+                         if (spider) bor_join(),
+                         list(step = "filter", expr = sprintf("!is.na(%s) & !is.na(%s)", value, x)),
+                         if (spider && div != 1) list(step = "time_unit", variable = x, unit = time_unit),
+                         if (!spider) list(step = "levels", variable = visit_label, order_by = visit),
+                         if (spider) bor_levels())),
+        stats = if (!spider) list(list(step = "summary", name = "sm", value = value,
+                                       by = paste(c(group, visit, visit_label), collapse = ", "))),
+        plot = plot_of(x_label = if (spider) sprintf("Time (%s)", tools::toTitleCase(time_unit)) else "Visit",
+                       y_label = if (spider) "Change from baseline in sum of diameters (%)" else value,
+                       colour_by = if (spider) "BOR" else group,
+                       palette = if (spider) "response" else "treatment", legend = "right"),
+        layers = drop(list(
+          if (spider) list(layer = "hline", yintercept = 0, linetype = "solid", colour = "grey40"),
+          if (spider) list(layer = "hline", yintercept = "20, -30", linetype = "dashed", colour = "grey60"),
+          list(layer = "line", data = "df", x = x, y = value, colour = if (spider) "BOR" else group,
+               group = id, alpha = if (spider) 0.8 else 0.35),
+          if (spider) list(layer = "point", data = "df", x = x, y = value, colour = "BOR", size = 1),
+          if (!spider) list(layer = "line", data = "sm", x = visit_label, y = "mean", colour = group, linewidth = 1.2))))
+    },
+    bar = {
+      data <- data %||% "ADRS"; param <- param %||% "BOR"; pop <- pop %||% "FASFL"; group <- group %||% "TRT01P"
+      join <- join_adsl %||% TRUE
+      style <- sub("^bar_", "", template)
+      tfl_fig_design(
+        template = template,
+        data = drop(list(read(data), keep_param(param), if (join) join_step(c(group, pop)), keep_pop(pop))),
+        stats = list(switch(style,
+          rate_ci = list(step = "rate", name = "rt", category = category, responders = responders, by = group),
+          list(step = "count", name = "ct", category = category, by = group,
+               levels = if (style == "stacked") "CR | PR | SD | PD | NE"))),
+        plot = plot_of(x_label = if (style == "dodged") param else "",
+                       y_label = switch(style, rate_ci = sprintf("Response rate (%%) with 95%% CI [%s]", gsub(", ", "+", responders)),
+                                        "Subjects (%)"),
+                       colour_by = if (style == "stacked") category else group,
+                       palette = if (style == "stacked") "response" else "treatment",
+                       legend = switch(style, rate_ci = "none", "right"),
+                       y_min = 0, y_max = if (style == "rate_ci") 110 else NULL),
+        layers = switch(style,
+          rate_ci = list(
+            list(layer = "col", data = "rt", x = group, y = "rate", fill = group, width = 0.6),
+            list(layer = "errorbar", data = "rt", x = group, ymin = "lcl", ymax = "ucl", width = 0.15),
+            list(layer = "text", data = "rt", x = group, y = "ucl", label = "label", vjust = -0.3, size = 3)),
+          stacked = list(
+            list(layer = "col", data = "ct", x = group, y = "pct", fill = category, width = 0.6, colour = "white"),
+            list(layer = "text", data = "ct", x = group, y = "pct", label = "label", size = 3,
+                 position = "position_stack(vjust = 0.5)")),
+          dodged = list(
+            list(layer = "col", data = "ct", x = category, y = "pct", fill = group, width = 0.7,
+                 position = "position_dodge(width = 0.75)"),
+            list(layer = "text", data = "ct", x = category, y = "pct", label = "label", size = 2.8,
+                 vjust = -0.3, position = "position_dodge(width = 0.75)"))))
     },
     mean = {
-      data <- data %||% "ADLB"
-      param <- param %||% "ALT"
-      pop <- pop %||% "SAFFL"
-      group <- group %||% "TRT01A"
+      data <- data %||% "ADLB"; param <- param %||% "ALT"; pop <- pop %||% "SAFFL"; group <- group %||% "TRT01A"
+      value <- value %||% "AVAL"
       join <- join_adsl %||% TRUE
       iv <- switch(template, mean_sd = "sd", mean_ci = "ci", "se")
       ylab <- paste0(switch(iv, se = "Mean (+/- SE)", sd = "Mean (+/- SD)", ci = "Mean (95% CI)"),
                      " ", if (value == "AVAL") "" else paste0(value, " of "), param)
-      change <- value %in% c("CHG", "PCHG")
       tfl_fig_design(
         template = template,
-        data = c(list(list(step = "read", dataset = data)),
-                 list(list(step = "param", value = param)),
-                 if (join) list(list(step = "join", dataset = "ADSL",
-                                     vars = paste(c(group, pop), collapse = ", "))),
-                 if (!is.null(pop)) list(list(step = "flag", variable = pop)),
-                 list(list(step = "filter", expr = sprintf("!is.na(%s) & !is.na(%s)", value, visit))),
-                 list(list(step = "levels", variable = visit_label, order_by = visit))),
+        data = drop(list(read(data), keep_param(param), if (join) join_step(c(group, pop)), keep_pop(pop),
+                         list(step = "filter", expr = sprintf("!is.na(%s) & !is.na(%s)", value, visit)),
+                         list(step = "levels", variable = visit_label, order_by = visit))),
         stats = list(list(step = "summary", name = "sm", value = value,
-                          by = paste(c(group, visit, visit_label), collapse = ", "),
-                          interval = iv)),
-        plot = c(list(title = title, x_label = "Visit", y_label = ylab, colour_by = group,
-                      palette = "treatment", legend = "bottom", dodge = 0.3), size),
-        layers = c(
-          if (change) list(list(layer = "hline", yintercept = 0, linetype = "solid", colour = "grey60")),
-          list(
-            list(layer = "line", data = "sm", x = visit_label, y = "mean", colour = group, dodge = TRUE),
-            list(layer = "point", data = "sm", x = visit_label, y = "mean", colour = group, dodge = TRUE),
-            list(layer = "errorbar", data = "sm", x = visit_label, colour = group, dodge = TRUE)),
-          if (template == "mean_se_n") list(list(layer = "n_table", data = "sm",
-                                                 x = visit_label, group = group))))
+                          by = paste(c(group, visit, visit_label), collapse = ", "), interval = iv)),
+        plot = plot_of(x_label = "Visit", y_label = ylab, colour_by = group, palette = "treatment",
+                       legend = "bottom", dodge = 0.3),
+        layers = drop(list(
+          if (value %in% c("CHG", "PCHG")) list(layer = "hline", yintercept = 0, linetype = "solid", colour = "grey60"),
+          list(layer = "line", data = "sm", x = visit_label, y = "mean", colour = group, dodge = TRUE),
+          list(layer = "point", data = "sm", x = visit_label, y = "mean", colour = group, dodge = TRUE),
+          list(layer = "errorbar", data = "sm", x = visit_label, colour = group, dodge = TRUE),
+          if (template == "mean_se_n") list(layer = "n_table", data = "sm", x = visit_label, group = group))))
     },
-    waterfall = {
-      data <- data %||% "ADTR"
-      param <- param %||% "BPCHG"
-      pop <- pop %||% "FASFL"
-      resp <- template == "waterfall_response"
+    box = {
+      data <- data %||% "ADLB"; param <- param %||% "ALT"; pop <- pop %||% "SAFFL"; group <- group %||% "TRT01A"
+      style <- sub("^box_", "", template)
+      value <- value %||% if (style == "change") "CHG" else "AVAL"
+      join <- join_adsl %||% TRUE
+      one <- style == "by_group"
       tfl_fig_design(
         template = template,
-        data = c(list(list(step = "read", dataset = data)),
-                 list(list(step = "param", value = param)),
-                 if (!is.null(pop)) list(list(step = "flag", variable = pop)),
-                 if (resp) list(list(step = "join", dataset = response_data,
-                                     where = sprintf("PARAMCD == %s", q(response)),
-                                     vars = "BOR = AVALC")),
-                 list(list(step = "filter", expr = sprintf("!is.na(%s)", value))),
-                 list(list(step = "rank", by = value, descending = TRUE, variable = "INDEX")),
-                 if (resp) list(list(step = "levels", variable = "BOR",
-                                     levels = "CR | PR | SD | PD | NE"))),
-        plot = c(list(title = title, x_label = "Patients",
-                      y_label = "Best % Change in Sum of Target Lesion Diameters",
-                      colour_by = if (resp) "BOR", palette = if (resp) "response" else "treatment",
-                      legend = if (resp) "inside" else "none", x_text = FALSE,
-                      y_min = -100, y_max = 100, y_by = 20), size),
-        layers = list(
-          list(layer = "col", data = "df", x = "INDEX", y = value, fill = if (resp) "BOR"),
-          list(layer = "hline", yintercept = 0, linetype = "solid", colour = "black", linewidth = 0.5),
-          list(layer = "hline", yintercept = "20, -30", linetype = "dashed", colour = "grey",
-               linewidth = 0.5),
-          list(layer = "ref_label", y = "20, -30", label = "{y}%")))
+        data = drop(list(read(data), keep_param(param), if (join) join_step(c(group, pop)), keep_pop(pop),
+                         list(step = "filter", expr = sprintf("!is.na(%s)", value)),
+                         if (style == "change") list(step = "filter", expr = sprintf("%s > 0", visit)),
+                         if (one) list(step = "filter", expr = if (!is.null(at_visit)) sprintf("%s == %s", visit_label, q(at_visit))
+                                                            else sprintf("%s == max(%s)", visit, visit)),
+                         if (!one) list(step = "levels", variable = visit_label, order_by = visit))),
+        stats = list(list(step = "summary_by", name = "sg", value = value,
+                          by = paste(c(group, if (!one) c(visit, visit_label)), collapse = ", "))),
+        plot = plot_of(x_label = if (one) "" else "Visit",
+                       y_label = if (value == "AVAL") param else paste(value, "of", param),
+                       colour_by = group, palette = "treatment", legend = if (one) "none" else "bottom",
+                       dodge = 0.8),
+        layers = drop(list(
+          if (style == "change") list(layer = "hline", yintercept = 0, linetype = "solid", colour = "grey60"),
+          if (one) list(layer = "boxplot", data = "df", x = group, y = value, fill = group, width = 0.5,
+                        alpha = 0.6, outlier.shape = "open_circle")
+          else list(layer = "boxplot", data = "df", x = visit_label, y = value, fill = group, width = 0.7,
+                    dodge = TRUE),
+          if (one) list(layer = "jitter", data = "df", x = group, y = value, width = 0.12, alpha = 0.6),
+          list(layer = "point", data = "sg", x = if (one) group else visit_label, y = "mean",
+               group = if (!one) group, shape = "plus", size = if (one) 3 else 2, dodge = !one))))
+    },
+    scatter = {
+      data <- data %||% "ADLB"; param <- param %||% "ALT"; pop <- pop %||% "SAFFL"; group <- group %||% "TRT01A"
+      shift <- template == "scatter_shift"
+      x <- x %||% "BASE"; y <- y %||% if (shift) "AVAL" else "CHG"
+      join <- join_adsl %||% TRUE
+      tfl_fig_design(
+        template = template,
+        data = drop(list(read(data), keep_param(param), if (join) join_step(c(group, pop)), keep_pop(pop),
+                         list(step = "filter", expr = sprintf("%s > 0 & !is.na(%s) & !is.na(%s)", visit, x, y)),
+                         list(step = "filter", expr = if (!is.null(at_visit)) sprintf("%s == %s", visit_label, q(at_visit))
+                                                      else sprintf("%s == max(%s)", visit, visit)))),
+        plot = plot_of(x_label = if (shift) paste("Baseline", param) else paste(x, "of", param),
+                       y_label = if (shift) paste("Post-baseline", param) else paste(y, "of", param),
+                       colour_by = group, palette = "treatment", legend = "inside_tl",
+                       width = as.numeric(opt("width", 6)), height = as.numeric(opt("height", 5.5))),
+        layers = drop(list(
+          if (shift) list(layer = "abline", intercept = 0, slope = 1, linetype = "dashed", colour = "grey50"),
+          if (!shift && y %in% c("CHG", "PCHG")) list(layer = "hline", yintercept = 0, linetype = "solid", colour = "grey60"),
+          list(layer = "point", data = "df", x = x, y = y, colour = group, size = 1.8, alpha = 0.8),
+          if (!shift) list(layer = "smooth", data = "df", x = x, y = y, colour = group, method = "lm", se = FALSE))))
+    },
+    pk = {
+      data <- data %||% "ADPC"; pop <- pop %||% "SAFFL"; group <- group %||% "TRT01A"
+      value <- value %||% "AVAL"; time <- time %||% "NFRLT"
+      join <- join_adsl %||% TRUE
+      style <- sub("^pk_", "", template)
+      log_y <- style != "mean"
+      tfl_fig_design(
+        template = template,
+        data = drop(list(read(data), if (!is.null(param)) keep_param(param), if (join) join_step(c(group, pop)), keep_pop(pop),
+                         list(step = "filter", expr = sprintf("!is.na(%s)", value)),
+                         if (log_y) list(step = "filter", expr = sprintf("%s > 0", value)))),
+        stats = if (style != "individual") list(list(step = "summary", name = "sm", value = value,
+                                                     by = paste(c(group, time), collapse = ", "),
+                                                     interval = "sd", positive = log_y)),
+        plot = plot_of(x_label = "Nominal time (h)", y_label = if (style == "individual") "Concentration" else "Mean (SD) concentration",
+                       colour_by = group, palette = "treatment", legend = if (style == "individual") "none" else "inside",
+                       y_log = log_y, facet_by = if (style == "individual") group),
+        layers = if (style == "individual") list(
+          list(layer = "line", data = "df", x = time, y = value, colour = group, group = id, alpha = 0.5),
+          list(layer = "point", data = "df", x = time, y = value, colour = group, size = 0.8, alpha = 0.5))
+        else list(
+          list(layer = "line", data = "sm", x = time, y = "mean", colour = group),
+          list(layer = "point", data = "sm", x = time, y = "mean", colour = group, size = 1.8),
+          list(layer = "errorbar", data = "sm", x = time, colour = group, width = 0.3)))
     })
 }

@@ -94,3 +94,17 @@ text_repel,y,aes,variable,Y,,,TRUE,
 text_repel,label,aes,variable,Label,,,TRUE,
 text_repel,colour,aes,variable,Colour by,,,FALSE,
 text_repel,size,param,number,Size,3,,FALSE,
+line,alpha,param,number,Transparency,,,FALSE,
+point,alpha,param,number,Transparency,,,FALSE,
+col,position,param,expr,Position (R),,,FALSE,"stack / fill / position_dodge(width = 0.75); empty = as is"
+col,colour,param,text,Outline colour,,,FALSE,
+boxplot,alpha,param,number,Transparency,,,FALSE,
+boxplot,position,param,expr,Position (R),,,FALSE,"e.g. position_dodge(width = 0.8)"
+text,position,param,expr,Position (R),,,FALSE,"e.g. position_stack(vjust = 0.5), position_dodge(width = 0.75)"
+text,vjust,param,number,Vertical adjust,,,FALSE,"e.g. -0.3 = just above"
+segment,arrow,param,expr,Arrow (R),,,FALSE,"e.g. arrow(length = unit(2, 'mm'))"
+segment,alpha,param,number,Transparency,,,FALSE,
+jitter,alpha,param,number,Transparency,,,FALSE,
+jitter,size,param,number,Size,1.2,,FALSE,
+point,na.rm,param,logical,Drop missing silently,,,FALSE,
+point,group,aes,variable,Group,,,FALSE,"For dodging without a colour, e.g. a mean marker per group"

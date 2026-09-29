@@ -103,3 +103,38 @@ test_that("the checks find what does not fit the data", {
                                       list(layer = "km_curve")))
   expect_true(any(grepl("first layer", tfl_check_fig_design(d2)$problem)))
 })
+
+test_that("every template draws on the example data and checks clean", {
+  skip_if_not_installed("ggsurvfit")
+  adam <- tfl_example_adam()
+  tp <- tfl_fig_templates()
+  prm <- unique(adam$ADTTE$PARAMCD)[1]
+  for (i in seq_len(nrow(tp))) {
+    t <- tp$template[i]
+    args <- switch(tp$kind[i], km = list(param = prm, group = if (t != "km_single_arm") "TRT01P"),
+                   forest = list(param = prm), list())
+    d <- do.call(tfl_fig_template, c(list(t), args))
+    expect_equal(nrow(tfl_check_fig_design(d, adam)), 0L, info = t)
+    expect_true(run_design(d, adam)$png, info = t)
+  }
+})
+
+test_that("the new statistics and settings write what they say", {
+  d <- tfl_fig_template("bar_rate_ci")
+  code <- paste(tfl_fig_design_code(d), collapse = "\n")
+  expect_match(code, "binom.test", fixed = TRUE)
+  expect_match(code, 'label = sprintf("%.1f%%', fixed = TRUE)
+  d <- tfl_fig_template("pk_individual")
+  code <- paste(tfl_fig_design_code(d), collapse = "\n")
+  expect_match(code, "scale_y_log10()", fixed = TRUE)
+  expect_match(code, "facet_wrap(vars(TRT01A))", fixed = TRUE)
+  d <- tfl_fig_template("swimmer_assessment")
+  code <- paste(tfl_fig_design_code(d), collapse = "\n")
+  expect_match(code, "assess <- adrs %>%", fixed = TRUE)
+  expect_match(code, "inner_join(df %>% select(USUBJID, Y_ID)", fixed = TRUE)
+  expect_match(code, "arrow = arrow(", fixed = TRUE)
+  # a whole-script template is one figure layer
+  d <- tfl_fig_template("edish_alt")
+  expect_equal(d$layers[[1]]$layer, "figure")
+  expect_equal(nrow(tfl_fig_advice(d)), 0L)
+})
