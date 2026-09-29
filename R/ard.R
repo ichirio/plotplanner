@@ -3504,64 +3504,14 @@ tfl_report <- function(spec, content, output_id = NULL) {
   sp <- .ard_spec_scope(if (is.character(spec))
                           tfl_read_report_spec(spec, output_id)
                         else tfl_table_spec(spec), output_id)
-  r <- .ard_spec_report_row(sp)
-  pg <- if (nrow(sp$page)) .ard_spec_typed(sp$page[1L, ], "page") else list()
-
-  geo <- c("paper_size", "orientation", "width_in", "height_in",
-           "margin_top_in", "margin_bottom_in", "margin_left_in",
-           "margin_right_in", "header_dist_in", "footer_dist_in")
-  page <- pg[intersect(geo, names(pg))]
-  fmt <- pg[intersect(c("font_size_half_points", "title_format",
-                        "footnote_format", "title_width", "footnote_width",
-                        "markup"), names(pg))]
-  for (w in intersect(c("title_width", "footnote_width"), names(fmt))) {
-    v <- suppressWarnings(as.numeric(fmt[[w]]))
-    if (!is.na(v)) fmt[[w]] <- v
+  # the rtfreporter calls the definition stands for (R/spec_code.R): run
+  # here, written out by tfl_report_code() -- one list, so the two agree
+  env <- new.env(parent = emptyenv())
+  env$content <- content
+  for (st in .report_spec_steps(sp, "content")) {
+    env$doc <- .spec_eval(st, env)
   }
-  dir <- .ard_spec_study_value(sp, "program_dir")
-  prog <- r$program
-  if (!is.na(dir)) {
-    sep <- if (grepl("\\", dir, fixed = TRUE)) "\\" else "/"
-    prog <- paste(sub("[\\\\/]+$", "", dir), prog, sep = sep)
-  }
-  doc <- rtf_document(page = if (length(page)) page,
-                      default_format = if (length(fmt))
-                        do.call(rtf_default_format, fmt),
-                      program = prog)
-
-  # a report may go without the study's running header or footer -- one
-  # that puts its run line under the table instead, say
-  hdr <- if (!identical(r$page_header, FALSE)) .ard_spec_band(sp, "header")
-  ftr <- if (!identical(r$page_footer, FALSE)) .ard_spec_band(sp, "footer")
-  if (length(hdr) || length(ftr)) {
-    si <- list()
-    if (length(hdr)) si$header <- rtf_header(hdr)
-    if (length(ftr)) si$footer <- rtf_footer(ftr)
-    doc <- rtf_section(doc, secinfo = si)
-  }
-
-  type <- r$type %||% "table"
-  if (identical(type, "figure")) {
-    doc <- rtf_figures(doc, content)
-  } else {
-    a <- list(doc = doc, tables = content)
-    if (!is.null(r$auto_section)) a$auto_section <- r$auto_section
-    if (!is.null(r$section_align)) a$section_label_align <- r$section_align
-    if (!is.null(r$auto_title)) a$auto_title <- r$auto_title
-    if (!is.null(r$title_align)) a$title_label_align <- r$title_align
-    if (!is.null(r$table_font_size)) a$font_size_half_points <- r$table_font_size
-    doc <- do.call(rtf_tables, a)
-  }
-  tt <- .ard_spec_band(sp, "titles")
-  if (length(tt)) {
-    doc <- rtf_titles(doc, list(tt), font_size_half_points = r$title_font_size)
-  }
-  fn <- .ard_spec_band(sp, "footnotes")
-  if (length(fn)) {
-    doc <- rtf_footnotes(doc, list(fn),
-                         font_size_half_points = r$footnote_font_size)
-  }
-  doc
+  env$doc
 }
 
 #' Where a report's RTF file goes

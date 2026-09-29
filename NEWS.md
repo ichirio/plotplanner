@@ -1,4 +1,4 @@
-# tflspec 0.0.14
+# tflspec 0.0.15
 
 * **Figure designs are now parts and layers** (#20): a design is four
   lists of small pieces a GUI lists, adds and edits one by one --
@@ -27,6 +27,32 @@
   (variables through the steps, PARAMCDs, the layers' data, the order of
   layers).  `tfl_fig_design()` now takes the four parts; a 0.0.12 design
   file (`type` / `style` / `args`) reads as a `figure` layer.
+
+# tflspec 0.0.14
+
+* **Table and report definitions write code too** (#19), as ARD and
+  listing definitions do, so a generator (tflplanner) can write the whole
+  report program:
+  - `tfl_table_code(spec, output_id)` writes the `tfl_plan()` pipeline the
+    workbook stands for: the roles of its `tables` sheet in `tfl_plan()`,
+    and one `tfl_plan_*()` verb for each thing the other sheets say.  The
+    reverse of `tfl_as_table_spec()`; what a workbook cannot say is written
+    under it by hand.
+  - `tfl_report_code(spec, output_id, content)` writes the rtfreporter calls
+    of the report: `rtf_document()`, `rtf_section()` (running header and
+    footer), `rtf_tables()` / `rtf_figures()`, `rtf_titles()`,
+    `rtf_footnotes()` -- a program that needs only rtfreporter.
+  - Both come from the same list of steps that `tfl_plan(spec = )` and
+    `tfl_report()` now run, so the object and the program cannot disagree;
+    on the five example reports the written program gives byte-identical
+    RTF (checked by `data-raw/ard-spec-examples/make-examples.R`), and the
+    objects are unchanged.
+* What only a workbook could say now has a public form, so the code can say
+  it: `tfl_plan(sort_stat = )`, `tfl_plan_col_header(header = <data frame of
+  cells>)` (the `col_header` sheet's rows), and a new verb
+  `tfl_plan_columns(widths = , decimal = )` (widths by column name and
+  decimal alignment: the `columns` sheet).  `tfl_plan_digits(rounding = )`
+  on its own no longer also declares an empty set of digits.
 
 # tflspec 0.0.13
 
