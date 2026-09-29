@@ -18,6 +18,9 @@
 \alias{tfl_plan_style}
 \alias{tfl_plan_col_header}
 \alias{tfl_plan_columns}
+\alias{tfl_plan_header_style}
+\alias{tfl_plan_col_style}
+\alias{tfl_plan_zone_style}
 \alias{tfl_plan_listing}
 \alias{tfl_plan_titles}
 \alias{tfl_plan_footnotes}
@@ -72,6 +75,12 @@ tfl_plan_style(plan, border = NULL, widths = NULL, ...)
 tfl_plan_col_header(plan, header = NULL, n = NULL, values = NULL)
 
 tfl_plan_columns(plan, widths = NULL, decimal = NULL)
+
+tfl_plan_header_style(plan, ...)
+
+tfl_plan_col_style(plan, ...)
+
+tfl_plan_zone_style(plan, ...)
 
 tfl_plan_listing(
   plan,
@@ -416,8 +425,20 @@ goes into a workbook:\tabular{ll}{
    \code{set_col_header()} / \code{rtf_col_header()} \tab \code{tfl_plan_col_header()} \cr
    \code{realign_count_pct()} \tab \code{tfl_plan_style(align_count_pct = TRUE)} \cr
    \code{paginate()} \tab \code{tfl_plan_paginate_rows()} \cr
-   bold / colour / alignment of body cells \tab \code{tfl_plan_cell_style()} \cr
+   bold / colour / alignment of body cells, by condition \tab \code{tfl_plan_cell_style()} \cr
+   \code{style_header(x, ...)} \tab \code{tfl_plan_header_style(...)} \cr
+   \code{style_cols(x, ...)} \tab \code{tfl_plan_col_style(...)} \cr
+   \code{style_zone(x, ...)} \tab \code{tfl_plan_zone_style(...)} \cr
 }
+
+
+\code{tfl_plan_header_style()}, \code{tfl_plan_col_style()} and
+\code{tfl_plan_zone_style()} take the arguments of rtfreporter's
+\code{\link[rtfreporter:style_header]{rtfreporter::style_header()}}, \code{\link[rtfreporter:style_header]{rtfreporter::style_cols()}} and \code{\link[rtfreporter:style_header]{rtfreporter::style_zone()}} unchanged, and run
+them on the pages in the order written (after the header and the
+decimal alignment, before any \code{tfl_plan_after()} step).  Their \code{cols}
+may be column names, and \code{.values} stands for every value column, so a
+reordered table keeps them.
 }
 
 \section{Lifecycle}{
