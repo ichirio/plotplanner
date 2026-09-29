@@ -1,16 +1,10 @@
-# Figure designs: what a figure is, as data.
+# The arguments of each figure type's tfl_fig_<type>(): what the `figure`
+# layer of a design (a figure type's whole script) takes.
 #
-# A design is the figure type, its style and the arguments of the type's
-# tfl_fig_<type>() -- the dataset and PARAMCD, the analysis set, the
-# variables, the axes, the legend, the output size.  It is written as one
-# YAML file per figure (nested, one screen to read, easy to diff), and the
-# script is made from it by the same tfl_fig_<type>() a programmer calls.
-#
-# tfl_fig_schema() says, for every type, what each argument is: its section
-# of the design, its kind (a dataset, a PARAMCD, a variable, one of a set of
-# values, a number ...), whether it is basic or advanced, its default and
-# its choices.  A GUI draws its form from it, and a design is checked
-# against it.
+# tfl_fig_schema() says, for every type, what each argument is: its section,
+# its kind (a dataset, a PARAMCD, a variable, one of a set of values, a
+# number ...), whether it is basic or advanced, its default and its
+# choices.  A GUI draws the `figure` layer's form from it.
 
 # How each argument name reads, wherever it appears.
 # kind: dataset | param | variable | variables | flag | value | choice |
@@ -259,144 +253,5 @@ tfl_fig_schema <- function(type = NULL) {
   })
   out <- do.call(rbind, rows)
   rownames(out) <- NULL
-  out
-}
-
-#' A figure design
-#'
-#' A figure as data: its type, its style and the arguments of its
-#' `tfl_fig_<type>()` (see [tfl_fig_schema()] for what each may be).  A
-#' design is kept as one YAML file per figure (`tfl_write_fig_design()` /
-#' `tfl_read_fig_design()`), and `tfl_fig_design_code()` makes its script.
-#'
-#' ```yaml
-#' type: km
-#' style: risk_table
-#' args:
-#'   data: ADTTE
-#'   param: OS
-#'   pop: FASFL
-#'   group: TRT01A
-#'   time_unit: months
-#'   x_max: 24
-#'   x_by: 3
-#' ```
-#'
-#' @param type A figure type ([tfl_fig_types()]).
-#' @param style One of the type's styles; `NULL` for the default.
-#' @param args A named list of the type's arguments; an argument left out
-#'   takes its default.
-#' @param design A `tfl_fig_design`.
-#' @param path A `.yml` file.
-#' @param adam The data, as [tfl_read_adam()] gives it: the values the
-#'   script writes in (group levels and their colours) are taken from it,
-#'   and [tfl_check_fig_design()] checks the variables against it.
-#' @return `tfl_fig_design()` and `tfl_read_fig_design()`: a
-#'   `tfl_fig_design`; `tfl_write_fig_design()`: `path`, invisibly;
-#'   `tfl_fig_design_code()`: the script (as [tfl_fig_km()] etc. give it).
-#' @export
-tfl_fig_design <- function(type, style = NULL, args = list()) {
-  sc <- tfl_fig_schema(type)
-  if (!nrow(sc)) stop("Unknown figure type: ", type, call. = FALSE)
-  styles <- strsplit(sc$choices[sc$arg == "style"], " | ", fixed = TRUE)[[1L]]
-  style <- style %||% styles[1L]
-  if (!style %in% styles) {
-    stop("Style '", style, "' is not one of ", type, "'s: ",
-         paste(styles, collapse = ", "), call. = FALSE)
-  }
-  args <- as.list(args)
-  args$style <- NULL
-  structure(list(type = type, style = style, args = args),
-            class = "tfl_fig_design")
-}
-
-#' @export
-print.tfl_fig_design <- function(x, ...) {
-  cat(yaml::as.yaml(unclass(x)))
-  invisible(x)
-}
-
-#' @rdname tfl_fig_design
-#' @export
-tfl_write_fig_design <- function(design, path) {
-  x <- unclass(design)
-  x$args <- x$args[!vapply(x$args, is.null, logical(1))]
-  writeLines(enc2utf8(yaml::as.yaml(x)), path, useBytes = TRUE)
-  invisible(path)
-}
-
-#' @rdname tfl_fig_design
-#' @export
-tfl_read_fig_design <- function(path) {
-  x <- yaml::read_yaml(path)
-  tfl_fig_design(x$type, x$style, x$args %||% list())
-}
-
-#' @rdname tfl_fig_design
-#' @export
-tfl_fig_design_code <- function(design, adam = NULL) {
-  fn <- getExportedValue("tflspec", .fig_fun(design$type))
-  args <- design$args
-  # `named` arguments (events, ongoing) are kept as lists in YAML
-  args <- lapply(args, function(v) if (is.list(v)) unlist(v) else v)
-  do.call(fn, c(list(adam = adam, style = design$style), args))
-}
-
-#' @rdname tfl_fig_design
-#' @return `tfl_check_fig_design()`: a data frame of the problems (`arg`,
-#'   `problem`); no rows when the design reads.
-#' @export
-tfl_check_fig_design <- function(design, adam = NULL) {
-  sc <- tfl_fig_schema(design$type)
-  out <- data.frame(arg = character(), problem = character(),
-                    stringsAsFactors = FALSE)
-  add <- function(a, p) out[nrow(out) + 1L, ] <<- list(a, p)
-  for (a in names(design$args)) {
-    r <- sc[sc$arg == a, , drop = FALSE]
-    if (!nrow(r)) {
-      add(a, paste0("not an argument of ", design$type))
-      next
-    }
-    v <- design$args[[a]]
-    if (r$kind == "choice" && !is.na(r$choices)) {
-      ch <- strsplit(r$choices, " | ", fixed = TRUE)[[1L]]
-      if (!all(as.character(v) %in% ch)) {
-        add(a, paste0("'", paste(v, collapse = ", "), "' is not one of ",
-                      paste(ch, collapse = ", ")))
-      }
-    }
-    if (r$kind == "number" && suppressWarnings(anyNA(as.numeric(v)))) {
-      add(a, "not a number")
-    }
-  }
-  adam <- if (!is.null(adam)) pp_prep_adam(adam)
-  if (!is.null(adam)) {
-    ds_of <- function(of) {
-      nm <- if (is.na(of)) NA else if (of %in% c("data", "response_data")) {
-        design$args[[of]] %||% sc$default[sc$arg == of]
-      } else of
-      if (is.null(nm) || is.na(nm)) return(NULL)
-      adam[[toupper(nm)]] %||% adam[[tolower(nm)]]
-    }
-    for (i in seq_len(nrow(sc))) {
-      r <- sc[i, ]
-      v <- design$args[[r$arg]] %||% if (!is.na(r$default)) r$default
-      if (is.null(v)) next
-      d <- ds_of(r$of)
-      if (r$kind == "dataset" && is.null(adam[[toupper(v)]]) &&
-          is.null(adam[[tolower(v)]])) {
-        add(r$arg, paste0("no dataset ", v))
-      }
-      if (is.null(d)) next
-      if (r$kind %in% c("variable", "variables", "flag")) {
-        miss <- setdiff(unlist(strsplit(as.character(v), "\\s*[|,]\\s*")), names(d))
-        if (length(miss)) add(r$arg, paste0("no variable ", paste(miss, collapse = ", ")))
-      }
-      if (r$kind == "param" && "PARAMCD" %in% names(d) &&
-          !all(v %in% d$PARAMCD)) {
-        add(r$arg, paste0("no PARAMCD ", paste(setdiff(v, d$PARAMCD), collapse = ", ")))
-      }
-    }
-  }
   out
 }
