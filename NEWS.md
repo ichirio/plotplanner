@@ -1,3 +1,24 @@
+# tflspec 0.0.20
+
+* **The plan no longer reads the spec** (#29; step 1 of plan E, Discussion
+  #23).  Inside tflspec the ARD / plan code (`R/ard.R`, `R/plan.R`,
+  `R/rtfreporter-glue.R`) references no spec function any more; the spec
+  code has its own file, `R/table_spec.R`.  Behaviour is unchanged: the
+  ten example RTFs and the five Discussion #3 samples are byte-identical.
+  - `tfl_plan()` loses `spec =`.  New **`tfl_table_plan(data, spec,
+    output_id)`** builds the plan from a workbook through the public verbs
+    (the steps `tfl_table_code()` writes); a role given in the call still
+    wins.  Data first, like `tfl_plan()`, so it pipes:
+    `ard |> tfl_ard_normalize() |> tfl_table_plan(spec)`.
+  - `tfl_plan_col_header(header = <data frame of cells>)` is the plan's
+    own: the cell rows (`line`, `cols` -- `.values`, `KEY = value` --,
+    `span`, `text`, borders) are typed and placed by the plan.
+  - New **`tfl_plan_layers(plan)`**: what a plan declares and what it
+    resolved to (roles, layers by kind, cells, columns, the header as cell
+    rows, pages).  `tfl_as_table_spec()` reads only that and
+    `tfl_apply_plan()`.
+  - `tfl_plan_template()` loses `spec =`.
+
 # tflspec 0.0.19
 
 * **Every figure type has a template** (#32): 27 templates in parts --

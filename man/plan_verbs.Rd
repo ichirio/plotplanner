@@ -342,7 +342,7 @@ under \code{"{col1} {n1}"}.
 To \strong{give the numbers yourself}, pass a vector named by column
 key, at any depth --- \code{c(Placebo = 86, "Placebo____F" = 53, ...)} ---
 or a function of the data returning one; a single unnamed number
-fills every cell.  After a workbook (\code{tfl_plan(spec = )}), a later
+fills every cell.  After a workbook (\code{tfl_table_plan()}), a later
 \code{tfl_plan_col_header(n = ...)} supplies the numbers and keeps the
 workbook's header.
 A \strong{function} of the data covers what neither can find, and a
