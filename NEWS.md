@@ -1,3 +1,15 @@
+# tflspec 0.0.17
+
+* **Styling verbs** (#26): `tfl_plan_header_style()`, `tfl_plan_col_style()`
+  and `tfl_plan_zone_style()` declare rtfreporter's `style_header()`,
+  `style_cols()` and `style_zone()` with their own arguments, so header
+  bold / alignment / borders, column styles and zone borders no longer need
+  a `tfl_plan_after()` step.  They run on the pages in the order written
+  (after the header and the decimal alignment, before any after() step);
+  `cols` may be column names and `.values`, so a reordered table keeps
+  them.  A workbook cannot carry them: `tfl_as_table_spec()` lists them.
+  A plan with only `tfl_plan_columns()` now also goes to pages.
+
 # tflspec 0.0.16
 
 * **`tfl_plan_after()` is the way out, not the way in** (#24, Discussion
