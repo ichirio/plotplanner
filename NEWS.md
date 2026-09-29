@@ -1,3 +1,31 @@
+# tflspec 0.0.23
+
+* **Composed figures** (#39): a figure design may have `plots:` (name ->
+  a whole figure design, each reading its own data) and `compose:`
+  (`layout`, e.g. `km | box` or `(a | b) / c`; `add`, calls after it with
+  `op: "+"` or `"&"`: `plot_layout`, `plot_annotation`, `theme` ...). The
+  script writes each figure as it would alone, keeps it as `fig_<name>`,
+  lays them out with patchwork and saves once at the design's `plot`
+  size. A figure with panels below it (number at risk, n) or with
+  ggsurvfit's `add_risktable()` is wrapped with `wrap_elements()` (the
+  latter built with `ggsurvfit_build()`, without which patchwork drops
+  the table), so it stays one figure with one tag.
+  `tfl_check_fig_design()` checks each plot (parts `plots$<name> ...`),
+  the layout's names, and the compose calls; `tfl_fig_advice()` gives
+  each plot's advice with fixes aimed at it (`fix$plot`).
+* ggsurvfit's `add_*` as `call` layers: the check requires the KM curves
+  layer, and reports `add_risktable()` together with the `risk_table`
+  layer (the number at risk twice) or with an `n_table` panel. Alone,
+  `add_risktable()` needs nothing more: `ggsave()` keeps its table.
+* **Extension functions by name**: `tfl_fig_calls()` lists ggh4x
+  (`facet_nested`, `facet_nested_wrap`, `facetted_pos_scales`), ggtext
+  (`element_markdown`, `element_textbox_simple`), ggforce (`facet_zoom`)
+  and ggnewscale (`new_scale_colour`, `new_scale_fill`, `new_scale`); a
+  `call` of one needs no `package:`. The geom catalog gains `sina`
+  (ggforce's `geom_sina`). cowplot, ggpubr, ggbreak ... are reached with
+  `package:`.
+* ggplot2 4.0's label-attribute advice also looks at joined datasets and
+  counts an empty axis label as none.
 # tflspec 0.0.22
 
 * **Figure designs are written for ggplot2 3.5 or 4.0** (#37).

@@ -19,7 +19,8 @@ are counted against the palette and the legend.}
 \code{\link[=tfl_fig_compat]{tfl_fig_compat()}}): what that version deprecates in a \code{call} is
 advice, with a fix that rewrites the call for it.}
 
-\item{fix}{One row's \code{fix} (a list: \code{op} and its fields).}
+\item{fix}{One row's \code{fix} (a list: \code{op} and its fields; \code{plot} names
+the plot of a composed design it is for).}
 }
 \value{
 \code{tfl_fig_advice()}: a data frame with \code{rule}, \code{level} (\code{info},

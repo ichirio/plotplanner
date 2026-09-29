@@ -202,18 +202,22 @@
   gg_label_attr = function(d, ctx) {
     # an axis the design leaves untitled, mapped to a column with a label
     if (!identical(ctx$gg$version, "4.0") || is.null(ctx$adam)) return(NULL)
-    reads <- Filter(function(s) identical(s$step, "read"), d$data)
-    ds <- if (length(reads)) ctx$adam[[toupper(reads[[1L]]$dataset %||% "")]]
-    if (is.null(ds)) return(NULL)
-    labelled <- names(ds)[vapply(ds, function(x) !is.null(attr(x, "label")), logical(1))]
+    # the columns of the datasets read and joined, with their labels
+    dss <- unlist(lapply(d$data, function(s) if (s$step %in% c("read", "join")) toupper(s$dataset %||% "")))
+    labs <- list()
+    for (nm in rev(dss)) {
+      ds <- ctx$adam[[nm]]
+      for (v in names(ds)) if (!is.null(attr(ds[[v]], "label"))) labs[[v]] <- attr(ds[[v]], "label")
+    }
+    labelled <- names(labs)
     mapped <- function(ax) unique(as.character(unlist(lapply(d$layers, function(l)
       c(l[[ax]], if (identical(l$layer, "call")) l$aes[[ax]])))))
-    hit <- c(if (is.null(d$plot$x_label)) intersect(mapped("x"), labelled),
-             if (is.null(d$plot$y_label)) intersect(mapped("y"), labelled))
+    hit <- c(if (is.null(.pv(d$plot, "x_label"))) intersect(mapped("x"), labelled),
+             if (is.null(.pv(d$plot, "y_label"))) intersect(mapped("y"), labelled))
     if (length(hit)) .adv(
       "gg_label_attr", "info", "plot",
       "ggplot2 4.0 titles an axis with its column's label attribute when the design gives no title: %s would be titled '%s'. Set the X / Y label to choose it.",
-      args = list(hit[1L], attr(ds[[hit[1L]]], "label")))
+      args = list(hit[1L], labs[[hit[1L]]]))
   },
   gg_installed = function(d, ctx) {
     inst <- .fig_installed_gg()
@@ -245,7 +249,8 @@
 #' @param ggplot2_version The ggplot2 the design is for (see
 #'   [tfl_fig_compat()]): what that version deprecates in a `call` is
 #'   advice, with a fix that rewrites the call for it.
-#' @param fix One row's `fix` (a list: `op` and its fields).
+#' @param fix One row's `fix` (a list: `op` and its fields; `plot` names
+#'   the plot of a composed design it is for).
 #' @return `tfl_fig_advice()`: a data frame with `rule`, `level` (`info`,
 #'   `warning`), `part` (`data`, `stats`, `plot`, `layers`, `add`, `design`), `message`,
 #'   `template` and `args` (the message before `sprintf()` and its values,
@@ -254,6 +259,7 @@
 #'   `tfl_fig_apply_fix()`: the design, changed.
 #' @export
 tfl_fig_advice <- function(design, adam = NULL, ggplot2_version = NULL) {
+  if (length(design$plots)) return(.fig_advice_compose(design, adam, ggplot2_version))
   ctx <- .fig_advice_ctx(design, adam)
   ctx$gg <- .fig_target_version(ggplot2_version, design)
   lines <- list()
@@ -263,6 +269,10 @@ tfl_fig_advice <- function(design, adam = NULL, ggplot2_version = NULL) {
     if (inherits(out, "tfl_fig_advice_line")) out <- list(out)
     lines <- c(lines, Filter(function(x) inherits(x, "tfl_fig_advice_line"), out))
   }
+  .fig_advice_df(lines)
+}
+
+.fig_advice_df <- function(lines) {
   data.frame(
     rule = vapply(lines, `[[`, "", "rule"),
     level = vapply(lines, `[[`, "", "level"),
@@ -278,6 +288,12 @@ tfl_fig_advice <- function(design, adam = NULL, ggplot2_version = NULL) {
 #' @export
 tfl_fig_apply_fix <- function(design, fix) {
   if (is.null(fix)) return(design)
+  if (!is.null(fix$plot)) {
+    # a fix for one plot of a composed design
+    design$plots[[fix$plot]] <- tfl_fig_apply_fix(.fig_as_design(design$plots[[fix$plot]]),
+                                                  fix[setdiff(names(fix), "plot")])
+    return(design)
+  }
   switch(fix$op,
     add_layer = {
       k <- .layer_kinds(design)
