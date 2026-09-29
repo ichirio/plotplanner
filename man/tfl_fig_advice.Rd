@@ -5,7 +5,7 @@
 \alias{tfl_fig_apply_fix}
 \title{Advice on a figure design}
 \usage{
-tfl_fig_advice(design, adam = NULL)
+tfl_fig_advice(design, adam = NULL, ggplot2_version = NULL)
 
 tfl_fig_apply_fix(design, fix)
 }
@@ -15,11 +15,15 @@ tfl_fig_apply_fix(design, fix)
 \item{adam}{The data (\code{\link[=tfl_read_adam]{tfl_read_adam()}}); with it the groups' levels
 are counted against the palette and the legend.}
 
+\item{ggplot2_version}{The ggplot2 the design is for (see
+\code{\link[=tfl_fig_compat]{tfl_fig_compat()}}): what that version deprecates in a \code{call} is
+advice, with a fix that rewrites the call for it.}
+
 \item{fix}{One row's \code{fix} (a list: \code{op} and its fields).}
 }
 \value{
 \code{tfl_fig_advice()}: a data frame with \code{rule}, \code{level} (\code{info},
-\code{warning}), \code{part} (\code{data}, \code{stats}, \code{plot}, \code{layers}), \code{message},
+\code{warning}), \code{part} (\code{data}, \code{stats}, \code{plot}, \code{layers}, \code{add}, \code{design}), \code{message},
 \code{template} and \code{args} (the message before \code{sprintf()} and its values,
 for a GUI that translates it) and \code{fix} (a list column; \code{NULL} where
 there is no one-step fix).

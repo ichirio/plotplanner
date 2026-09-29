@@ -339,6 +339,11 @@ tfl_fig_types_implemented <- function() {
 #' @param data,stats,layers Lists of pieces (each a named list).
 #' @param plot A named list of the figure-wide settings.
 #' @param template The template it was made from (a note).
+#' @param ggplot2_version The ggplot2 the script is written for, `"3.5"` or
+#'   `"4.0"` (see [tfl_fig_compat()]); `NULL`: the design's
+#'   `ggplot2_version`, else the option `tflspec.ggplot2_version`, else the
+#'   installed ggplot2's. Set (anywhere but the installed version), the
+#'   script's header says `# Written for ggplot2 X`.
 #' @param design A `tfl_fig_design`.
 #' @param path A `.yml` file.
 #' @param plot_id The figure's ID: the PNG's name.
@@ -347,12 +352,13 @@ tfl_fig_types_implemented <- function() {
 #'   `tfl_fig_design_code()`: the script (a `tfl_code`).
 #' @export
 tfl_fig_design <- function(data = list(), stats = list(), plot = list(),
-                           layers = list(), template = NULL) {
+                           layers = list(), template = NULL, ggplot2_version = NULL) {
   clean <- function(x) lapply(x, function(p) as.list(p)[!vapply(p, is.null, logical(1))])
   structure(list(template = template, data = clean(data),
                  stats = clean(stats),
                  plot = as.list(plot)[!vapply(plot, is.null, logical(1))],
-                 layers = clean(layers)),
+                 layers = clean(layers),
+                 ggplot2_version = if (!is.null(ggplot2_version)) .fig_norm_version(ggplot2_version)),
             class = "tfl_fig_design")
 }
 
@@ -364,7 +370,7 @@ print.tfl_fig_design <- function(x, ...) {
 
 .fig_design_list <- function(design) {
   x <- unclass(design)
-  x <- x[c("template", "data", "stats", "plot", "layers")]
+  x <- x[intersect(c("template", "ggplot2_version", "data", "stats", "plot", "layers"), names(x))]
   x[!vapply(x, function(v) is.null(v) || !length(v), logical(1))]
 }
 
@@ -390,7 +396,7 @@ tfl_read_fig_design <- function(path) {
       layer = "figure", type = x$type, style = x$style, args = x$args %||% list()))))
   }
   tfl_fig_design(x$data %||% list(), x$stats %||% list(), x$plot %||% list(),
-                 x$layers %||% list(), x$template)
+                 x$layers %||% list(), x$template, x$ggplot2_version)
 }
 
 # ---- the code ---------------------------------------------------------------
@@ -601,7 +607,7 @@ tfl_read_fig_design <- function(path) {
   sprintf("aes(%s)", paste(names(a), "=", unlist(a), collapse = ", "))
 }
 
-.fig_layer_code <- function(l, i, plot) {
+.fig_layer_code <- function(l, i, plot, ggplot2_version = NULL) {
   k <- l$layer
   v <- function(f) .fv(l, f, k)
   dodge <- if (.lgl(v("dodge"))) "position = pd"
@@ -684,8 +690,8 @@ tfl_read_fig_design <- function(path) {
     },
     layer_code = list(code = c(lbl("your code"), l$code)),
     call = {
-      res <- .fig_call_code(l, target = "p", plus = !isTRUE(l$base))
-      out <- list(libs = res$libs)
+      res <- .fig_call_code(l, target = "p", plus = !isTRUE(l$base), ggplot2_version = ggplot2_version)
+      out <- list(libs = res$libs, guard = res$guard, features = res$features)
       if (length(res$pkgs)) out$package <- res$pkgs
       if (isTRUE(l$base)) out$base <- res$line else out$code <- c(lbl(paste0("call: ", l$fn)), res$line)
       out
@@ -759,8 +765,9 @@ tfl_read_fig_design <- function(path) {
 
 #' @rdname tfl_fig_design
 #' @export
-tfl_fig_design_code <- function(design, plot_id = "fig") {
+tfl_fig_design_code <- function(design, plot_id = "fig", ggplot2_version = NULL) {
   design <- if (inherits(design, "tfl_fig_design")) design else .fig_design_from_list(design)
+  gg <- .fig_target_version(ggplot2_version, design)
   whole <- Filter(function(l) identical(l$layer, "figure"), design$layers)
   if (length(whole)) {
     w <- whole[[1L]]
@@ -777,12 +784,14 @@ tfl_fig_design_code <- function(design, plot_id = "fig") {
     r <- layers[kinds == "risk_table"]
     if (length(r)) .fv(r[[1L]], "fit", "risk_table") else "fit"
   }
-  lc <- lapply(seq_along(layers), function(i) .fig_layer_code(layers[[i]], i, plot))
+  lc <- lapply(seq_along(layers), function(i) .fig_layer_code(layers[[i]], i, plot, gg$version))
   clip <- any(vapply(lc, function(x) isTRUE(x$clip_off), logical(1)))
   ax <- .fig_axis_code(plot, any(kinds == "risk_table"), fit_of(), clip)
   base <- if (length(lc) && !is.null(lc[[1L]]$base)) lc[[1L]]$base else "p <- ggplot()"
   panels <- Filter(Negate(is.null), lapply(lc, `[[`, "panel"))
-  add_res <- .fig_plot_add_code(plot$add %||% list())
+  add_res <- .fig_plot_add_code(plot$add %||% list(), gg$version)
+  guard <- .fig_guard_code(c(unlist(lapply(lc, `[[`, "guard")), add_res$guard),
+                           c(unlist(lapply(lc, `[[`, "features")), add_res$features))
   libs <- unique(c("dplyr", "ggplot2", s$libs, unlist(lapply(lc, `[[`, "libs")), add_res$libs))
   # a catalog layer of another package is called as pkg::fn; it must be there
   needs <- setdiff(unique(c(unlist(lapply(lc, `[[`, "package")), add_res$pkgs)), "ggplot2")
@@ -823,9 +832,11 @@ tfl_fig_design_code <- function(design, plot_id = "fig") {
     sprintf("# %s: %s", plot_id, design$template %||% "figure design"),
     sprintf("# Generated by tflspec %s from the figure's design.",
             utils::packageVersion("tflspec")),
+    if (gg$explicit) sprintf("# Written for ggplot2 %s", gg$version),
     "",
     paste0("library(", libs, ")"),
     if (length(needs)) sprintf("# also needs: %s (called as pkg::fn)", paste(needs, collapse = ", ")),
+    if (length(guard)) c("", guard),
     "",
     section("Step1: Preparing Analysis Data"),
     sprintf("# Input data frames: %s", paste(pp_ds_name(d$reads), collapse = ", ")),
@@ -877,12 +888,22 @@ tfl_fig_design_code <- function(design, plot_id = "fig") {
 #'   design names are looked for in it.
 #' @return `tfl_check_fig_design()`: a data frame of the problems
 #'   (`part`, `field`, `problem`; `part` is e.g. `data[2] join`); no rows
-#'   when there are none.
+#'   when there are none. With the target ggplot2 (`ggplot2_version`), a
+#'   function or argument of a `call` the target does not have, or drops,
+#'   is one; what it only deprecates is advice ([tfl_fig_advice()]).
 #' @export
-tfl_check_fig_design <- function(design, adam = NULL) {
+tfl_check_fig_design <- function(design, adam = NULL, ggplot2_version = NULL) {
   out <- data.frame(part = character(), field = character(), problem = character(),
                     stringsAsFactors = FALSE)
   add <- function(p, f, x) out[nrow(out) + 1L, ] <<- list(p, f, x)
+  gg <- tryCatch(.fig_target_version(ggplot2_version, design), error = function(e) {
+    add("design", "ggplot2_version", conditionMessage(e))
+    list(version = .fig_installed_gg())
+  })
+  compat_errors <- function(spec, part) {
+    e <- .fig_compat_walk(spec, gg$version, part)$errors
+    for (r in seq_len(nrow(e))) add(e$part[r], e$field[r], e$problem[r])
+  }
   adam <- if (!is.null(adam)) pp_prep_adam(adam)
   pieces <- .fig_pieces()
   ds <- function(nm) if (!is.null(adam) && !is.null(nm)) adam[[toupper(nm)]]
@@ -954,7 +975,7 @@ tfl_check_fig_design <- function(design, adam = NULL) {
       derive = if (!is.null(cols)) cols <- union(cols, v("variable")),
       data_code = cols <- NULL)
   }
-  objects$df <- cols
+  objects["df"] <- list(cols)   # NULL (unknown columns) keeps the name
   for (i in seq_along(design$stats)) {
     s <- design$stats[[i]]
     k <- s$step %||% ""
@@ -1042,6 +1063,7 @@ tfl_check_fig_design <- function(design, adam = NULL) {
     if (k == "call") {
       extra <- .fig_check_call(l, part)
       for (r in seq_len(nrow(extra))) add(extra$part[r], extra$field[r], extra$problem[r])
+      compat_errors(l, part)
       if (grepl(.fig_plotwide_re, .fig_bare_fn_name(l$fn %||% ""))) {
         add(part, "fn", paste0("'", .fig_bare_fn_name(l$fn), "' is a figure-wide function; use plot.add instead of layers"))
       }
@@ -1059,6 +1081,7 @@ tfl_check_fig_design <- function(design, adam = NULL) {
     part <- sprintf("plot.add[%d]", i)
     extra <- .fig_check_call(a, part)
     for (r in seq_len(nrow(extra))) add(extra$part[r], extra$field[r], extra$problem[r])
+    compat_errors(a, part)
     fnname <- .fig_bare_fn_name(a$fn %||% "")
     if (grepl("^facet_", fnname) && !is.null(design$plot$facet_by)) {
       add(part, "fn", "overrides plot$facet_by (a facet_* is also in plot.add)")

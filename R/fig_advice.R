@@ -24,7 +24,8 @@
             class = "tfl_fig_advice_line")
 }
 
-# a fix: op = add_layer | add_step | set_plot | set_piece | remove_layer
+# a fix: op = add_layer | add_step | set_plot | set_piece | remove_layer |
+# compat (a call piece rewritten for a ggplot2 version, fig_compat.R)
 .fix <- function(op, ...) list(op = op, ...)
 
 .layer_kinds <- function(d) vapply(d$layers, function(l) l$layer %||% "", "")
@@ -188,6 +189,39 @@
            .fix("add_step", step = list(step = "flag", variable = flag)))
     }
   },
+  # ---- ggplot2 3.5 / 4.0 (fig_compat.R)
+  gg_compat = function(d, ctx) {
+    unlist(lapply(.fig_call_pieces(d), function(p) {
+      w <- .fig_compat_walk(p$spec, ctx$gg$version, p$part)$warns
+      lapply(unique(w), function(m) .adv(
+        "gg_compat", "warning", p$sec, "%s: %s",
+        .fix("compat", sec = p$sec, i = p$i, ggplot2_version = ctx$gg$version),
+        args = list(p$part, m)))
+    }), recursive = FALSE)
+  },
+  gg_label_attr = function(d, ctx) {
+    # an axis the design leaves untitled, mapped to a column with a label
+    if (!identical(ctx$gg$version, "4.0") || is.null(ctx$adam)) return(NULL)
+    reads <- Filter(function(s) identical(s$step, "read"), d$data)
+    ds <- if (length(reads)) ctx$adam[[toupper(reads[[1L]]$dataset %||% "")]]
+    if (is.null(ds)) return(NULL)
+    labelled <- names(ds)[vapply(ds, function(x) !is.null(attr(x, "label")), logical(1))]
+    mapped <- function(ax) unique(as.character(unlist(lapply(d$layers, function(l)
+      c(l[[ax]], if (identical(l$layer, "call")) l$aes[[ax]])))))
+    hit <- c(if (is.null(d$plot$x_label)) intersect(mapped("x"), labelled),
+             if (is.null(d$plot$y_label)) intersect(mapped("y"), labelled))
+    if (length(hit)) .adv(
+      "gg_label_attr", "info", "plot",
+      "ggplot2 4.0 titles an axis with its column's label attribute when the design gives no title: %s would be titled '%s'. Set the X / Y label to choose it.",
+      args = list(hit[1L], attr(ds[[hit[1L]]], "label")))
+  },
+  gg_installed = function(d, ctx) {
+    inst <- .fig_installed_gg()
+    if (!identical(inst, ctx$gg$version) && length(.fig_call_pieces(d))) .adv(
+      "gg_installed", "info", "design",
+      "The calls' arguments are checked against the installed ggplot2 %s; the script is for %s, by the compat table (tfl_fig_compat()).",
+      args = list(as.character(utils::packageVersion("ggplot2")), ctx$gg$version))
+  },
   size = function(d, ctx) {
     w <- as.numeric(.pv(d$plot, "width")); h <- as.numeric(.pv(d$plot, "height"))
     if (!is.na(w) && !is.na(h) && w < h) .adv(
@@ -208,21 +242,26 @@
 #' @param design A `tfl_fig_design`.
 #' @param adam The data ([tfl_read_adam()]); with it the groups' levels
 #'   are counted against the palette and the legend.
+#' @param ggplot2_version The ggplot2 the design is for (see
+#'   [tfl_fig_compat()]): what that version deprecates in a `call` is
+#'   advice, with a fix that rewrites the call for it.
 #' @param fix One row's `fix` (a list: `op` and its fields).
 #' @return `tfl_fig_advice()`: a data frame with `rule`, `level` (`info`,
-#'   `warning`), `part` (`data`, `stats`, `plot`, `layers`), `message`,
+#'   `warning`), `part` (`data`, `stats`, `plot`, `layers`, `add`, `design`), `message`,
 #'   `template` and `args` (the message before `sprintf()` and its values,
 #'   for a GUI that translates it) and `fix` (a list column; `NULL` where
 #'   there is no one-step fix).
 #'   `tfl_fig_apply_fix()`: the design, changed.
 #' @export
-tfl_fig_advice <- function(design, adam = NULL) {
+tfl_fig_advice <- function(design, adam = NULL, ggplot2_version = NULL) {
   ctx <- .fig_advice_ctx(design, adam)
+  ctx$gg <- .fig_target_version(ggplot2_version, design)
   lines <- list()
   whole <- any(.layer_kinds(design) == "figure")
   for (r in if (whole) list() else .fig_advice_rules()) {
     out <- tryCatch(r(design, ctx), error = function(e) NULL)
-    if (inherits(out, "tfl_fig_advice_line")) lines <- c(lines, list(out))
+    if (inherits(out, "tfl_fig_advice_line")) out <- list(out)
+    lines <- c(lines, Filter(function(x) inherits(x, "tfl_fig_advice_line"), out))
   }
   data.frame(
     rule = vapply(lines, `[[`, "", "rule"),
@@ -265,6 +304,7 @@ tfl_fig_apply_fix <- function(design, fix) {
       design[[fix$sec]][[fix$i]] <- x
     },
     remove_layer = design$layers <- design$layers[-fix$i],
+    compat = design <- .fig_compat_fix_piece(design, fix$sec, fix$i, fix$ggplot2_version),
     stop("Unknown fix: ", fix$op, call. = FALSE))
   design
 }
