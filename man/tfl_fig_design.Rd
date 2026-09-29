@@ -14,7 +14,9 @@ tfl_fig_design(
   plot = list(),
   layers = list(),
   template = NULL,
-  ggplot2_version = NULL
+  ggplot2_version = NULL,
+  plots = NULL,
+  compose = NULL
 )
 
 tfl_write_fig_design(design, path)
@@ -37,6 +39,20 @@ tfl_check_fig_design(design, adam = NULL, ggplot2_version = NULL)
 \code{ggplot2_version}, else the option \code{tflspec.ggplot2_version}, else the
 installed ggplot2's. Set (anywhere but the installed version), the
 script's header says \verb{# Written for ggplot2 X}.}
+
+\item{plots}{A composed figure: a named list of figure designs (each
+with its own \code{data}, \code{stats}, \code{plot}, \code{layers}), put together by
+patchwork as \code{compose} says. The design's own \code{plot} then holds only
+the saved size (\code{width}, \code{height}, \code{dpi}, \code{units}), and it has no
+\code{data}, \code{stats} or \code{layers} of its own.}
+
+\item{compose}{With \code{plots}: \code{layout}, an expression of the plots' names
+with \code{|} (side by side), \code{/} (stacked), \code{+}, \code{-} and brackets (default:
+all side by side); \code{add}, a list of calls written after it, each with
+\code{op} \code{"+"} (the default) or \code{"&"} (every figure) -- \code{plot_layout},
+\code{plot_annotation}, \code{theme} ... A figure with panels below it (the
+number at risk, n) or with ggsurvfit's \code{add_risktable} is kept as one
+figure (\code{wrap_elements()}).}
 
 \item{design}{A \code{tfl_fig_design}.}
 
@@ -101,5 +117,19 @@ layers:
 - \{layer: censor_mark, shape: x\}
 - \{layer: hline, yintercept: 0.5, linetype: twodash\}
 - \{layer: risk_table\}
+}\if{html}{\out{</div>}}
+
+A composed figure (two figures, each with its own data):
+
+\if{html}{\out{<div class="sourceCode yaml">}}\preformatted{plot: \{width: 10, height: 4.5\}
+plots:
+  km:   \{data: [...], stats: [...], plot: \{...\}, layers: [...]\}
+  box:  \{data: [...], plot: \{...\}, layers: [...]\}
+compose:
+  layout: km | box
+  add:
+  - \{fn: plot_layout, args: \{widths: [3, 2]\}\}
+  - \{fn: plot_annotation, args: \{tag_levels: A\}\}
+  - \{op: "&", fn: theme, args: \{legend.position: bottom\}\}
 }\if{html}{\out{</div>}}
 }

@@ -108,3 +108,8 @@ jitter,alpha,param,number,Transparency,,,FALSE,
 jitter,size,param,number,Size,1.2,,FALSE,
 point,na.rm,param,logical,Drop missing silently,,,FALSE,
 point,group,aes,variable,Group,,,FALSE,"For dodging without a colour, e.g. a mean marker per group"
+sina,x,aes,variable,X,,,TRUE,
+sina,y,aes,variable,Y,,,TRUE,
+sina,colour,aes,variable,Colour by,,,FALSE,
+sina,size,param,number,Size,1.2,,FALSE,
+sina,alpha,param,number,Transparency,,,FALSE,

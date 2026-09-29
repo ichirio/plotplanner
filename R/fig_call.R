@@ -45,13 +45,43 @@ tfl_fig_r <- function(code) {
   list(pkg = package, fn = fn)
 }
 
-# ggplot2 -> ggsurvfit -> patchwork, the first that exports `fn`.
+# ggplot2 -> ggsurvfit -> patchwork, the first that exports `fn`; else the
+# call catalog's package (installed or not).
 .fig_find_pkg <- function(fn) {
   for (pkg in c("ggplot2", "ggsurvfit", "patchwork")) {
     if (requireNamespace(pkg, quietly = TRUE) && fn %in% getNamespaceExports(pkg)) return(pkg)
   }
+  cc <- .fig_calls()
+  if (fn %in% cc$fn) return(cc$package[match(fn, cc$fn)])
   NULL
 }
+
+.fig_calls <- function() {
+  if (is.null(.fig_registry$calls)) {
+    .fig_registry$calls <- utils::read.csv(
+      system.file("fig", "calls.csv", package = "tflspec", mustWork = TRUE),
+      stringsAsFactors = FALSE, na.strings = "", encoding = "UTF-8")
+  }
+  .fig_registry$calls
+}
+
+#' Extension functions a figure design knows
+#'
+#' Functions of ggplot2 extension packages worth offering by name for a
+#' `call` piece (see [tfl_fig_design()]): nested facets (ggh4x), markdown
+#' text (ggtext), a zoomed panel (ggforce), a second colour or fill scale
+#' (ggnewscale). A `call` of one of them needs no `package:`; the script
+#' calls it as `pkg::fn` and notes the package under "# also needs". Any
+#' other function (cowplot, ggpubr, ggbreak ...) is reached the same way
+#' with `package:` given. Geoms of extension packages (ggrepel's
+#' `geom_text_repel`, ggforce's `geom_sina`) are layers of the catalog
+#' instead ([tfl_fig_add_layer()]).
+#'
+#' @return A data frame: `package`, `fn`, `where` (`layers`, `plot.add`,
+#'   or `nested`: a value inside another call, e.g. in `theme()`),
+#'   `label`, `help`.
+#' @export
+tfl_fig_calls <- function() .fig_calls()
 
 # `fn` or `pkg::fn`, recording what a bare call needs added to `library()`
 # lines (ggsurvfit/patchwork) or to the "# also needs" line (other packages).
@@ -229,7 +259,8 @@ tfl_fig_r <- function(code) {
       add(part, "fn", paste0("function '", fn_name, "' not found in ggplot2/ggsurvfit/patchwork; specify package:"))
       return(out)
     }
-  } else if (!requireNamespace(pkg, quietly = TRUE)) {
+  }
+  if (!requireNamespace(pkg, quietly = TRUE)) {
     add(part, "package", paste0("'", pkg, "' is not installed; its arguments are not checked"))
     .fig_check_nested(spec, part, out_env = environment())
     return(out)

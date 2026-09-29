@@ -1,0 +1,10 @@
+package,fn,where,label,help
+ggh4x,facet_nested,plot.add,Nested facets,"Panels with nested strips, e.g. SOC over PT: rows = vars(AEBODSYS, AEDECOD)."
+ggh4x,facet_nested_wrap,plot.add,Nested facets (wrapped),facet_wrap() with nested strips.
+ggh4x,facetted_pos_scales,plot.add,Per-panel scales,"A different x or y scale for each panel: y = list(scale_y_continuous(...), ...)."
+ggtext,element_markdown,nested,Markdown text,"In theme() or labs(): text with **bold**, *italic*, <sup>superscript</sup> (e.g. axis.title.y = element_markdown())."
+ggtext,element_textbox_simple,nested,Markdown text box,A title or caption that wraps inside a box.
+ggforce,facet_zoom,plot.add,Zoomed panel,"A zoomed-in copy of part of the panel beside it: xlim = c(0, 30)."
+ggnewscale,new_scale_colour,layers,New colour scale,"Between layers: the layers after it get their own colour scale (and legend)."
+ggnewscale,new_scale_fill,layers,New fill scale,"Between layers: the layers after it get their own fill scale (and legend)."
+ggnewscale,new_scale,layers,New scale,"Between layers: a new scale for the aesthetic named (new_scale(""size""))."

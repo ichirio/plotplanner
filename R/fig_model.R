@@ -36,7 +36,11 @@
                   "inside_br", "inside_bl")
 
 # every piece: its section, label, help and fields
-.fig_pieces <- function() {
+# every piece: built once, then kept (see .fig_cached()); a field lookup
+# asks for it many times a design
+.fig_pieces <- function() .fig_cached("pieces", .fig_pieces_build)
+
+.fig_pieces_build <- function() {
   pal <- names(tfl_fig_palettes())
   shapes <- names(pp_shape_names)
   lty <- c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash")
@@ -223,7 +227,9 @@
 }
 
 # the figure-wide settings
-.fig_plot_fields <- function() {
+.fig_plot_fields <- function() .fig_cached("plot_fields", .fig_plot_fields_build)
+
+.fig_plot_fields_build <- function() {
   rbind(
     .ff("title", "text", "Figure title"),
     .ff("x_label", "text", "X label"),
@@ -267,7 +273,9 @@
 #'   `code`, `named` (`name = value | ...`)), `label`, `default`,
 #'   `choices` (`|` between them), `help`, `required`, `of`.
 #' @export
-tfl_fig_parts <- function() {
+tfl_fig_parts <- function() .fig_cached("parts", .fig_parts_build)
+
+.fig_parts_build <- function() {
   p <- .fig_pieces()
   rows <- lapply(names(p), function(k) {
     f <- p[[k]]$fields
@@ -336,9 +344,36 @@ tfl_fig_types_implemented <- function() {
 #' - {layer: risk_table}
 #' ```
 #'
+#' A composed figure (two figures, each with its own data):
+#'
+#' ```yaml
+#' plot: {width: 10, height: 4.5}
+#' plots:
+#'   km:   {data: [...], stats: [...], plot: {...}, layers: [...]}
+#'   box:  {data: [...], plot: {...}, layers: [...]}
+#' compose:
+#'   layout: km | box
+#'   add:
+#'   - {fn: plot_layout, args: {widths: [3, 2]}}
+#'   - {fn: plot_annotation, args: {tag_levels: A}}
+#'   - {op: "&", fn: theme, args: {legend.position: bottom}}
+#' ```
+#'
 #' @param data,stats,layers Lists of pieces (each a named list).
 #' @param plot A named list of the figure-wide settings.
 #' @param template The template it was made from (a note).
+#' @param plots A composed figure: a named list of figure designs (each
+#'   with its own `data`, `stats`, `plot`, `layers`), put together by
+#'   patchwork as `compose` says. The design's own `plot` then holds only
+#'   the saved size (`width`, `height`, `dpi`, `units`), and it has no
+#'   `data`, `stats` or `layers` of its own.
+#' @param compose With `plots`: `layout`, an expression of the plots' names
+#'   with `|` (side by side), `/` (stacked), `+`, `-` and brackets (default:
+#'   all side by side); `add`, a list of calls written after it, each with
+#'   `op` `"+"` (the default) or `"&"` (every figure) -- `plot_layout`,
+#'   `plot_annotation`, `theme` ... A figure with panels below it (the
+#'   number at risk, n) or with ggsurvfit's `add_risktable` is kept as one
+#'   figure (`wrap_elements()`).
 #' @param ggplot2_version The ggplot2 the script is written for, `"3.5"` or
 #'   `"4.0"` (see [tfl_fig_compat()]); `NULL`: the design's
 #'   `ggplot2_version`, else the option `tflspec.ggplot2_version`, else the
@@ -352,13 +387,16 @@ tfl_fig_types_implemented <- function() {
 #'   `tfl_fig_design_code()`: the script (a `tfl_code`).
 #' @export
 tfl_fig_design <- function(data = list(), stats = list(), plot = list(),
-                           layers = list(), template = NULL, ggplot2_version = NULL) {
+                           layers = list(), template = NULL, ggplot2_version = NULL,
+                           plots = NULL, compose = NULL) {
   clean <- function(x) lapply(x, function(p) as.list(p)[!vapply(p, is.null, logical(1))])
   structure(list(template = template, data = clean(data),
                  stats = clean(stats),
                  plot = as.list(plot)[!vapply(plot, is.null, logical(1))],
                  layers = clean(layers),
-                 ggplot2_version = if (!is.null(ggplot2_version)) .fig_norm_version(ggplot2_version)),
+                 ggplot2_version = if (!is.null(ggplot2_version)) .fig_norm_version(ggplot2_version),
+                 plots = if (length(plots)) lapply(plots, .fig_as_design),
+                 compose = if (length(compose)) as.list(compose)),
             class = "tfl_fig_design")
 }
 
@@ -370,7 +408,9 @@ print.tfl_fig_design <- function(x, ...) {
 
 .fig_design_list <- function(design) {
   x <- unclass(design)
-  x <- x[intersect(c("template", "ggplot2_version", "data", "stats", "plot", "layers"), names(x))]
+  x <- x[intersect(c("template", "ggplot2_version", "data", "stats", "plot", "layers",
+                     "plots", "compose"), names(x))]
+  if (length(x$plots)) x$plots <- lapply(x$plots, .fig_design_list)
   x[!vapply(x, function(v) is.null(v) || !length(v), logical(1))]
 }
 
@@ -396,7 +436,8 @@ tfl_read_fig_design <- function(path) {
       layer = "figure", type = x$type, style = x$style, args = x$args %||% list()))))
   }
   tfl_fig_design(x$data %||% list(), x$stats %||% list(), x$plot %||% list(),
-                 x$layers %||% list(), x$template, x$ggplot2_version)
+                 x$layers %||% list(), x$template, x$ggplot2_version,
+                 x$plots, x$compose)
 }
 
 # ---- the code ---------------------------------------------------------------
@@ -763,18 +804,11 @@ tfl_read_fig_design <- function(path) {
     sprintf("pal <- setNames(%s[seq_along(pal_lv)], pal_lv)", vec_code(unname(pal))))
 }
 
-#' @rdname tfl_fig_design
-#' @export
-tfl_fig_design_code <- function(design, plot_id = "fig", ggplot2_version = NULL) {
-  design <- if (inherits(design, "tfl_fig_design")) design else .fig_design_from_list(design)
-  gg <- .fig_target_version(ggplot2_version, design)
-  whole <- Filter(function(l) identical(l$layer, "figure"), design$layers)
-  if (length(whole)) {
-    w <- whole[[1L]]
-    fn <- getExportedValue("tflspec", .fig_fun(w$type))
-    args <- lapply(w$args %||% list(), function(v) if (is.list(v)) unlist(v) else v)
-    return(do.call(fn, c(list(style = w$style %||% NULL, plot_id = plot_id), args)))
-  }
+# One figure's code, in parts: what to library(), the guard, Step1 (the
+# data, statistics, palette, axes) and Step2 (the figure, assembled as
+# `fig`); `patch`: the figure is itself a patchwork (panels below it);
+# `risktable`: a ggsurvfit with add_risktable (a patchwork once built).
+.fig_design_body <- function(design, gg) {
   plot <- design$plot
   d <- .fig_data_code(design$data)
   s <- .fig_stats_code(design$stats)
@@ -790,8 +824,9 @@ tfl_fig_design_code <- function(design, plot_id = "fig", ggplot2_version = NULL)
   base <- if (length(lc) && !is.null(lc[[1L]]$base)) lc[[1L]]$base else "p <- ggplot()"
   panels <- Filter(Negate(is.null), lapply(lc, `[[`, "panel"))
   add_res <- .fig_plot_add_code(plot$add %||% list(), gg$version)
-  guard <- .fig_guard_code(c(unlist(lapply(lc, `[[`, "guard")), add_res$guard),
-                           c(unlist(lapply(lc, `[[`, "features")), add_res$features))
+  guard_v <- c(unlist(lapply(lc, `[[`, "guard")), add_res$guard)
+  features <- c(unlist(lapply(lc, `[[`, "features")), add_res$features)
+  guard <- .fig_guard_code(guard_v, features)
   libs <- unique(c("dplyr", "ggplot2", s$libs, unlist(lapply(lc, `[[`, "libs")), add_res$libs))
   # a catalog layer of another package is called as pkg::fn; it must be there
   needs <- setdiff(unique(c(unlist(lapply(lc, `[[`, "package")), add_res$pkgs)), "ggplot2")
@@ -828,40 +863,37 @@ tfl_fig_design_code <- function(design, plot_id = "fig", ggplot2_version = NULL)
             vec_code(round(c(1 - sum(h), h), 3)))
   } else "fig <- p"
   n <- function(f) .pv(plot, f)
-  code <- c(
-    sprintf("# %s: %s", plot_id, design$template %||% "figure design"),
-    sprintf("# Generated by tflspec %s from the figure's design.",
-            utils::packageVersion("tflspec")),
-    if (gg$explicit) sprintf("# Written for ggplot2 %s", gg$version),
-    "",
-    paste0("library(", libs, ")"),
-    if (length(needs)) sprintf("# also needs: %s (called as pkg::fn)", paste(needs, collapse = ", ")),
-    if (length(guard)) c("", guard),
-    "",
-    section("Step1: Preparing Analysis Data"),
-    sprintf("# Input data frames: %s", paste(pp_ds_name(d$reads), collapse = ", ")),
-    "",
-    d$code,
-    s$code,
-    .fig_palette_code(plot),
-    "",
-    ax$pre,
-    if (uses_pd) sprintf("pd <- position_dodge(width = %s)", n("dodge")),
-    "",
-    section("Step2: Making a figure"),
-    base,
-    body_layers,
-    "# ---- the figure's settings ----",
-    plus_code("p", finish, append = TRUE),
-    unlist(lapply(lc, `[[`, "after")),
-    add_res$lines,
-    panel_code,
-    "",
-    "# ---- assemble ----",
-    assemble,
-    "fig",
-    "",
-    section("Step3: Saving the figure"),
+  fnames <- vapply(layers, function(l) if (identical(l$layer, "call")) .fig_bare_fn_name(l$fn) else "", "")
+  list(
+    libs = libs, needs = needs, guard = guard, guard_v = guard_v, features = features,
+    step1 = c(
+      sprintf("# Input data frames: %s", paste(pp_ds_name(d$reads), collapse = ", ")),
+      "",
+      d$code,
+      s$code,
+      .fig_palette_code(plot),
+      "",
+      ax$pre,
+      if (uses_pd) sprintf("pd <- position_dodge(width = %s)", n("dodge")),
+      ""),
+    step2 = c(
+      base,
+      body_layers,
+      "# ---- the figure's settings ----",
+      plus_code("p", finish, append = TRUE),
+      unlist(lapply(lc, `[[`, "after")),
+      add_res$lines,
+      panel_code,
+      "",
+      "# ---- assemble ----",
+      assemble),
+    patch = length(panels) > 0L, risktable = any(fnames == "add_risktable"))
+}
+
+# StepN: the PNG, at the size in `plot`
+.fig_save_code <- function(plot, plot_id, step) {
+  n <- function(f) .pv(plot, f)
+  c(section(paste0(step, ": Saving the figure")),
     sprintf("fig_path   <- file.path(\"output\", %s)", q(paste0(pp_file_name(plot_id), ".png"))),
     sprintf("fig_width  <- %s", n("width")),
     sprintf("fig_height <- %s", n("height")),
@@ -877,6 +909,39 @@ tfl_fig_design_code <- function(design, plot_id = "fig", ggplot2_version = NULL)
     "  dpi      = fig_dpi,",
     "  units    = fig_units",
     ")")
+}
+
+#' @rdname tfl_fig_design
+#' @export
+tfl_fig_design_code <- function(design, plot_id = "fig", ggplot2_version = NULL) {
+  design <- if (inherits(design, "tfl_fig_design")) design else .fig_design_from_list(design)
+  gg <- .fig_target_version(ggplot2_version, design)
+  if (length(design$plots)) return(.fig_compose_code(design, plot_id, gg))
+  whole <- Filter(function(l) identical(l$layer, "figure"), design$layers)
+  if (length(whole)) {
+    w <- whole[[1L]]
+    fn <- getExportedValue("tflspec", .fig_fun(w$type))
+    args <- lapply(w$args %||% list(), function(v) if (is.list(v)) unlist(v) else v)
+    return(do.call(fn, c(list(style = w$style %||% NULL, plot_id = plot_id), args)))
+  }
+  b <- .fig_design_body(design, gg)
+  code <- c(
+    sprintf("# %s: %s", plot_id, design$template %||% "figure design"),
+    sprintf("# Generated by tflspec %s from the figure's design.",
+            utils::packageVersion("tflspec")),
+    if (gg$explicit) sprintf("# Written for ggplot2 %s", gg$version),
+    "",
+    paste0("library(", b$libs, ")"),
+    if (length(b$needs)) sprintf("# also needs: %s (called as pkg::fn)", paste(b$needs, collapse = ", ")),
+    if (length(b$guard)) c("", b$guard),
+    "",
+    section("Step1: Preparing Analysis Data"),
+    b$step1,
+    section("Step2: Making a figure"),
+    b$step2,
+    "fig",
+    "",
+    .fig_save_code(design$plot, plot_id, "Step3"))
   code <- unlist(strsplit(paste(code, collapse = "\n"), "\n", fixed = TRUE))
   structure(code, class = "tfl_code")
 }
@@ -905,6 +970,7 @@ tfl_check_fig_design <- function(design, adam = NULL, ggplot2_version = NULL) {
     for (r in seq_len(nrow(e))) add(e$part[r], e$field[r], e$problem[r])
   }
   adam <- if (!is.null(adam)) pp_prep_adam(adam)
+  if (length(design$plots)) return(rbind(out, .fig_check_compose(design, adam, gg)))
   pieces <- .fig_pieces()
   ds <- function(nm) if (!is.null(adam) && !is.null(nm)) adam[[toupper(nm)]]
   cols <- NULL          # the columns of df, as far as known
@@ -1064,6 +1130,19 @@ tfl_check_fig_design <- function(design, adam = NULL, ggplot2_version = NULL) {
       extra <- .fig_check_call(l, part)
       for (r in seq_len(nrow(extra))) add(extra$part[r], extra$field[r], extra$problem[r])
       compat_errors(l, part)
+      # ggsurvfit's add_* go on a ggsurvfit(): the KM curves layer
+      fnb <- .fig_bare_fn_name(l$fn %||% "")
+      pkg <- .fig_resolve_fn(l$fn %||% "", l$package)$pkg %||% .fig_find_pkg(fnb)
+      if (identical(pkg, "ggsurvfit") && startsWith(fnb, "add_") && !"km_curve" %in% kinds) {
+        add(part, "fn", paste0(fnb, "() needs the KM curves layer (km_curve)"))
+      }
+      if (identical(fnb, "add_risktable")) {
+        if ("risk_table" %in% kinds) {
+          add(part, "fn", "the number at risk twice: add_risktable() and the risk_table layer; keep one")
+        } else if (any(kinds == "n_table")) {
+          add(part, "fn", "add_risktable() cannot be stacked with other panels (n_table); use the risk_table layer")
+        }
+      }
       if (grepl(.fig_plotwide_re, .fig_bare_fn_name(l$fn %||% ""))) {
         add(part, "fn", paste0("'", .fig_bare_fn_name(l$fn), "' is a figure-wide function; use plot.add instead of layers"))
       }
