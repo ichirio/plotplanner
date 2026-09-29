@@ -1,0 +1,23 @@
+layer,fn,package,label,position,help
+line,geom_line,ggplot2,Lines,dodge,Lines through the points of each group.
+point,geom_point,ggplot2,Points,dodge,
+errorbar,geom_errorbar,ggplot2,Error bars,dodge,"From ymin to ymax, e.g. the summary's lo and hi."
+pointrange,geom_pointrange,ggplot2,Point and range,dodge,A point with its interval.
+col,geom_col,ggplot2,Bars,dodge,Bars of height y.
+text,geom_text,ggplot2,Text,dodge,
+label,geom_label,ggplot2,Text in boxes,dodge,
+step,geom_step,ggplot2,Steps,,
+area,geom_area,ggplot2,Area,,
+ribbon,geom_ribbon,ggplot2,Ribbon,,A band from ymin to ymax.
+segment,geom_segment,ggplot2,Segments,,"Lines from (x, y) to (xend, yend), e.g. the bars of a swimmer plot."
+tile,geom_tile,ggplot2,Tiles,,A heat map.
+boxplot,geom_boxplot,ggplot2,Box plots,dodge,
+violin,geom_violin,ggplot2,Violins,dodge,
+histogram,geom_histogram,ggplot2,Histogram,,
+density,geom_density,ggplot2,Density,,
+jitter,geom_jitter,ggplot2,Jittered points,,
+smooth,geom_smooth,ggplot2,Smoothed line,,A fitted line and its band.
+hline,geom_hline,ggplot2,Horizontal lines,,"Reference lines, e.g. y = 0.5 (median), 0, or 20 and -30."
+vline,geom_vline,ggplot2,Vertical lines,,
+abline,geom_abline,ggplot2,Diagonal line,,
+text_repel,geom_text_repel,ggrepel,Text that avoids overlaps,,Labels pushed apart (ggrepel).
