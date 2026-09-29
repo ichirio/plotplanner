@@ -21,6 +21,8 @@ for (.i in seq_len(nrow(fig_tp))) {
     test_that(paste("template code is unchanged:", t), {
       d <- .fig_tmpl_snapshot_design(t, kind, fig_prm)
       code <- paste(tfl_fig_design_code(d, plot_id = t), collapse = "\n")
+      # the package version in the header changes with every release
+      code <- gsub("tflspec [0-9][0-9.]*", "tflspec <version>", code)
       expect_snapshot(cat(code))
     })
   })
