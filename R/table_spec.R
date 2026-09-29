@@ -893,7 +893,7 @@ print.tfl_table_spec <- function(x, ...) {
     })
     guarded <- any(vapply(chains, is.list, NA))
     out[[k]] <- if (identical(labs, "")) chains[[1L]]
-                else if (guarded) do.call(cell_rows, stats::setNames(chains, labs))
+                else if (guarded) do.call(rtfreporter::cell_rows, stats::setNames(chains, labs))
                 else stats::setNames(chains, labs)
   }
   out
