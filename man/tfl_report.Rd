@@ -10,7 +10,7 @@ tfl_report(spec, content, output_id = NULL)
 \item{spec}{A report definition (\code{\link[=tfl_read_report_spec]{tfl_read_report_spec()}}) narrowed to one
 report, or the path(s) to read it from.}
 
-\item{content}{The report's content: an \code{\link[=tfl_plan]{tfl_plan()}} or \code{rtftable}
+\item{content}{The report's content: an \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}} or \code{rtftable}
 pages for a table or listing, figures for a \code{type = figure} report.}
 
 \item{output_id}{The report, when \code{spec} is a path or still defines
@@ -22,20 +22,20 @@ An \code{\link[rtfreporter:rtf_document]{rtfreporter::rtf_document()}}.
 \description{
 \code{tfl_report()} is the document half of a report definition: the page,
 the running header and footer, the titles and footnotes, and the
-table's pages --- an \code{\link[=tfl_plan]{tfl_plan()}} or anything \code{\link[rtfreporter:rtf_tables]{rtfreporter::rtf_tables()}} takes ---
+table's pages --- an \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}} or anything \code{\link[rtfreporter:rtf_tables]{rtfreporter::rtf_tables()}} takes ---
 in one \code{\link[rtfreporter:rtf_document]{rtfreporter::rtf_document()}} ready for \code{\link[rtfreporter:generate_rtfreport]{rtfreporter::generate_rtfreport()}}.  The document
 carries its program, so \code{{PROGRAM}} needs nothing more.
 }
 \details{
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{spec <- tfl_read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = id)
-plan <- ard |> tfl_ard_normalize() |> tfl_table_plan(spec)
+plan <- ard |> normalize_ard() |> tfl_table_plan(spec)
 generate_rtfreport(tfl_report(spec, plan), tfl_report_path(spec),
                    overwrite = TRUE)
 }\if{html}{\out{</div>}}
 }
 \section{Lifecycle}{
 
-\strong{Experimental.}  See \link{tflspec-ard}.
+\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{

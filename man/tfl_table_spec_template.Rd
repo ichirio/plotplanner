@@ -30,9 +30,9 @@ through \verb{spec =}.
 }
 \section{Lifecycle}{
 
-\strong{Experimental.}  See \link{tflspec-ard}.
+\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{
-\code{\link[=tfl_table_spec]{tfl_table_spec()}}, \code{\link[=tfl_ard_template]{tfl_ard_template()}}
+\code{\link[=tfl_table_spec]{tfl_table_spec()}}, \code{plan_template(form = "spread")}
 }

@@ -22,7 +22,7 @@ the path \code{\link[rtfreporter:generate_rtfreport]{rtfreporter::generate_rtfre
 }
 \section{Lifecycle}{
 
-\strong{Experimental.}  See \link{tflspec-ard}.
+\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{

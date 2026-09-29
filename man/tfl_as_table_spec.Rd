@@ -7,7 +7,7 @@
 tfl_as_table_spec(x, output_id = NULL, check = TRUE)
 }
 \arguments{
-\item{x}{An \code{\link[=tfl_plan]{tfl_plan()}}, a \strong{named list} of them (the names are the
+\item{x}{An \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}}, a \strong{named list} of them (the names are the
 output ids; one workbook for the study), or anything \code{\link[=tfl_table_spec]{tfl_table_spec()}}
 takes.}
 
@@ -23,7 +23,7 @@ workbook could not carry) and \code{"same_pages"} (\code{TRUE} / \code{FALSE}, o
 \code{NA} when not checked).
 }
 \description{
-\code{tfl_as_table_spec()} turns an \code{\link[=tfl_plan]{tfl_plan()}} --- typically one a report
+\code{tfl_as_table_spec()} turns an \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}} --- typically one a report
 already has as code --- into a \code{\link[=tfl_table_spec]{tfl_table_spec()}}, the definition
 \code{\link[=tfl_write_table_spec]{tfl_write_table_spec()}} writes as an Excel workbook.  It is how an existing
 report becomes the \strong{template for a new study}: write the workbook,
@@ -39,21 +39,21 @@ the pages, groups, blank rows and stub, the column widths \strong{by name}
 one spanner per arm into \verb{span = <key>}, so the header keeps up with a
 study that has a different number of arms or time points.
 
-What a workbook cannot say is \strong{listed, not dropped}: a \code{tfl_plan_after()}
+What a workbook cannot say is \strong{listed, not dropped}: a \code{plan_after()}
 step (except \code{set_decimal_split()}, which becomes
 \code{columns$decimal_split} on the value columns), a guarded label, a
-column-scoped \code{labels} entry, \code{tfl_plan_cell_style()}, a literal \code{n}.  The
+column-scoped \code{labels} entry, \code{plan_cell_style()}, a literal \code{n}.  The
 result is then run back through \code{tfl_table_plan()} on the plan's data,
 and whether it gives \strong{the same pages} is reported.
 }
 \section{Lifecycle}{
 
-\strong{Spike.}  See \code{\link[=tfl_plan]{tfl_plan()}}.
+\strong{Spike.}  See \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}}.
 }
 
 \examples{
 \dontrun{
-p <- ard |> tfl_ard_normalize() |> tfl_plan(cols = "TRT01P") |> ...
+p <- ard |> normalize_ard() |> table_plan(cols = "TRT01P") |> ...
 tfl_as_table_spec(p, output_id = "T14-1-1") |> tfl_write_table_spec("study.xlsx")
 
 # a whole study at once
@@ -61,5 +61,5 @@ tfl_as_table_spec(list(DM = p_dm, AE = p_ae)) |> tfl_write_table_spec("study.xls
 }
 }
 \seealso{
-\code{\link[=tfl_table_spec]{tfl_table_spec()}}, \code{\link[=tfl_write_table_spec]{tfl_write_table_spec()}}, \code{\link[=tfl_plan]{tfl_plan()}}
+\code{\link[=tfl_table_spec]{tfl_table_spec()}}, \code{\link[=tfl_write_table_spec]{tfl_write_table_spec()}}, \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}}
 }

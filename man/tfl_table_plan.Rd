@@ -7,33 +7,33 @@
 tfl_table_plan(data, spec, output_id = NULL, ...)
 }
 \arguments{
-\item{data}{The normalized ARD, as \code{\link[=tfl_plan]{tfl_plan()}} takes it.}
+\item{data}{The normalized ARD, as \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}} takes it.}
 
 \item{spec}{A table definition (\code{\link[=tfl_read_table_spec]{tfl_read_table_spec()}},
 \code{\link[=tfl_table_spec]{tfl_table_spec()}}), or the path(s) of its workbook(s).}
 
 \item{output_id}{The table, when the definition has several.}
 
-\item{...}{Passed to \code{\link[=tfl_plan]{tfl_plan()}}: a role given here (\code{cols}, \code{rows},
+\item{...}{Passed to \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}}: a role given here (\code{cols}, \code{rows},
 \code{label}, \code{stats}, \code{sep}, \code{value}, \code{na}, \code{sort_stat}) wins over the
 workbook's; \code{notes} as there.}
 }
 \value{
-An \code{\link[=tfl_plan]{tfl_plan()}}.
+An \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}}.
 }
 \description{
-Builds the \code{\link[=tfl_plan]{tfl_plan()}} a table definition stands for: the roles of its
-\code{tables} sheet go into \code{tfl_plan()}, and the other sheets become the
+Builds the \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}} a table definition stands for: the roles of its
+\code{tables} sheet go into \code{table_plan()}, and the other sheets become the
 plan's first layers through the same verbs \code{\link[=tfl_table_code]{tfl_table_code()}} writes ---
 so a verb written afterwards still wins, which is how one report departs
-from the study's workbook in a line of code.  Like \code{tfl_plan()}, the data
+from the study's workbook in a line of code.  Like \code{table_plan()}, the data
 comes first, so it pipes.
 }
 \examples{
 \dontrun{
 spec <- tfl_read_table_spec("study.xlsx", output_id = "DM")
-plan <- ard |> tfl_ard_normalize() |> tfl_table_plan(spec)
-plan |> tfl_plan_paginate_rows(max_rows = 40)   # this report's own change
+plan <- ard |> normalize_ard() |> tfl_table_plan(spec)
+plan |> plan_paginate_rows(max_rows = 40)   # this report's own change
 }
 }
 \seealso{

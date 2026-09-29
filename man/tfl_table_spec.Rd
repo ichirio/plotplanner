@@ -37,7 +37,7 @@ An object of class \code{tfl_table_spec}: a list of the sheets' data
 frames.
 }
 \description{
-\code{tfl_table_spec()} validates the definition that \code{\link[=tfl_ard_spread]{tfl_ard_spread()}} accepts as
+\code{tfl_table_spec()} validates the definition that \code{\link[rtfreporter:spread_ard]{rtfreporter::spread_ard()}} accepts as
 \verb{spec =}, and \code{\link[=tfl_read_table_spec]{tfl_read_table_spec()}} builds one from a workbook.  It holds
 what would otherwise be repeated in every script --- which keys go
 across and down, the display label and order of each variable, and the
@@ -56,7 +56,7 @@ that each fact is written once:\tabular{lll}{
 
 
 The first four say how the ARD becomes a table data frame; the last
-four how that becomes \code{rtftable} pages.  \code{\link[=tfl_plan]{tfl_plan()}} reads them all
+four how that becomes \code{rtftable} pages.  \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}} reads them all
 (\code{tfl_table_plan(data, )}), as the first layers of a plan, so a verb
 written after it still wins.
 }
@@ -78,7 +78,7 @@ for that variable, the \code{cells} rows for that variable / context / row.
 So one workbook can hold a house style and every report's own changes to
 it.  \code{\link[=tfl_read_table_spec]{tfl_read_table_spec()}} narrows it to one report with \verb{output_id =}.
 
-Explicit \code{\link[=tfl_ard_spread]{tfl_ard_spread()}} arguments win over the spec, and the spec wins
+Explicit \code{\link[rtfreporter:spread_ard]{rtfreporter::spread_ard()}} arguments win over the spec, and the spec wins
 over the defaults.
 
 Lists inside a cell are \code{|}-separated (\code{TR01AG1 | SEROSTAT}).  A column
@@ -98,7 +98,7 @@ setting that silently never applies.
 (\code{label = AEDECOD}).  Blank keeps \code{.label}; \code{NA} builds it to tell
 rows apart and then drops it; \code{NULL} leaves it out.}
 \item{\code{stats}, \code{value}, \code{sep}, \code{sort_stat}, \code{na}}{As the
-\code{\link[=tfl_ard_spread]{tfl_ard_spread()}} arguments of the same name.}
+\code{\link[rtfreporter:spread_ard]{rtfreporter::spread_ard()}} arguments of the same name.}
 \item{\code{sort}}{\code{TRUE}, \code{FALSE}, or the keys in order:
 \code{.overall | group1 | .depth | -n | label}.}
 \item{\code{header_n}}{Which population a \code{col_header} text's \code{{n}} is,
@@ -107,7 +107,7 @@ subjects with that lab test) or \code{table} (the analysis set, the
 ARD rows without the page key).  Several at once name their
 tokens: \code{n = page | N = table} gives \code{{n}} and \code{{N}}.  Blank: the
 page's, with a warning when the ARD states both.  See
-\code{\link[=tfl_plan_col_header]{tfl_plan_col_header()}}'s \code{n}.}
+\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_col_header()}}'s \code{n}.}
 }
 }
 
@@ -152,16 +152,16 @@ them (\verb{fmt_numeric(by = <label column>, formats = )}).
 One row per report, each column one argument of the plan verb its
 prefix names:
 \describe{
-\item{\verb{pages_*}}{\code{\link[=tfl_plan_paginate_rows]{tfl_plan_paginate_rows()}}: \code{max_rows}, \code{split}, \code{by},
+\item{\verb{pages_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_rows()}}: \code{max_rows}, \code{split}, \code{by},
 \code{min_group_rows}, \code{cont_label}.}
-\item{\verb{group_*}}{\code{col}, \code{mode} and \code{collapse} of \code{\link[=tfl_plan_row_group]{tfl_plan_row_group()}};
-\code{group_page = TRUE} is \code{\link[=tfl_plan_paginate_group]{tfl_plan_paginate_group()}}, one page per value
+\item{\verb{group_*}}{\code{col}, \code{mode} and \code{collapse} of \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_row_group()}};
+\code{group_page = TRUE} is \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_group()}}, one page per value
 of \code{group_col}, and \code{group_show = FALSE} hides that column.}
-\item{\verb{blank_*}}{\code{\link[=tfl_plan_blanks]{tfl_plan_blanks()}}: \code{where}, \code{first}, \code{last},
+\item{\verb{blank_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_blanks()}}: \code{where}, \code{first}, \code{last},
 \code{counted}.}
-\item{\verb{stub_*}}{\code{\link[=tfl_plan_stub]{tfl_plan_stub()}}: \code{vars}, \code{into}, \code{indent}, \code{summary},
+\item{\verb{stub_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_stub()}}: \code{vars}, \code{into}, \code{indent}, \code{summary},
 \code{before}.}
-\item{\verb{colpages_*}}{\code{\link[=tfl_plan_paginate_cols]{tfl_plan_paginate_cols()}}: \code{every}, \code{at}, \code{carry},
+\item{\verb{colpages_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_cols()}}: \code{every}, \code{at}, \code{carry},
 \code{order}.}
 }
 }
@@ -207,14 +207,14 @@ whose column key \code{KEY} has that value (\code{variable = n}).}
 per column.  A column key (\code{TR01AG1}): one cell per value of that
 key, over its columns --- an arm's spanner, however many arms.}
 \item{\code{text}}{The label.  A line break is Alt+Enter or \verb{\\\\n}.  The
-tokens of \code{\link[=tfl_plan_col_header]{tfl_plan_col_header()}} work: \code{{col}} (the column's own
+tokens of \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_col_header()}} work: \code{{col}} (the column's own
 value), \code{{col1}}, \code{{col2}} (its keys, outermost first), \code{{n}} (the
 population of what the cell stands for: its column, or over an
 arm's spanner the arm), \code{{n1}}, \code{{n2}} (the population at that
 depth of the keys) and \code{{n:sum}} (the total over the cell's
 columns).  \code{{n}} is read from the ARD whenever a text uses it; a
 number the ARD does not state prints \code{NA} with a warning, and
-\code{tfl_plan_col_header(n = )} after \code{tfl_table_plan()} supplies it.
+\code{plan_col_header(n = )} after \code{tfl_table_plan()} supplies it.
 Quote a text to keep leading spaces: \code{"  Category"}.}
 \item{\code{align}, \code{bold}, \code{border_top}, \code{border_bottom}}{As
 \code{\link[rtfreporter:col_cell]{rtfreporter::col_cell()}} / \code{\link[rtfreporter:rtf_border]{rtfreporter::rtf_border()}} take them (\code{single}, \code{none}, ...).}
@@ -232,7 +232,7 @@ name starts with \verb{_} are ignored.
 
 \section{Lifecycle}{
 
-\strong{Experimental.}  See \link{tflspec-ard}.
+\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{

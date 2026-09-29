@@ -1,3 +1,34 @@
+# tflspec (development version)
+
+* **tflspec is the spec side only** (#29; step 4 of plan E, Discussion #23).
+  The table engine -- the ARD functions and the plan -- now lives in
+  rtfreporter (>= 0.8.1.9001) under its names: `normalize_ard()`,
+  `spread_ard()`, `pull_ard()`, `list_ard_keys()`, `cell_rows()`,
+  `overall_row()`, `table_plan()`, the `plan_*()` verbs, `plan_apply()`,
+  `plan_layers()`, `plan_template()`.  tflspec keeps every spec: ARD
+  (`tfl_ard_spec()` ...), table (`tfl_table_spec()`, `tfl_table_plan()`,
+  `tfl_table_code()`, `tfl_as_table_spec()`), report (`tfl_report()`,
+  `tfl_report_code()`), listing, figures.
+  - rtfreporter is no longer a `Depends`: a program that runs a spec or
+    the code tflspec writes starts with `library(rtfreporter)` (the code
+    is written unqualified, as before).
+  - `tfl_table_code()` writes `table_plan() |> plan_*()`; widths go to
+    `plan_columns(widths = )` (rtfreporter dropped `plan_style(widths = )`).
+  - The former names (`tfl_ard_normalize()`, `tfl_plan()`, `tfl_plan_*()`,
+    `tfl_apply_plan()`, `tfl_plan_layers()`, `tfl_plan_template()`,
+    `tfl_ard_template()`) are gone from tflspec; no aliases.
+  The five example reports and the Discussion #3 samples are byte-identical
+  across the two packages.
+
+  In rtfreporter these functions are **experimental**: whether they stay
+  is decided in rtfreporter's pre-CRAN API review (rtfreporter Discussion
+  #316).  If the move is rejected, tflspec returns to the **v0.0.23** tag,
+  the last version carrying its own engine.
+
+* tflspec now follows rtfreporter's version scheme: a release is `X.Y.Z`
+  (tagged, with a GitHub Release -- v0.0.23 is the first), development is
+  `X.Y.Z.9000`.
+
 # tflspec 0.0.23
 
 * **Composed figures** (#39): a figure design may have `plots:` (name ->
@@ -26,6 +57,7 @@
   `package:`.
 * ggplot2 4.0's label-attribute advice also looks at joined datasets and
   counts an empty axis label as none.
+
 # tflspec 0.0.22
 
 * **Figure designs are written for ggplot2 3.5 or 4.0** (#37).

@@ -5,7 +5,7 @@ sc_ard <- function() {
   adsl <- cards::ADSL
   adsl$SEX <- as.character(adsl$SEX)
   adsl$TRT <- as.character(adsl$ARM)
-  suppressMessages(tfl_ard_normalize(cards::ard_stack(
+  suppressMessages(normalize_ard(cards::ard_stack(
     adsl, .by = TRT,
     cards::ard_continuous(
       variables = c(AGE, BMIBL),
@@ -15,17 +15,18 @@ sc_ard <- function() {
 }
 
 sc_plan <- function(d) {
-  tfl_plan(d, cols = "TRT", rows = c(group = "variable"), notes = FALSE) |>
-    tfl_plan_levels(SEX = c("M", "F")) |>
-    tfl_plan_labels(AGE = "Age (years)", SEX = "Sex") |>
-    tfl_plan_cells(continuous  = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
+  table_plan(d, cols = "TRT", rows = c(group = "variable"), notes = FALSE) |>
+    plan_levels(SEX = c("M", "F")) |>
+    plan_labels(AGE = "Age (years)", SEX = "Sex") |>
+    plan_cells(continuous  = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
                    categorical = "{n:d} ({p:.1f%})") |>
-    tfl_plan_digits(1, rounding = "sas") |>
-    tfl_plan_stub(into = "row_label", before = TRUE) |>
-    tfl_plan_blanks(where = "between_groups", first = TRUE) |>
-    tfl_plan_paginate_rows(max_rows = 6, split = "group_safe") |>
-    tfl_plan_style(widths = c(4, 2), align_count_pct = TRUE) |>
-    tfl_plan_col_header(n = TRUE, rtf_col_header(c("", "{col}"),
+    plan_digits(1, rounding = "sas") |>
+    plan_stub(into = "row_label", before = TRUE) |>
+    plan_blanks(where = "between_groups", first = TRUE) |>
+    plan_paginate_rows(max_rows = 6, split = "group_safe") |>
+    plan_columns(widths = c(4, 2)) |>
+    plan_style(align_count_pct = TRUE) |>
+    plan_col_header(n = TRUE, rtf_col_header(c("", "{col}"),
                                                  c("Characteristic", "(N={n})")))
 }
 
@@ -37,16 +38,16 @@ sc_run <- function(code, d, name = "plan") {
   get(name, envir = env)
 }
 
-sc_pages <- function(p) tfl_apply_plan(p, "pages")
+sc_pages <- function(p) plan_apply(p, "pages")
 
 test_that("tfl_table_code() writes the plan the definition makes", {
   skip_if_not_installed("cards")
   d <- sc_ard()
   sp <- suppressMessages(tfl_as_table_spec(sc_plan(d), output_id = "T1"))
   code <- tfl_table_code(sp, pipe = "|>")
-  expect_match(code[1L], "^plan <- tfl_plan\\(data, cols = \"TRT\"")
-  expect_true(any(grepl("tfl_plan_digits(rounding = \"sas\")", code, fixed = TRUE)))
-  expect_true(any(grepl("tfl_plan_col_header(", code, fixed = TRUE)))
+  expect_match(code[1L], "^plan <- table_plan\\(data, cols = \"TRT\"")
+  expect_true(any(grepl("plan_digits(rounding = \"sas\")", code, fixed = TRUE)))
+  expect_true(any(grepl("plan_col_header(", code, fixed = TRUE)))
   expect_true(any(grepl("data.frame(", code, fixed = TRUE)))
   expect_false(any(grepl("structure(", code, fixed = TRUE)))
   expect_false(any(grepl("tfl_read_table_spec", code, fixed = TRUE)))
@@ -58,7 +59,7 @@ test_that("tfl_table_code() writes the plan the definition makes", {
 
   # the names and the pipe are the caller's
   code2 <- tfl_table_code(sp, data = "dm", plan = "tbl", pipe = "%>%")
-  expect_match(code2[1L], "^tbl <- tfl_plan\\(dm,")
+  expect_match(code2[1L], "^tbl <- table_plan\\(dm,")
   expect_true(any(grepl("%>%$", code2)))
   expect_false(any(grepl("|>", code2, fixed = TRUE)))
   expect_error(tfl_table_code(tfl_table_spec(tables = data.frame(
@@ -70,7 +71,7 @@ test_that("a spanning header, widths by name and a hidden column go over too", {
   adsl <- cards::ADSL
   adsl$TRT <- as.character(adsl$ARM)
   adsl$GRP <- ifelse(adsl$AGE < 70, "Young", "Old")
-  d <- suppressMessages(tfl_ard_normalize(cards::ard_stack(
+  d <- suppressMessages(normalize_ard(cards::ard_stack(
     adsl, .by = c(TRT, GRP),
     cards::ard_categorical(variables = SEX, statistic = ~ c("n", "p")))))
   sp <- tfl_table_spec(
@@ -87,8 +88,8 @@ test_that("a spanning header, widths by name and a hidden column go over too", {
       text = c(NA, "{col1}", "Sex", "<70", ">=70"),
       border_bottom = c(NA, "single", NA, NA, NA)))
   code <- tfl_table_code(sp, pipe = "|>")
-  expect_true(any(grepl("tfl_plan_columns(", code, fixed = TRUE)))
-  expect_true(any(grepl("tfl_plan_sort(TRUE)", code, fixed = TRUE)))
+  expect_true(any(grepl("plan_columns(", code, fixed = TRUE)))
+  expect_true(any(grepl("plan_sort(TRUE)", code, fixed = TRUE)))
   expect_equal(sc_pages(sc_run(code, d)),
                sc_pages(tfl_table_plan(d, sp, notes = FALSE)))
 })
