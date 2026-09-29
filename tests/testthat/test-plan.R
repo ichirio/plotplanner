@@ -396,6 +396,35 @@ test_that("tfl_plan_after() refuses anything that is not a function", {
                "tfl_plan_columns(decimal = )", fixed = TRUE)
 })
 
+test_that("the styling verbs are style_header() / style_cols() / style_zone(), declared", {
+  skip_if_no_cards2()
+  p <- base_plan() |>
+    tfl_plan_col_header(rtf_col_header(c("", "", "{col}")))
+  arms <- c("Placebo", "Xanomeline High Dose", "Xanomeline Low Dose")
+  by_decl <- as_rtftables(p |>
+    tfl_plan_header_style(bold = TRUE, align = "center") |>
+    tfl_plan_col_style(cols = ".values", align = "center", header_bold = TRUE) |>
+    tfl_plan_zone_style(last_row = rtf_border(bottom = "double")))
+  by_hand <- as_rtftables(p) |>
+    style_header(bold = TRUE, align = "center") |>
+    style_cols(cols = arms, align = "center", header_bold = TRUE) |>
+    style_zone(last_row = rtf_border(bottom = "double"))
+  expect_identical(by_decl, by_hand)
+  # names, not positions: the same columns by name
+  by_name <- as_rtftables(p |>
+    tfl_plan_header_style(bold = TRUE, align = "center") |>
+    tfl_plan_col_style(cols = arms, align = "center", header_bold = TRUE) |>
+    tfl_plan_zone_style(last_row = rtf_border(bottom = "double")))
+  expect_identical(by_name, by_hand)
+  # they make pages on their own, and a workbook lists them as code
+  expect_s3_class(tfl_apply_plan(tfl_plan_header_style(p, bold = TRUE))[[1L]] %||%
+                    tfl_apply_plan(tfl_plan_header_style(p, bold = TRUE)),
+                  "rtftable")
+  sp <- suppressMessages(tfl_as_table_spec(tfl_plan_header_style(p, bold = TRUE)))
+  expect_true(any(grepl("tfl_plan_header_style() stays in code",
+                        attr(sp, "not_converted"), fixed = TRUE)))
+})
+
 test_that("decimal alignment is a declaration: the same pages as an after() step", {
   skip_if_no_cards2()
   p <- base_plan()

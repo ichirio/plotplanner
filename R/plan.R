@@ -163,6 +163,7 @@
   kinds <- vapply(plan$layers, `[[`, "", "kind")
   if (any(kinds %in% c("group", "hide", "blanks", "pages", "colpages",
                        "style", "header", "styles", "after",
+                       "columns", "restyle",
                        "titles", "footnotes", "listing"))) "pages"
   else "table"
 }
@@ -1050,7 +1051,18 @@ print.tfl_plan <- function(x, ...) {
 #' | `set_col_header()` / `rtf_col_header()` | `tfl_plan_col_header()` |
 #' | `realign_count_pct()` | `tfl_plan_style(align_count_pct = TRUE)` |
 #' | `paginate()` | `tfl_plan_paginate_rows()` |
-#' | bold / colour / alignment of body cells | `tfl_plan_cell_style()` |
+#' | bold / colour / alignment of body cells, by condition | `tfl_plan_cell_style()` |
+#' | `style_header(x, ...)` | `tfl_plan_header_style(...)` |
+#' | `style_cols(x, ...)` | `tfl_plan_col_style(...)` |
+#' | `style_zone(x, ...)` | `tfl_plan_zone_style(...)` |
+#'
+#' `tfl_plan_header_style()`, `tfl_plan_col_style()` and
+#' `tfl_plan_zone_style()` take the arguments of rtfreporter's
+#' [style_header()], [style_cols()] and [style_zone()] unchanged, and run
+#' them on the pages in the order written (after the header and the
+#' decimal alignment, before any `tfl_plan_after()` step).  Their `cols`
+#' may be column names, and `.values` stands for every value column, so a
+#' reordered table keeps them.
 #'
 #' @section Lifecycle:
 #' **Spike.**  See [tfl_plan()].
@@ -1179,6 +1191,8 @@ tfl_plan_digits <- function(plan, ..., rounding = NULL) {
 #      tfl_plan_titles()  the block ABOVE the table, on each page
 #      tfl_plan_footnotes()  the block BELOW it
 #      tfl_plan_columns() widths by column name, decimal alignment
+#      tfl_plan_header_style() / _col_style() / _zone_style()
+#                     style_header() / style_cols() / style_zone(), as declared
 #      tfl_plan_after()   the way out: a step no verb above declares
 
 
@@ -1452,6 +1466,33 @@ tfl_plan_col_header <- function(plan, header = NULL, n = NULL,
 #' @export
 tfl_plan_columns <- function(plan, widths = NULL, decimal = NULL) {
   .plan_layer(plan, "columns", list(widths = widths, decimal = decimal))
+}
+
+# The styling verbs of rtfreporter, as declarations: each call is one
+# style_header() / style_cols() / style_zone() on the finished pages, with
+# that function's own arguments, run in the order written.  `cols` may
+# name columns (and `.values` every value column), so it follows them.
+.plan_restyle <- function(plan, fun, args) {
+  args <- args[!vapply(args, is.null, logical(1L))]
+  .plan_layer(plan, "restyle", list(fun = fun, args = args))
+}
+
+#' @rdname plan_verbs
+#' @export
+tfl_plan_header_style <- function(plan, ...) {
+  .plan_restyle(plan, "style_header", list(...))
+}
+
+#' @rdname plan_verbs
+#' @export
+tfl_plan_col_style <- function(plan, ...) {
+  .plan_restyle(plan, "style_cols", list(...))
+}
+
+#' @rdname plan_verbs
+#' @export
+tfl_plan_zone_style <- function(plan, ...) {
+  .plan_restyle(plan, "style_zone", list(...))
 }
 
 # Titles and footnotes are NOT the section header and footer: those are
@@ -2682,6 +2723,15 @@ tfl_plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
     dc <- .plan_col_names(colset$decimal, names(first_d), spread)
     if (length(dc)) out <- set_decimal_split(out, cols = dc)
   }
+  for (l in .plan_of(plan, "restyle")) {
+    a <- l$args
+    if (is.character(a$cols)) {
+      first_d <- if (inherits(out, "rtftable")) out$data else out[[1L]]$data
+      a$cols <- .plan_col_names(a$cols, names(first_d), spread)
+    }
+    f <- get(l$fun, envir = asNamespace("rtfreporter"), mode = "function")
+    out <- do.call(f, c(list(out), a))
+  }
   for (l in .plan_of(plan, "after")) {
     for (f in l$steps) out <- f(out)
   }
@@ -3480,6 +3530,11 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
     }
   }
   if (length(.plan_of(p, "styles"))) miss("tfl_plan_cell_style() stays in code")
+  for (l in .plan_of(p, "restyle")) {
+    miss("%s() stays in code", switch(l$fun, style_header = "tfl_plan_header_style",
+                                      style_cols = "tfl_plan_col_style",
+                                      "tfl_plan_zone_style"))
+  }
   style <- if (length(style) > 1L) as.data.frame(style, stringsAsFactors = FALSE)
 
   colw <- rep(NA_real_, length(pnames)); names(colw) <- pnames
