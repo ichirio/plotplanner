@@ -3328,19 +3328,8 @@ tfl_plan_template <- function(ard, cols = NULL, hierarchy = character(),
   unlist(blocks, use.names = FALSE)
 }
 
-# ---------------------------------------------------------------------------
-#  A plan written as code, back to a workbook
-# ---------------------------------------------------------------------------
-#
-#  The inverse of .plan_from_spec(): every layer the workbook can say is
-#  written to its sheet, read from what the plan RESOLVES to rather than
-#  from how it was typed, so two plans that mean the same thing give the
-#  same workbook.  What a sheet cannot say -- a function, a guarded label,
-#  a positional list that no name reproduces -- is named, not dropped in
-#  silence, and the workbook is run back through tfl_table_plan() against
-#  the plan's own data to say whether it gives the same pages.
-
-# A resolved header, row by row, as `col_header` cells.  Literal text
+# A resolved header, row by row, as header cells (what tfl_plan_layers()
+# hands out, and tfl_as_table_spec() writes to the `col_header` sheet).  Literal text
 # that is a column's own key value becomes the token; a cell repeated on
 # every value column becomes `span = each`; a spanner per value of a key
 # becomes `span = <key>`.

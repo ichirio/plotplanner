@@ -1405,6 +1405,19 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   .plan_to_spec(x, output_id, check)
 }
 
+# ---------------------------------------------------------------------------
+#  A plan written as code, back to a workbook
+# ---------------------------------------------------------------------------
+#
+#  The inverse of tfl_table_plan(): every layer the workbook can say is
+#  written to its sheet, read from what the plan RESOLVES to rather than
+#  from how it was typed, so two plans that mean the same thing give the
+#  same workbook.  What a sheet cannot say -- a function, a guarded label,
+#  a positional list that no name reproduces -- is named, not dropped in
+#  silence, and the workbook is run back through tfl_table_plan() against
+#  the plan's own data to say whether it gives the same pages.  All of it
+#  is read through tfl_plan_layers() and tfl_apply_plan(): nothing here
+#  looks inside a plan.
 .plan_to_spec <- function(p, output_id, check) {
   id <- if (is.null(output_id)) NA_character_ else output_id
   lost <- character()
