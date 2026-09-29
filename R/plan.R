@@ -392,15 +392,6 @@
 #'   unchanged: which of `stat` / `stat_fmt` a `{x}` reads, what fills a
 #'   cell no template could, whether to report what was not used, and the
 #'   statistic totalled into `.sort_stat` for a frequency order.
-#' @param spec An [tfl_table_spec()] definition, or the path to a workbook as
-#'   [tfl_read_table_spec()] reads it (a workbook defining several reports must
-#'   be narrowed first, with `tfl_read_table_spec(path, output_id = )`).  It is
-#'   the plan's **first layers**: the roles from its `tables` sheet (a role
-#'   given here wins), then everything else --- levels, labels, cells,
-#'   rounding, and the `layout` / `columns` / `style` of the pages --- as
-#'   if the matching verbs had been written first.  A verb written after
-#'   `tfl_plan()` therefore still wins, which is how one report departs
-#'   from the study's workbook in a line of code.
 #'
 #' @return An object of class `tfl_plan`.
 #'
@@ -430,28 +421,13 @@ tfl_plan <- function(data = NULL, cols = NULL, rows = NULL,
                      label = NULL,
                      variable = NULL, stat_name = NULL, stat = NULL,
                      stats = NULL, sep = NULL, value = NULL,
-                     na = NULL, spec = NULL, notes = NULL,
+                     na = NULL, notes = NULL,
                      sort_stat = NULL) {
   roles <- list(cols = cols, rows = rows, label = label,
                 variable = variable, stat_name = stat_name,
                 stat = stat, stats = stats, sep = sep, value = value,
-                na = na, spec = spec, notes = notes, sort_stat = sort_stat)
+                na = na, notes = notes, sort_stat = sort_stat)
   roles <- roles[!vapply(roles, is.null, logical(1L))]
-  # A definition workbook can say the roles too (its `tables` sheet).  Read
-  # it HERE, so they are the plan's roles like any other -- checked against
-  # the data below, printed, and read by every verb -- and a role written in
-  # the call still wins.
-  sp <- NULL
-  if (!is.null(spec)) {
-    sp <- .ard_spec_scope(if (is.character(spec)) tfl_read_table_spec(spec)
-                          else tfl_table_spec(spec))
-    roles$spec <- NULL
-    sa <- .ard_spec_table_args(sp)
-    for (r in c("cols", "rows", "label", "stats", "sep", "value", "na",
-                "sort_stat")) {
-      if (is.null(roles[[r]]) && !is.null(sa[[r]])) roles[[r]] <- sa[[r]]
-    }
-  }
   if (is.null(data)) {
     .ard_stop(paste0(
       "`data` is required.  The roles name its columns, and that ",
@@ -479,34 +455,59 @@ tfl_plan <- function(data = NULL, cols = NULL, rows = NULL,
                       layers = list(),
                       cache = new.env(parent = emptyenv())),
                  class = "tfl_plan")
-  if (!is.null(sp)) p <- .plan_from_spec(p, sp)
   p
 }
 
-# ---------------------------------------------------------------------------
-#  A definition workbook as the plan's first layers
-# ---------------------------------------------------------------------------
-#
-#  Every sheet becomes the layer its verb would have written, in the order a
-#  report is built, so nothing downstream knows a workbook was involved:
-#  the same resolver, the same checks, and a verb written afterwards wins.
+# `a | b | c` -> c("a", "b", "c"): how a header cell lists its columns.
+.plan_split_bar <- function(x) {
+  if (is.null(x) || is.na(x)) return(character())
+  v <- trimws(strsplit(x, "|", fixed = TRUE)[[1L]])
+  v[nzchar(v)]
+}
 
-.plan_from_spec <- function(p, sp) {
-  # the verbs the definition stands for (R/spec_code.R): run here, written
-  # out by tfl_table_code() -- one list, so the two cannot disagree
-  for (st in .plan_spec_steps(p, sp)) {
-    f <- get(st$fun, envir = asNamespace("tflspec"), mode = "function")
-    p <- do.call(f, c(list(p), lapply(st$args, .spec_eval, env = emptyenv())))
+# One header cell, given as a row of a data frame (a workbook's row, or one
+# written in R), to its typed values: `line` a whole number, `bold` TRUE /
+# FALSE, the rest text (quoted to keep spaces; `\n` a line break).  NA says
+# nothing, and nothing is what the cell then carries.
+.plan_header_cell_types <- c(line = "int", cols = "text", span = "text",
+                             text = "text", align = "text", bold = "bool",
+                             border_top = "text", border_bottom = "text")
+
+.plan_header_cell <- function(row) {
+  out <- list()
+  for (cn in names(.plan_header_cell_types)) {
+    x <- if (cn %in% names(row)) row[[cn]] else NULL
+    if (is.null(x) || is.na(x)) next
+    bad <- function(what) .ard_stop(sprintf("`col_header$%s` must be %s; got %s.",
+                                             cn, what, sQuote(x)))
+    out[[cn]] <- switch(.plan_header_cell_types[[cn]],
+      int = {
+        v <- suppressWarnings(as.numeric(x))
+        if (is.na(v) || v != round(v)) bad("a whole number")
+        as.integer(v)
+      },
+      bool = if (is.logical(x)) x else {
+        u <- toupper(trimws(x))
+        if (u %in% c("TRUE", "YES", "Y", "1")) TRUE
+        else if (u %in% c("FALSE", "NO", "N", "0")) FALSE
+        else bad("TRUE or FALSE")
+      },
+      text = {
+        x <- as.character(x)
+        q <- regmatches(x, regexec("^([\"'])(.*)\\1$", x))[[1L]]
+        if (length(q)) x <- q[3L]
+        gsub("\\n", "\n", gsub("\r\n", "\n", x, fixed = TRUE), fixed = TRUE)
+      })
   }
-  p
+  out
 }
 
-# The `col_header` sheet, resolved against the page it heads: `cols` are
+# The header as cell rows, resolved against the page it heads: `cols` are
 # names / `.values` / positions / `KEY = value`, `span` makes one cell,
 # one per column, or one per value of a key.  What comes back is what a
 # hand-written rtf_col_header() would have been, so the tokens and the
 # rest of the header machinery see nothing new.
-.plan_spec_col_header <- function(sh, page_names, spread, plan) {
+.plan_header_cells_resolve <- function(sh, page_names, spread, plan) {
   keys <- unname(as.character(unlist(plan$roles$cols)))
   sep <- plan$roles$sep %||% "____"
   # each spread column's key values: from the data where it can be
@@ -533,7 +534,7 @@ tfl_plan <- function(data = NULL, cols = NULL, rows = NULL,
   n <- length(page_names)
   sel <- function(x) {
     out <- integer()
-    for (it in .ard_spec_split(x)) {
+    for (it in .plan_split_bar(x)) {
       m <- regmatches(it, regexec("^(.+?)\\s*=\\s*(.+)$", it))[[1L]]
       r <- regmatches(it, regexec("^([0-9]+)\\s*:\\s*([0-9]+|last)$", it))[[1L]]
       if (identical(it, ".values")) {
@@ -1002,7 +1003,7 @@ print.tfl_plan <- function(x, ...) {
 #'   To **give the numbers yourself**, pass a vector named by column
 #'   key, at any depth --- `c(Placebo = 86, "Placebo____F" = 53, ...)` ---
 #'   or a function of the data returning one; a single unnamed number
-#'   fills every cell.  After a workbook (`tfl_plan(spec = )`), a later
+#'   fills every cell.  After a workbook (`tfl_table_plan()`), a later
 #'   `tfl_plan_col_header(n = ...)` supplies the numbers and keeps the
 #'   workbook's header.
 
@@ -1447,13 +1448,13 @@ tfl_plan_col_header <- function(plan, header = NULL, n = NULL,
     # the `col_header` sheet's cells (one row a cell: `row`, `cols`, `text`,
     # `span` ...), resolved against each page's columns when it is made
     cells <- lapply(seq_len(nrow(header)), function(i)
-      .ard_spec_typed(header[i, , drop = FALSE], "col_header"))
+      .plan_header_cell(header[i, , drop = FALSE]))
     txt <- vapply(cells, function(r) r[["text"]] %||% "", "")
     # `n` says WHICH population a `{n}` is; a `{n` in a text is what asks
     # for one at all
     header <- structure(
       list(cells = cells, n = n %||% any(grepl("{n", txt, fixed = TRUE))),
-      class = "plan_spec_col_header")
+      class = "plan_header_cells")
     n <- NULL
   }
   .plan_layer(plan, "header",
@@ -2564,7 +2565,7 @@ tfl_plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
   # a workbook's header asks for the ARD's N when its text says `{n}`; a
   # header written in code after it states its own
   n_req <- hdr$n
-  if (is.null(n_req) && inherits(hdr$header, "plan_spec_col_header") &&
+  if (is.null(n_req) && inherits(hdr$header, "plan_header_cells") &&
       !is.null(hdr$header$n) && !isFALSE(hdr$header$n)) {
     n_req <- hdr$header$n
   }
@@ -2667,8 +2668,8 @@ tfl_plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
     #  the header that only repeats itself over the columns.
     build <- function(page_d, nv) {
       sc <- intersect(.plan_spread_cols(plan, pre), names(page_d))
-      h <- if (inherits(hdr$header, "plan_spec_col_header"))
-             .plan_spec_col_header(hdr$header, names(page_d), sc, plan)
+      h <- if (inherits(hdr$header, "plan_header_cells"))
+             .plan_header_cells_resolve(hdr$header, names(page_d), sc, plan)
            else if (!is.function(hdr$header)) hdr$header
            else if (length(formals(hdr$header)) >= 2L)
              hdr$header(nv, tbl)
@@ -3051,6 +3052,94 @@ tfl_plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
     paste0("  )", if (last) "" else paste0(" ", op)))
 }
 
+#' What a plan declares, and what it resolved to
+#'
+#' Reads a plan from the outside: its roles, the layers each verb declared
+#' (merged per kind, a later layer winning, as the resolver merges them),
+#' and --- because reading a plan means running it --- what its pages came
+#' out as: the column names, the value columns, the widths, the column
+#' header as cell rows, the pages themselves.  It is the one way another
+#' package reads a plan: [tfl_as_table_spec()] writes a workbook from
+#' nothing but this and [tfl_apply_plan()].
+#'
+#' @param plan An [tfl_plan()].
+#' @return A list: `data` (the plan's data); `roles`; `label` (the label
+#'   column's name, or none); `group_col`; `declared` (the kinds of layer,
+#'   in the order declared); `layers` (by kind, the merged fields; for
+#'   `after` and `restyle` one entry per call); `cells` (the cell
+#'   templates, each parsed into its label rows and template chains ---
+#'   `NULL` when the statistics are rows); `columns` (`names`, `spread`,
+#'   `page_names`, `widths`); `header` (`source`: `"cells"` for a header
+#'   given as cell rows, `"resolved"` for one the plan built; `cells`: the
+#'   header as cell rows, a data frame; `n_text`: the `{n}` scope as text,
+#'   or `NULL`; `literal_n`: whether `n` was a number written in); and
+#'   `pages`.
+#'
+#' @section Lifecycle:
+#' **Spike.**  See [tfl_plan()].
+#'
+#' @seealso [tfl_apply_plan()], [tfl_as_table_spec()]
+#' @export
+tfl_plan_layers <- function(plan) {
+  if (!inherits(plan, "tfl_plan")) .ard_stop("Expected a tfl_plan.")
+  a <- tfl_apply_plan(plan, "args")
+  pages <- tfl_apply_plan(plan, "pages")
+  first <- if (inherits(pages, "rtftable")) pages else pages[[1L]]
+  seen <- plan$cache[["pre_cols"]]
+  page_names <- names(first$data)
+  pnames <- seen$names %||% page_names
+  spread <- seen$spread %||% intersect(.plan_spread_cols(plan, first$data),
+                                       pnames)
+  kinds <- vapply(plan$layers, `[[`, "", "kind")
+  layers <- list()
+  for (k in unique(kinds)) {
+    layers[[k]] <- if (k %in% c("after", "restyle")) .plan_of(plan, k)
+                   else if (k %in% c("levels", "labels"))
+                     .plan_merge(.plan_of(plan, k), deep = k)
+                   else .plan_merge(.plan_of(plan, k))
+  }
+  s <- a$spread
+  cells <- NULL
+  cm <- s$cells
+  if (!is.null(cm) && !identical(s$stats, "rows")) {
+    is_map <- is.list(cm) && !inherits(cm, "tfl_ard_cells") &&
+      any(nzchar(names(cm) %||% ""))
+    if (!is_map) cm <- list(default = cm)
+    cells <- lapply(names(cm), function(k) list(
+      variable = if (identical(k, "default")) NA_character_ else
+        sub("\r.*$", "", k),
+      context = if (grepl("\r", k, fixed = TRUE)) sub("^.*\r", "", k) else
+        NA_character_,
+      entry = .ard_cell_entry(cm[[k]])))
+  }
+  hd <- layers$header
+  header <- list(source = NULL, cells = NULL, n_text = .plan_scope_text(hd$n),
+                 literal_n = !is.null(hd$n) && !isTRUE(hd$n) &&
+                   is.null(.plan_scope_text(hd$n)))
+  if (inherits(hd$header, "plan_header_cells")) {
+    header$source <- "cells"
+    header$cells <- do.call(rbind, lapply(hd$header$cells, function(cc)
+      data.frame(line = as.character(cc$line), cols = cc$cols,
+                 span = cc$span %||% NA,
+                 text = if (is.null(cc$text)) NA else cc$text,
+                 align = cc$align %||% NA,
+                 bold = if (is.null(cc$bold)) NA else as.character(cc$bold),
+                 border_top = cc$border_top %||% NA,
+                 border_bottom = cc$border_bottom %||% NA,
+                 stringsAsFactors = FALSE)))
+  } else if (!is.null(plan$cache[["header_raw"]])) {
+    header$source <- "resolved"
+    header$cells <- .plan_header_rows(plan$cache[["header_raw"]], pnames,
+                                      spread, plan)
+  }
+  list(data = plan$data, roles = plan$roles, label = .plan_label_name(plan),
+       group_col = .plan_group_col(plan), declared = kinds, layers = layers,
+       cells = cells,
+       columns = list(names = pnames, spread = spread, page_names = page_names,
+                      widths = seen$widths %||% first$col_rel_width),
+       header = header, pages = pages)
+}
+
 #' Write the plan for you (SPIKE)
 #'
 #' The counterpart of [tfl_ard_template()] for the deferred form: reads an ARD
@@ -3065,10 +3154,6 @@ tfl_plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
 #' guess.
 #'
 #' @inheritParams tfl_ard_template
-#' @param spec When `TRUE`, the generated plan reads its definition from a
-#'   workbook (`tfl_plan(spec = tfl_read_table_spec(...))`) instead of inlining
-#'   the cells.
-#'
 #' @return The generated code, as a character vector, invisibly.
 #'
 #' @section Lifecycle:
@@ -3085,7 +3170,7 @@ tfl_plan_paginate_cols <- function(plan, at = NULL, cols = NULL,
 #' @seealso [tfl_plan()], [tfl_apply_plan()], [tfl_ard_template()]
 #' @export
 tfl_plan_template <- function(ard, cols = NULL, hierarchy = character(),
-                          spec = FALSE, file = NULL, pipe = NULL) {
+                          file = NULL, pipe = NULL) {
   op <- .ard_pipe_op(pipe)
   f  <- .ard_template_facts(ard, cols, hierarchy)
   q <- f$q; vecq <- f$vecq; tok <- f$tok
@@ -3141,19 +3226,11 @@ tfl_plan_template <- function(ard, cols = NULL, hierarchy = character(),
          paste0("p <- ard ", op),
          if (length(norm)) .plan_call("tfl_ard_normalize", norm, op)
          else paste0("  tflspec::tfl_ard_normalize() ", op))
-  if (isTRUE(spec)) {
-    L <- c(L, .plan_call("tfl_plan",
-                         c(spread,
-                           paste0("spec = tflspec::tfl_read_table_spec(",
-                                  "\"ard-spec.xlsx\")")),
-                         op))
-  } else {
-    L <- c(L, .plan_call("tfl_plan", spread, op))
-    # already indented and comma-ed: a `c(` entry spans several lines,
-    # so it cannot go through .plan_call(), which commas every argument.
-    L <- c(L, "  tflspec::tfl_plan_cells(", .plan_cell_lines(f),
-           paste0("  ) ", op))
-  }
+  L <- c(L, .plan_call("tfl_plan", spread, op))
+  # already indented and comma-ed: a `c(` entry spans several lines,
+  # so it cannot go through .plan_call(), which commas every argument.
+  L <- c(L, "  tflspec::tfl_plan_cells(", .plan_cell_lines(f),
+         paste0("  ) ", op))
 
   # -- 2. the display half -----------------------------------------------
   L <- c(L, "", .ard_bar("2. the display half -- edit this"))
@@ -3251,394 +3328,12 @@ tfl_plan_template <- function(ard, cols = NULL, hierarchy = character(),
   unlist(blocks, use.names = FALSE)
 }
 
-# ---------------------------------------------------------------------------
-#  A plan written as code, back to a workbook
-# ---------------------------------------------------------------------------
-#
-#  The inverse of .plan_from_spec(): every layer the workbook can say is
-#  written to its sheet, read from what the plan RESOLVES to rather than
-#  from how it was typed, so two plans that mean the same thing give the
-#  same workbook.  What a sheet cannot say -- a function, a guarded label,
-#  a positional list that no name reproduces -- is named, not dropped in
-#  silence, and the workbook is run back through tfl_plan(spec = ) against
-#  the plan's own data to say whether it gives the same pages.
-
-#' Write a plan as a table definition workbook
-#'
-#' @description
-#' `tfl_as_table_spec()` turns an [tfl_plan()] --- typically one a report
-#' already has as code --- into a [tfl_table_spec()], the definition
-#' [tfl_write_table_spec()] writes as an Excel workbook.  It is how an existing
-#' report becomes the **template for a new study**: write the workbook,
-#' edit its labels, levels and output ids, and read it back with
-#' `tfl_plan(data, spec = tfl_read_table_spec(path, output_id = ))`.
-#'
-#' Everything is read from what the plan **resolves to**, against its own
-#' data: the roles, levels, labels and cell templates (digits written in),
-#' the pages, groups, blank rows and stub, the column widths **by name**
-#' (`.values` when every value column shares one), and the column header
-#' --- with a literal that is a column's own key value turned back into
-#' `{col}` / `{col1}`, a repeated per-column cell into `span = each`, and
-#' one spanner per arm into `span = <key>`, so the header keeps up with a
-#' study that has a different number of arms or time points.
-#'
-#' What a workbook cannot say is **listed, not dropped**: a `tfl_plan_after()`
-#' step (except `set_decimal_split()`, which becomes
-#' `columns$decimal_split` on the value columns), a guarded label, a
-#' column-scoped `labels` entry, `tfl_plan_cell_style()`, a literal `n`.  The
-#' result is then run back through `tfl_plan(spec = )` on the plan's data,
-#' and whether it gives **the same pages** is reported.
-#'
-#' @param x An [tfl_plan()], a **named list** of them (the names are the
-#'   output ids; one workbook for the study), or anything [tfl_table_spec()]
-#'   takes.
-#' @param output_id The report the rows belong to.  `NULL` writes them as
-#'   defaults (blank `output_id`).
-#' @param check `TRUE` (default) rebuilds the pages from the workbook and
-#'   compares them with the plan's.
-#'
-#' @return A [tfl_table_spec()], with attributes `"not_converted"` (what the
-#'   workbook could not carry) and `"same_pages"` (`TRUE` / `FALSE`, or
-#'   `NA` when not checked).
-#'
-#' @section Lifecycle:
-#' **Spike.**  See [tfl_plan()].
-#'
-#' @examples
-#' \dontrun{
-#' p <- ard |> tfl_ard_normalize() |> tfl_plan(cols = "TRT01P") |> ...
-#' tfl_as_table_spec(p, output_id = "T14-1-1") |> tfl_write_table_spec("study.xlsx")
-#'
-#' # a whole study at once
-#' tfl_as_table_spec(list(DM = p_dm, AE = p_ae)) |> tfl_write_table_spec("study.xlsx")
-#' }
-#' @seealso [tfl_table_spec()], [tfl_write_table_spec()], [tfl_plan()]
-#' @export
-tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
-  if (inherits(x, "tfl_table_spec")) return(x)
-  if (is.list(x) && !inherits(x, "tfl_plan") && length(x) &&
-      all(vapply(x, inherits, NA, "tfl_plan"))) {
-    ids <- names(x)
-    if (is.null(ids) || any(!nzchar(ids)) || anyDuplicated(ids)) {
-      .ard_stop(paste0("A list of plans needs unique names: they are the ",
-                       "output ids of the workbook."))
-    }
-    parts <- lapply(ids, function(id) tfl_as_table_spec(x[[id]], id, check))
-    rnd <- unique(stats::na.omit(vapply(parts, function(s)
-      .ard_spec_study_value(s, "rounding"), "")))
-    if (length(rnd) > 1L) {
-      .ard_stop(paste0("The plans round differently (",
-                       paste(rnd, collapse = " / "), "); a study has one ",
-                       "rounding.  Make them agree first."))
-    }
-    sheets <- setdiff(names(.ard_spec_schema()), character())
-    out <- lapply(sheets, function(s) do.call(rbind, lapply(parts, `[[`, s)))
-    names(out) <- sheets
-    out$study <- if (length(rnd)) c(rounding = rnd) else NULL
-    sp <- tfl_table_spec(out)
-    attr(sp, "not_converted") <- unlist(lapply(seq_along(parts), function(i)
-      if (length(attr(parts[[i]], "not_converted")))
-        paste0(ids[i], ": ", attr(parts[[i]], "not_converted"))))
-    attr(sp, "same_pages") <- stats::setNames(
-      vapply(parts, function(s) attr(s, "same_pages") %||% NA, NA), ids)
-    return(sp)
-  }
-  if (!inherits(x, "tfl_plan")) return(tfl_table_spec(x))
-  .plan_to_spec(x, output_id, check)
-}
-
-.plan_to_spec <- function(p, output_id, check) {
-  id <- if (is.null(output_id)) NA_character_ else output_id
-  lost <- character()
-  miss <- function(...) lost <<- c(lost, sprintf(...))
-  q <- function(x) if (grepl("^\\s|\\s$", x)) paste0("\"", x, "\"") else x
-  bar <- function(x) paste(x, collapse = " | ")
-
-  a <- suppressMessages(tfl_apply_plan(p, "args"))
-  s <- a$spread
-  pages <- suppressMessages(tfl_apply_plan(p, "pages"))
-  seen <- p$cache[["pre_cols"]]
-  first <- if (inherits(pages, "rtftable")) pages else pages[[1L]]
-  pnames <- seen$names %||% names(first$data)
-  spread <- seen$spread %||% intersect(.plan_spread_cols(p, first$data),
-                                       pnames)
-  seen$h <- p$cache[["header_raw"]]
-
-  for (r in intersect(c("variable", "stat_name", "stat"), names(p$roles))) {
-    miss("tfl_plan(%s = ): a column rename stays in code", r)
-  }
-
-  # -- tables ---------------------------------------------------------------
-  ref <- function(v, nm) {
-    if (inherits(v, "formula")) {
-      if (length(v) == 3L) return(NA_character_)
-      v <- paste0("\"", eval(v[[2L]], environment(v)), "\"")
-    } else v <- as.character(v)
-    if (nzchar(nm) && !identical(nm, v)) paste(nm, "=", v) else v
-  }
-  refs <- function(x, what) {
-    if (is.null(x)) return(NA_character_)
-    nms <- names(x) %||% rep("", length(x))
-    out <- vapply(seq_along(x), function(i) ref(x[[i]], nms[i]), "")
-    if (anyNA(out)) {
-      miss("%s: a guarded (condition ~ template) element stays in code", what)
-      out <- out[!is.na(out)]
-    }
-    if (length(out)) bar(out) else NA_character_
-  }
-  lab <- if (!"label" %in% names(s)) NA_character_
-    else if (is.null(s$label)) "NULL"
-    else if (length(s$label) == 1L && !is.list(s$label) && is.na(s$label)) "NA"
-    else if (identical(unname(s$label), ".label") && is.null(names(s$label)))
-      NA_character_
-    else refs(s$label, "label")
-  srt <- s$sort
-  tables <- data.frame(
-    output_id = id,
-    cols = bar(unlist(s$cols)),
-    rows = refs(s$rows, "rows"),
-    label = lab,
-    stats = s$stats %||% NA_character_,
-    value = s$value %||% NA_character_,
-    sep = s$sep %||% NA_character_,
-    sort = if (is.null(srt)) NA_character_
-           else if (is.logical(srt)) as.character(srt) else bar(srt),
-    sort_stat = s$sort_stat %||% NA_character_,
-    na = if (is.null(s$na) || is.na(s$na)) NA_character_ else q(s$na),
-    stringsAsFactors = FALSE)
-
-  # -- variables --------------------------------------------------------------
-  lbl <- s$labels
-  if (is.list(lbl)) {
-    plain <- vapply(lbl, function(v) is.character(v) && length(v) == 1L &&
-                      is.null(names(v)), NA)
-    if (any(!plain)) {
-      miss("labels: a column-scoped entry stays in code (tfl_plan_labels())")
-    }
-    lbl <- unlist(lbl[plain])
-  }
-  vars <- unique(c(names(lbl), names(s$levels)))
-  variables <- data.frame(
-    output_id = rep(id, length(vars)), variable = vars,
-    label = unname(ifelse(vars %in% names(lbl), lbl[vars], NA_character_)),
-    order = ifelse(vars %in% names(lbl), match(vars, names(lbl)), NA),
-    levels = vapply(vars, function(v)
-      if (is.null(s$levels[[v]])) NA_character_ else bar(s$levels[[v]]), ""),
-    stringsAsFactors = FALSE)
-
-  # -- cells ------------------------------------------------------------------
-  crow <- function(var, ctx, row, when, tpl, digits = NA, signif = NA)
-    data.frame(output_id = id, variable = var, context = ctx, row = row,
-               when = when, template = tpl, digits = digits,
-               signif = signif, stringsAsFactors = FALSE)
-  cl <- list()
-  cm <- s$cells
-  if (!is.null(cm) && !identical(s$stats, "rows")) {
-    is_map <- is.list(cm) && !inherits(cm, "tfl_ard_cells") &&
-      any(nzchar(names(cm) %||% ""))
-    if (!is_map) cm <- list(default = cm)
-    for (k in names(cm)) {
-      var <- if (identical(k, "default")) NA_character_ else
-        sub("\r.*$", "", k)
-      ctx <- if (grepl("\r", k, fixed = TRUE)) sub("^.*\r", "", k) else
-        NA_character_
-      e <- .ard_cell_entry(cm[[k]])
-      for (i in seq_along(e$chains)) {
-        rw <- if (is.null(e$labels) || !nzchar(e$labels[i])) NA_character_
-              else e$labels[i]
-        for (el in e$chains[[i]]) {
-          wh <- if (is.null(el$cond)) NA_character_
-                else paste(deparse(el$cond), collapse = " ")
-          cl[[length(cl) + 1L]] <- crow(var, ctx, rw, wh, el$tpl)
-        }
-      }
-    }
-  }
-  fm <- .plan_merge(.plan_of(p, "fmt"))
-  if (length(fm)) {
-    if (!identical(fm$by, .plan_label_name(p)) || !is.list(fm$formats)) {
-      miss("tfl_plan_fmt(): only by = <label column> with formats = converts")
-    } else {
-      if (!is.null(fm$cols) && !identical(sort(as.character(
-          if (is.numeric(fm$cols)) names(first$data)[fm$cols] else fm$cols)),
-          sort(spread))) {
-        miss("tfl_plan_fmt(cols = ): taken as the value columns")
-      }
-      for (st in names(fm$formats)) {
-        f <- fm$formats[[st]]
-        cl[[length(cl) + 1L]] <- crow(NA, NA, st, NA, NA,
-          if (!is.null(f$digits)) as.character(f$digits) else NA,
-          if (!is.null(f$signif)) as.character(f$signif) else NA)
-      }
-      for (o in setdiff(names(fm), c("by", "formats", "cols"))) {
-        miss("tfl_plan_fmt(%s = ) stays in code", o)
-      }
-    }
-  }
-  cells <- if (length(cl)) do.call(rbind, cl) else NULL
-
-  # -- layout -----------------------------------------------------------------
-  lay <- list(output_id = id)
-  put <- function(nm, v) {
-    if (is.null(v)) return(invisible())
-    lay[[nm]] <<- if (is.logical(v) && length(v) == 1L) as.character(v)
-                  else if (is.character(v) && length(v) == 1L) q(v)
-                  else bar(v)
-  }
-  st <- .plan_merge(.plan_of(p, "stub"))
-  if (length(st)) {
-    put("stub_vars", st$vars); put("stub_into", st$label)
-    put("stub_indent", st$indent); put("stub_summary", st$group_summary)
-    if (isTRUE(st$before)) put("stub_before", TRUE)
-  }
-  g <- .plan_merge(.plan_of(p, "group"))
-  put("group_col", g$group_col); put("group_mode", g$group_by)
-  put("group_collapse", g$collapse_repeats)
-  if (isTRUE(g$.page)) put("group_page", TRUE)
-  if (identical(g$.show, FALSE)) put("group_show", FALSE)
-  b <- .plan_merge(.plan_of(p, "blanks"))
-  if (!is.null(b$blank_rows) && !(is.character(b$blank_rows) &&
-                                   length(b$blank_rows) == 1L)) {
-    miss("tfl_plan_blanks(where = ): only a named rule (\"between_groups\") converts")
-  } else put("blank_where", b$blank_rows)
-  put("blank_first", b$blank_row_first); put("blank_last", b$blank_row_end)
-  put("blank_counted", b$count_blank_rows)
-  pg <- .plan_merge(.plan_of(p, "pages"))
-  put("pages_max_rows", pg$max_rows); put("pages_split", pg$split)
-  put("pages_by", pg$page_by); put("pages_min_group_rows", pg$min_group_rows)
-  put("pages_cont_label", pg$cont_label)
-  if (!is.null(pg$split_rows)) miss("tfl_plan_paginate_rows(break_before = ) stays in code")
-  cp <- .plan_merge(.plan_of(p, "colpages"))
-  put("colpages_every", cp$every); put("colpages_at", cp$at)
-  put("colpages_carry", cp$carry); put("colpages_order", cp$page_order)
-  for (o in intersect(c("cols", "by", "col_header", "width",
-                        "allow_span_break"), names(cp))) {
-    miss("tfl_plan_paginate_cols(%s = ) stays in code", o)
-  }
-  layout <- if (length(lay) > 1L) as.data.frame(lay, stringsAsFactors = FALSE)
-
-  # -- style and columns ------------------------------------------------------
-  sty <- .plan_merge(.plan_of(p, "style"))
-  style <- list(output_id = id)
-  for (nm in names(sty)) {
-    v <- sty[[nm]]
-    if (nm %in% c("col_rel_width", "row_title")) next
-    if (nm %in% names(.ard_spec_types$style)) {
-      style[[nm]] <- if (is.logical(v)) as.character(v) else as.character(v)
-    } else {
-      miss("tfl_plan_style(%s = ) stays in code", nm)
-    }
-  }
-  if (length(.plan_of(p, "styles"))) miss("tfl_plan_cell_style() stays in code")
-  for (l in .plan_of(p, "restyle")) {
-    miss("%s() stays in code", switch(l$fun, style_header = "tfl_plan_header_style",
-                                      style_cols = "tfl_plan_col_style",
-                                      "tfl_plan_zone_style"))
-  }
-  style <- if (length(style) > 1L) as.data.frame(style, stringsAsFactors = FALSE)
-
-  colw <- rep(NA_real_, length(pnames)); names(colw) <- pnames
-  w <- seen$widths %||% first$col_rel_width
-  if (!is.null(sty$col_rel_width) && length(w) == length(pnames)) colw[] <- w
-  sc <- .plan_merge(.plan_of(p, "columns"))
-  if (length(sc$widths)) {
-    for (k in names(sc$widths)) {
-      if (identical(k, ".values")) colw[spread] <- sc$widths[[k]]
-      else if (k %in% pnames) colw[[k]] <- sc$widths[[k]]
-    }
-  }
-  rt <- sty$row_title
-  rt <- if (is.null(rt)) character() else if (is.numeric(rt)) pnames[rt] else rt
-  hide <- setdiff(a$rtf$drop_cols %||% character(),
-                  if (identical(g$.show, FALSE))
-                    c(g$group_col, .plan_group_col(p)) else NULL)
-  dec <- sc$decimal %||% character()
-  for (l in .plan_of(p, "after")) {
-    for (f in l$steps) {
-      if (any(grepl("set_decimal_split", deparse(f), fixed = TRUE))) {
-        dec <- c(dec, ".values")
-        miss("tfl_plan_after(set_decimal_split()): taken as the value columns")
-      } else {
-        miss("a tfl_plan_after() step stays in code")
-      }
-    }
-  }
-  one_w <- length(spread) && all(!is.na(colw[spread])) &&
-    length(unique(colw[spread])) == 1L
-  crows <- list()
-  cadd <- function(col, width = NA, title = NA, dsplit = NA, hid = NA)
-    crows[[length(crows) + 1L]] <<- data.frame(
-      output_id = id, column = col, width = as.character(width),
-      row_title = title, decimal_split = dsplit, hide = hid,
-      stringsAsFactors = FALSE)
-  for (nm in setdiff(pnames, if (one_w) spread)) {
-    if (is.na(colw[[nm]]) && !nm %in% c(rt, dec, hide)) next
-    cadd(nm, colw[[nm]], if (nm %in% rt) "TRUE" else NA,
-         if (nm %in% dec) "TRUE" else NA)
-  }
-  if (one_w || ".values" %in% dec) {
-    cadd(".values", if (one_w) colw[[spread[1L]]] else NA, NA,
-         if (".values" %in% dec) "TRUE" else NA)
-  }
-  for (nm in hide) cadd(nm, hid = "TRUE")
-  columns <- if (length(crows)) do.call(rbind, crows)
-
-  # -- col_header -------------------------------------------------------------
-  hd <- .plan_merge(.plan_of(p, "header"))
-  col_header <- NULL
-  if (inherits(hd$header, "plan_spec_col_header")) {
-    col_header <- do.call(rbind, lapply(hd$header$cells, function(cc)
-      data.frame(output_id = id, line = as.character(cc$line),
-                 cols = cc$cols, span = cc$span %||% NA,
-                 text = if (is.null(cc$text)) NA else q(cc$text),
-                 align = cc$align %||% NA,
-                 bold = if (is.null(cc$bold)) NA else as.character(cc$bold),
-                 border_top = cc$border_top %||% NA,
-                 border_bottom = cc$border_bottom %||% NA,
-                 stringsAsFactors = FALSE)))
-  } else if (!is.null(seen$h)) {
-    col_header <- .plan_header_rows(seen$h, pnames, spread, p, id, q)
-    if (!is.null(hd$n) && !isTRUE(hd$n) && is.null(.plan_scope_text(hd$n))) {
-      miss("tfl_plan_col_header(n = ): a literal N stays in code (use {n})")
-    }
-  }
-  tables$header_n <- .plan_scope_text(hd$n) %||% NA_character_
-
-  study <- if (!is.null(s$rounding)) c(rounding = s$rounding)
-  sp <- tfl_table_spec(tables, variables, cells, study = study, layout = layout,
-                   columns = columns, style = style, col_header = col_header)
-
-  same <- NA
-  if (isTRUE(check)) {
-    back <- tryCatch(suppressMessages(tfl_apply_plan(
-      tfl_plan(p$data, spec = sp, notes = FALSE), "pages")),
-      error = function(e) e)
-    same <- !inherits(back, "error") && isTRUE(all.equal(back, pages))
-    if (inherits(back, "error")) {
-      miss("the workbook does not run: %s", conditionMessage(back))
-    }
-  }
-  if (length(lost) || isFALSE(same)) {
-    message(sprintf(
-      "tfl_as_table_spec()%s: %s\n%s",
-      if (is.na(id)) "" else paste0(" [", id, "]"),
-      if (isTRUE(same)) "the workbook gives the same pages as the plan"
-      else if (isFALSE(same)) "the workbook does NOT give the same pages"
-      else "not checked",
-      if (length(lost)) paste0("  not converted:\n",
-                               paste0("    - ", unique(lost), collapse = "\n"))
-      else ""))
-  }
-  attr(sp, "not_converted") <- unique(lost)
-  attr(sp, "same_pages") <- same
-  sp
-}
-
-# A resolved header, row by row, as `col_header` cells.  Literal text
+# A resolved header, row by row, as header cells (what tfl_plan_layers()
+# hands out, and tfl_as_table_spec() writes to the `col_header` sheet).  Literal text
 # that is a column's own key value becomes the token; a cell repeated on
 # every value column becomes `span = each`; a spanner per value of a key
 # becomes `span = <key>`.
-.plan_header_rows <- function(h, pnames, spread, p, id, q) {
+.plan_header_rows <- function(h, pnames, spread, p) {
   keys <- unname(as.character(unlist(p$roles$cols)))
   sep <- p$roles$sep %||% "____"
   kv <- list()
@@ -3698,8 +3393,8 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
                              u$top %||% "", u$bottom %||% "", sep = "\r")
     done <- rep(FALSE, length(units))
     row <- function(cols, span, u) data.frame(
-      output_id = id, line = as.character(li), cols = cols, span = span,
-      text = if (nzchar(u$label)) q(u$label) else NA,
+      line = as.character(li), cols = cols, span = span,
+      text = if (nzchar(u$label)) u$label else NA,
       align = u$align %||% NA, bold = if (is.null(u$bold)) NA else "TRUE",
       border_top = u$top %||% NA, border_bottom = u$bottom %||% NA,
       stringsAsFactors = FALSE)

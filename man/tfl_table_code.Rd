@@ -32,7 +32,7 @@ The code, one element per line.
 Writes the \code{\link[=tfl_plan]{tfl_plan()}} pipeline a table definition stands for: the
 roles of its \code{tables} sheet in \code{tfl_plan()}, and one \verb{tfl_plan_*()} verb
 for each thing the other sheets say -- the same verbs, with the same
-values, that \code{tfl_plan(data, spec = )} applies.  The program then no
+values, that \code{tfl_table_plan(data, spec)} applies.  The program then no
 longer reads the workbook, and what the workbook cannot say (a cell style,
 a step after the pages are made) is written under it by hand.
 \code{\link[=tfl_as_table_spec]{tfl_as_table_spec()}} goes the other way.

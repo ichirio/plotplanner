@@ -16,7 +16,6 @@ tfl_plan(
   sep = NULL,
   value = NULL,
   na = NULL,
-  spec = NULL,
   notes = NULL,
   sort_stat = NULL
 )
@@ -64,16 +63,6 @@ makes each statistic a row of its own.}
 unchanged: which of \code{stat} / \code{stat_fmt} a \code{{x}} reads, what fills a
 cell no template could, whether to report what was not used, and the
 statistic totalled into \code{.sort_stat} for a frequency order.}
-
-\item{spec}{An \code{\link[=tfl_table_spec]{tfl_table_spec()}} definition, or the path to a workbook as
-\code{\link[=tfl_read_table_spec]{tfl_read_table_spec()}} reads it (a workbook defining several reports must
-be narrowed first, with \code{tfl_read_table_spec(path, output_id = )}).  It is
-the plan's \strong{first layers}: the roles from its \code{tables} sheet (a role
-given here wins), then everything else --- levels, labels, cells,
-rounding, and the \code{layout} / \code{columns} / \code{style} of the pages --- as
-if the matching verbs had been written first.  A verb written after
-\code{tfl_plan()} therefore still wins, which is how one report departs
-from the study's workbook in a line of code.}
 }
 \value{
 An object of class \code{tfl_plan}.

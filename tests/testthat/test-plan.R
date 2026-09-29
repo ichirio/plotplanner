@@ -646,15 +646,6 @@ test_that("tfl_plan_template() takes the pipe like tfl_ard_template() does", {
   expect_true(any(grepl("library(magrittr)", mag, fixed = TRUE)))
 })
 
-test_that("tfl_plan_template(spec = ) reads the definition file instead", {
-  skip_if_no_cards2()
-  code <- utils::capture.output(
-    invisible(tfl_plan_template(plan_ard(), cols = "TRT", spec = TRUE,
-                            pipe = "|>")))
-  expect_true(any(grepl("tfl_read_table_spec", code, fixed = TRUE)))
-  expect_false(any(grepl("tfl_plan_cells(", code, fixed = TRUE)))
-})
-
 test_that("the generated header writes a real newline escape", {
   skip_if_no_cards2()
   # one unambiguous denominator, so a header block is written at all
@@ -1656,7 +1647,7 @@ test_that("a variable summarised and tabulated gets both recipes in a plan", {
 
 # ------------------------------------------------ roles from a definition file
 
-test_that("tfl_plan(spec = ) takes the roles from the spec's tables sheet", {
+test_that("tfl_table_plan() takes the roles from the spec's tables sheet", {
   skip_if_no_cards2()
   sp <- tfl_table_spec(
     tables = data.frame(cols = "TRT", rows = "group = variable"),
@@ -1665,7 +1656,7 @@ test_that("tfl_plan(spec = ) takes the roles from the spec's tables sheet", {
                         template = c("{mean} ({sd})", "{n} ({p})"),
                         digits   = c("1,2", "0")))
   d <- nz(plan_ard())
-  p <- tfl_plan(d, spec = sp, notes = FALSE)
+  p <- tfl_table_plan(d, sp, notes = FALSE)
   expect_identical(p$roles$cols, "TRT")
   expect_identical(p$roles$rows, c(group = "variable"))
   expect_equal(as.data.frame(tfl_apply_plan(p, "table")),
@@ -1675,10 +1666,10 @@ test_that("tfl_plan(spec = ) takes the roles from the spec's tables sheet", {
                               categorical = "{n:.0f} ({p:.0f})"),
                  notes = FALSE)))
   # a role in the call still wins, and is checked against the data
-  p2 <- tfl_plan(d, spec = sp, rows = c(block = "variable"), notes = FALSE)
+  p2 <- tfl_table_plan(d, sp, rows = c(block = "variable"), notes = FALSE)
   expect_identical(p2$roles$rows, c(block = "variable"))
   bad <- tfl_table_spec(tables = data.frame(cols = "NOPE"))
-  expect_error(tfl_plan(d, spec = bad), "no column 'NOPE'|NOPE")
+  expect_error(tfl_table_plan(d, bad), "no column 'NOPE'|NOPE")
 })
 
 # ------------------------------------------- the table half of a workbook
@@ -1700,7 +1691,7 @@ test_that("layout / columns / style give the pages the verbs give", {
     columns = data.frame(column = c("row_label", ".values"),
                          width = c("4", "2")),
     style   = data.frame(align_count_pct = "TRUE", row_height_twips = "220"))
-  by_spec <- tfl_apply_plan(tfl_plan(d, spec = sp, notes = FALSE), "pages")
+  by_spec <- tfl_apply_plan(tfl_table_plan(d, sp, notes = FALSE), "pages")
   by_code <- tfl_plan(d, cols = "TRT", rows = c(group = "variable"),
                       notes = FALSE) |>
     tfl_plan_cells(continuous  = c("n" = "{N:d}",
@@ -1718,16 +1709,16 @@ test_that("layout / columns / style give the pages the verbs give", {
   sp2 <- sp
   sp2$style$row_height_twips <- "240"
   expect_false(isTRUE(all.equal(
-    tfl_apply_plan(tfl_plan(d, spec = sp2, notes = FALSE), "pages"), by_code)))
+    tfl_apply_plan(tfl_table_plan(d, sp2, notes = FALSE), "pages"), by_code)))
 })
 
-test_that("a verb written after tfl_plan(spec = ) still wins", {
+test_that("a verb written after tfl_table_plan() still wins", {
   skip_if_no_cards2()
   d <- spec_pages_ard()
   sp <- tfl_table_spec(tables = data.frame(cols = "TRT", rows = "group = variable"),
                  layout = data.frame(pages_max_rows = "6",
                                      pages_split = "group_safe"))
-  p <- tfl_plan(d, spec = sp, notes = FALSE) |> tfl_plan_paginate_rows(max_rows = 40)
+  p <- tfl_table_plan(d, sp, notes = FALSE) |> tfl_plan_paginate_rows(max_rows = 40)
   expect_s3_class(tfl_apply_plan(p, "pages")[[1L]], "rtftable")
   expect_length(tfl_apply_plan(p, "pages"), 1L)
 })
@@ -1739,13 +1730,13 @@ test_that("`.values` widths follow the data; a column left out is named", {
     tables = data.frame(cols = "TRT", rows = "group = variable"),
     layout = data.frame(stub_into = "row_label", stub_before = "TRUE"),
     columns = columns)
-  pg <- tfl_apply_plan(tfl_plan(d, spec = base(data.frame(
+  pg <- tfl_apply_plan(tfl_table_plan(d, base(data.frame(
     column = c("row_label", ".values"), width = c("5", "2"))), notes = FALSE),
     "pages")
   first <- if (inherits(pg, "rtftable")) pg else pg[[1L]]
   expect_identical(first$col_rel_width,
                    c(5, rep(2, ncol(first$data) - 1L)))
-  expect_error(tfl_apply_plan(tfl_plan(d, spec = base(data.frame(
+  expect_error(tfl_apply_plan(tfl_table_plan(d, base(data.frame(
     column = "row_label", width = "5")), notes = FALSE), "pages"),
     "not for")
 })
@@ -1755,7 +1746,7 @@ test_that("group_collapse alone does not become the grouping column", {
   skip_if_no_cards2()
   sp <- tfl_table_spec(tables = data.frame(cols = "TRT", rows = "group = variable"),
                  layout = data.frame(group_collapse = "1"))
-  p <- tfl_plan(spec_pages_ard(), spec = sp, notes = FALSE)
+  p <- tfl_table_plan(spec_pages_ard(), sp, notes = FALSE)
   g <- tflspec:::.plan_merge(tflspec:::.plan_of(p, "group"))
   expect_null(g$group_col)
   expect_identical(g$collapse_repeats, 1L)
@@ -1770,7 +1761,7 @@ test_that("stats = rows formats come from `cells` rows with no template", {
                         label = "Statistics = stat_label", stats = "rows"),
     cells = data.frame(row = c("N", "Mean", "SD"), digits = c("0", NA, NA),
                        signif = c(NA, "4", "5")))
-  by_spec <- tfl_apply_plan(tfl_plan(d, spec = sp, notes = FALSE), "pages")
+  by_spec <- tfl_apply_plan(tfl_table_plan(d, sp, notes = FALSE), "pages")
   by_code <- tfl_plan(d, cols = "TRT", rows = c(Analyte = "variable"),
                       label = c(Statistics = "stat_label"), stats = "rows",
                       notes = FALSE) |>
@@ -1782,7 +1773,7 @@ test_that("stats = rows formats come from `cells` rows with no template", {
   # the same rows on a stats = cells table are a mistake, and said to be
   bad <- sp
   bad$tables$stats <- NA
-  expect_error(tfl_plan(nz(plan_ard()), spec = bad, notes = FALSE),
+  expect_error(tfl_table_plan(nz(plan_ard()), bad, notes = FALSE),
                "not `stats = rows`")
 })
 
@@ -1823,7 +1814,7 @@ test_that("a col_header sheet gives the header rtf_col_header() gives", {
     cols = c("row_label", ".values", "row_label", ".values"),
     span = c(NA, "each", NA, "each"),
     text = c(NA, "{col}", "Characteristic", "(N={n})")))
-  by_spec <- tfl_apply_plan(tfl_plan(d, spec = sp, notes = FALSE), "pages")
+  by_spec <- tfl_apply_plan(tfl_table_plan(d, sp, notes = FALSE), "pages")
   by_code <- tfl_plan(d, cols = "TRT", rows = c(group = "variable"),
                       notes = FALSE) |>
     tfl_plan_stub(into = "row_label", before = TRUE) |>
@@ -1852,7 +1843,7 @@ test_that("span = a key makes one spanner per value; KEY = value selects", {
       span = c(NA, "TRT", NA, "each", "each"),
       text = c(NA, "{col1}", "Sex", "<70", ">=70"),
       border_bottom = c(NA, "single", NA, NA, NA)))
-  h <- first_page(tfl_apply_plan(tfl_plan(d, spec = sp, notes = FALSE),
+  h <- first_page(tfl_apply_plan(tfl_table_plan(d, sp, notes = FALSE),
                              "pages"))$col_header
   top <- h[[1L]]
   spanners <- Filter(function(cc) cc$to > cc$from, top)
@@ -1881,7 +1872,7 @@ test_that("col_header refuses what it cannot place", {
   d <- spec_pages_ard()
   expect_error(tfl_table_spec(col_header = data.frame(line = 1, text = "x")),
                "needs a `line` and `cols`")
-  bad <- function(...) tfl_apply_plan(tfl_plan(d, spec = hdr_spec(
+  bad <- function(...) tfl_apply_plan(tfl_table_plan(d, hdr_spec(
     data.frame(line = 1, ...)), notes = FALSE), "pages")
   expect_error(bad(cols = "NOPE", text = "x"), "no column 'NOPE'")
   expect_error(bad(cols = ".values", span = "ARMX", text = "x"),
@@ -1928,7 +1919,7 @@ test_that("tfl_as_table_spec() writes a plan as a workbook that gives its pages"
   skip_if_not_installed("writexl"); skip_if_not_installed("readxl")
   f <- tempfile(fileext = ".xlsx"); on.exit(unlink(f), add = TRUE)
   tfl_write_table_spec(sp, f)
-  back <- tfl_apply_plan(tfl_plan(p$data, spec = tfl_read_table_spec(f, output_id = "T1"),
+  back <- tfl_apply_plan(tfl_table_plan(p$data, tfl_read_table_spec(f, output_id = "T1"),
                               notes = FALSE), "pages")
   expect_equal(back, tfl_apply_plan(p, "pages"))
 })
@@ -2139,9 +2130,9 @@ test_that("numbers given by the caller may be keyed at any depth", {
                             span = c("TRT", "each"),
                             text = c("{col1} (N={n})", "{col2} (N={n})")))
   expect_warning(suppressMessages(tfl_apply_plan(
-    tfl_plan(d, spec = sp, notes = FALSE), "pages")), "printed as NA")
+    tfl_table_plan(d, sp, notes = FALSE), "pages")), "printed as NA")
   out <- suppressMessages(tfl_apply_plan(
-    tfl_plan(d, spec = sp, notes = FALSE) |>
+    tfl_table_plan(d, sp, notes = FALSE) |>
       tfl_plan_col_header(n = c(arm, cell)), "pages"))
   h <- hdr_rows(out)
   expect_true("Placebo (N=86)" %in% h[[1L]])
@@ -2273,7 +2264,7 @@ test_that("both populations in one header, from code and from a workbook", {
       span = c(NA, NA, "each"),
       text = c("T (N={N}), tested n={n}", NA, "{col} (n={n})")))
   pg <- expect_silent(suppressMessages(tfl_apply_plan(
-    tfl_plan(x$d, spec = sp, notes = FALSE), "pages")))
+    tfl_table_plan(x$d, sp, notes = FALSE), "pages")))
   lab <- vapply(pg, function(p) {
     l <- vapply(p$col_header[[1L]], `[[`, "", "label")
     l[nzchar(l)][1L]

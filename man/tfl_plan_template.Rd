@@ -8,7 +8,6 @@ tfl_plan_template(
   ard,
   cols = NULL,
   hierarchy = character(),
-  spec = FALSE,
   file = NULL,
   pipe = NULL
 )
@@ -20,10 +19,6 @@ tfl_plan_template(
 found and says so in a comment.}
 
 \item{hierarchy}{Optional nested hierarchy, outermost first.}
-
-\item{spec}{When \code{TRUE}, the generated plan reads its definition from a
-workbook (\code{tfl_plan(spec = tfl_read_table_spec(...))}) instead of inlining
-the cells.}
 
 \item{file}{Optional path to write the code to.}
 
