@@ -138,3 +138,20 @@ test_that("the new statistics and settings write what they say", {
   expect_equal(d$layers[[1]]$layer, "figure")
   expect_equal(nrow(tfl_fig_advice(d)), 0L)
 })
+
+test_that("a time can stay in days: no conversion, no check error", {
+  adam <- tfl_example_adam()
+  prm <- unique(adam$ADTTE$PARAMCD)[1]
+  d <- tfl_fig_template("km_simple", param = prm, group = "TRT01P",
+                        time_unit = "days")
+  steps <- vapply(d$data, `[[`, "", "step")
+  expect_true("time_unit" %in% steps)
+  expect_identical(d$data[[which(steps == "time_unit")]]$unit, "days")
+  chk <- tfl_check_fig_design(d, adam)
+  expect_false(any(chk$level == "error" & grepl("time_unit", chk$part)))
+  code <- paste(tfl_fig_design_code(d), collapse = "\n")
+  expect_false(grepl("# days -> days", code, fixed = TRUE))
+  expect_false(grepl("AVAL = AVAL / 1", code, fixed = TRUE))
+  expect_true("days" %in% strsplit(tfl_fig_parts()$choices[
+    tfl_fig_parts()$piece == "time_unit" & tfl_fig_parts()$field == "unit"], " | ", fixed = TRUE)[[1L]])
+})

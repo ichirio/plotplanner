@@ -77,10 +77,10 @@
         .ff("variable", "text", "Variable", required = TRUE),
         .ff("expr", "expr", "Value (R)", required = TRUE, help = "e.g. AVAL / 7"))),
     time_unit = list(section = "data", label = "Change a time's unit",
-      help = "A time in days, shown in weeks, months or years.",
+      help = "A time in days, shown in days (as it is), weeks, months or years.",
       fields = rbind(
         .ff("variable", "variable", "Time variable", "AVAL", required = TRUE),
-        .ff("unit", "choice", "Unit", "months", names(.fig_units)[-1L]))),
+        .ff("unit", "choice", "Unit", "months", names(.fig_units)))),
     levels = list(section = "data", label = "Order a variable's values",
       help = "The order of groups or visits on the axis and in the legend: by another variable (AVISIT by AVISITN), or listed.",
       fields = rbind(
@@ -526,7 +526,8 @@ tfl_read_fig_design <- function(path) {
       flag = add(sprintf("filter(%s == %s)", v("variable"), q(v("value")))),
       filter = add(sprintf("filter(%s)", v("expr"))),
       derive = add(sprintf("mutate(%s = %s)", v("variable"), v("expr"))),
-      time_unit = add(sprintf("# days -> %s
+      # days: the time stays as it is (ADTTE's AVAL is in days)
+      time_unit = if (!identical(v("unit"), "days")) add(sprintf("# days -> %s
   mutate(%s = %s / %s)", v("unit"), v("variable"),
                               v("variable"), format(.fig_units[[v("unit")]]))),
       levels = {
