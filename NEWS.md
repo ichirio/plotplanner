@@ -1,3 +1,7 @@
+# tflspec (development version)
+
+* Development reopens at 0.0.24.9000, after the 0.0.24 release.
+
 # tflspec 0.0.24
 
 * **The table engine is rtfreporter's, adopted.**  The move of the ARD
