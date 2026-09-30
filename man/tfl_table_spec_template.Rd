@@ -28,9 +28,10 @@ variable gets the templates its statistics can fill, a categorical one
 \code{{n} ({p})}.  Edit the labels, templates and digits, and hand it back
 through \verb{spec =}.
 }
-\section{Lifecycle}{
+\section{The table engine}{
 
-\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
+The ARD functions and the plan are rtfreporter's:
+\code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{

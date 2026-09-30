@@ -1,4 +1,18 @@
-# tflspec (development version)
+# tflspec 0.0.24
+
+* **The table engine is rtfreporter's, adopted.**  The move of the ARD
+  functions and the plan to rtfreporter (plan E) was adopted in
+  rtfreporter's pre-CRAN API review, and rtfreporter 0.8.2 is its first
+  release; tflspec 0.0.24 needs rtfreporter 0.8.2 (a suggestion: only the
+  table half uses it).  The rest of this entry is what changed since 0.0.23.
+
+* **An AI assistant manual ships with the package**:
+  `tflspec_ai_manual()` returns (or copies out) `inst/ai/tflspec-ai-user-manual.md`,
+  the briefing to attach to a chat session -- the specification formats,
+  the functions that write code from them, what that code looks like, the
+  former names that are refused, and the complete export list (checked
+  against the exports by a test).  rtfreporter's own manual covers the
+  rendering side.
 
 * **Table definitions follow rtfreporter's redesigned plan verbs**
   (rtfreporter >= 0.8.1.9003, ichirio/rtfreporter#498).  What
@@ -48,10 +62,8 @@
   The five example reports and the Discussion #3 samples are byte-identical
   across the two packages.
 
-  In rtfreporter these functions are **experimental**: whether they stay
-  is decided in rtfreporter's pre-CRAN API review (rtfreporter Discussion
-  #316).  If the move is rejected, tflspec returns to the **v0.0.23** tag,
-  the last version carrying its own engine.
+  The move was adopted (rtfreporter's pre-CRAN API review, Discussion
+  #316): the engine is rtfreporter's from its 0.8.2 release on.
 
 * tflspec now follows rtfreporter's version scheme: a release is `X.Y.Z`
   (tagged, with a GitHub Release -- v0.0.23 is the first), development is

@@ -586,8 +586,9 @@
 #' @return An object of class `tfl_table_spec`: a list of the sheets' data
 #'   frames.
 #'
-#' @section Lifecycle:
-#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
+#' @section The table engine:
+#' The ARD functions and the plan are rtfreporter's:
+#' `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_read_table_spec()], [tfl_write_table_spec()], [tfl_table_spec_template()]
 #' @export
@@ -1019,8 +1020,9 @@ print.tfl_table_spec <- function(x, ...) {
 #'
 #' @return An [tfl_table_spec()].
 #'
-#' @section Lifecycle:
-#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
+#' @section The table engine:
+#' The ARD functions and the plan are rtfreporter's:
+#' `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_table_spec()], [tfl_write_table_spec()]
 #' @export
@@ -1089,8 +1091,9 @@ tfl_read_table_spec <- function(path, output_id = NULL) {
 #'
 #' @return `path`, invisibly.
 #'
-#' @section Lifecycle:
-#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
+#' @section The table engine:
+#' The ARD functions and the plan are rtfreporter's:
+#' `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_table_spec()], [tfl_read_table_spec()]
 #' @export
@@ -1136,8 +1139,9 @@ tfl_write_table_spec <- function(spec, path) {
 #'
 #' @return An [tfl_table_spec()], invisibly when `path` is given.
 #'
-#' @section Lifecycle:
-#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
+#' @section The table engine:
+#' The ARD functions and the plan are rtfreporter's:
+#' `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_table_spec()], `plan_template(form = "spread")`
 #' @export
@@ -1287,8 +1291,9 @@ tfl_table_spec_template <- function(ard, path = NULL, cols = NULL,
 #' it), and `font_size_half_points`, `title_format`, `footnote_format`,
 #' `title_width`, `footnote_width`, `markup` ([rtfreporter::rtf_default_format()]).
 #'
-#' @section Lifecycle:
-#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
+#' @section The table engine:
+#' The ARD functions and the plan are rtfreporter's:
+#' `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_report()], [tfl_report_path()], [tfl_read_table_spec()]
 #' @export
@@ -1320,8 +1325,9 @@ tfl_read_report_spec <- function(path, output_id = NULL) {
 #'
 #' @return An [rtfreporter::rtf_document()].
 #'
-#' @section Lifecycle:
-#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
+#' @section The table engine:
+#' The ARD functions and the plan are rtfreporter's:
+#' `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_read_report_spec()], [tfl_report_path()]
 #' @export
@@ -1348,8 +1354,9 @@ tfl_report <- function(spec, content, output_id = NULL) {
 #' @inheritParams tfl_report
 #' @return A single path.
 #'
-#' @section Lifecycle:
-#' **Experimental.**  The engine is rtfreporter's: `help("ard-tables", package = "rtfreporter")`.
+#' @section The table engine:
+#' The ARD functions and the plan are rtfreporter's:
+#' `help("ard-tables", package = "rtfreporter")`.
 #'
 #' @seealso [tfl_report()]
 #' @export

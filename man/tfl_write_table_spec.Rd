@@ -19,9 +19,10 @@ are there to fill in, and an \code{about} sheet stating \code{spec_version}.}
 \description{
 Write an ARD table definition to a workbook
 }
-\section{Lifecycle}{
+\section{The table engine}{
 
-\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
+The ARD functions and the plan are rtfreporter's:
+\code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{

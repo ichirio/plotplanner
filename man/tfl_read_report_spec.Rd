@@ -65,9 +65,10 @@ it), and \code{font_size_half_points}, \code{title_format}, \code{footnote_forma
 \code{title_width}, \code{footnote_width}, \code{markup} (\code{\link[rtfreporter:rtf_default_format]{rtfreporter::rtf_default_format()}}).
 }
 
-\section{Lifecycle}{
+\section{The table engine}{
 
-\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
+The ARD functions and the plan are rtfreporter's:
+\code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{

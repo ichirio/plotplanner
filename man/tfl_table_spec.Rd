@@ -245,9 +245,10 @@ so the whole RTF deliverable can be defined in one workbook.  They are reported,
 name starts with \verb{_} are ignored.
 }
 
-\section{Lifecycle}{
+\section{The table engine}{
 
-\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
+The ARD functions and the plan are rtfreporter's:
+\code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{
