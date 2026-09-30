@@ -24,7 +24,7 @@ Imports:
     stats,
     utils
 Suggests:
-    rtfreporter (>= 0.8.1.9003),
+    rtfreporter (>= 0.8.2),
     cards,
     cardx,
     dplyr,
