@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9000** (the development version,
+**This manual documents tflspec 0.0.24.9001** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -156,7 +156,10 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
   `missing`, `hierarchical`, `max`, `subjects`, `total_n`, `proportion_ci`,
   `mean_ci`, `ttest`, `wilcox`, `chisq`, `fisher`, `custom` — or any
   `pkg::function` (`cards::`, `cardx::`). `tfl_ard_methods()` lists the
-  keywords; `tfl_ard_statistics()` the statistics and their formats.
+  keywords, each with a `label` (the name a person reads: "Summary
+  statistics", "Counts and percents", "Nested counts (e.g. SOC / PT)" …)
+  and a one-line `note`; `tfl_ard_statistics()` the statistics and their
+  formats.
 - `by`, `variables`, `statistics`: `|` between several.
 - `formats`: `mean=xx.x | p=xx.x% | AGE:sd=xx.xx` — the `xx` part says the
   decimals only.

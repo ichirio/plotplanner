@@ -187,3 +187,20 @@ test_that("a catalog of one's own is used for the call, then let go", {
   expect_match(tfl_ard_spec_hash(tfl_ard_spec(x, statistics = st), "T1"),
                "^[0-9a-f]{32}$")
 })
+
+test_that("every method has a label a person reads, and a note", {
+  m <- tfl_ard_methods()
+  expect_identical(names(m)[1:2], c("method", "label"))
+  expect_true(all(nzchar(m$label)))
+  expect_false(anyDuplicated(m$label) > 0L)
+  expect_true(all(nzchar(m$note)))
+  expect_identical(m$label[m$method == "continuous"], "Summary statistics")
+})
+
+test_that("a catalog without labels reads its method names as labels", {
+  old <- options(tflspec.ard_methods = subset(
+    tflspec:::.ard_methods_builtin(), select = -label))
+  on.exit(options(old), add = TRUE)
+  m <- tfl_ard_methods()
+  expect_identical(m$label, m$method)
+})

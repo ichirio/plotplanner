@@ -7,8 +7,8 @@
 tfl_ard_methods()
 }
 \value{
-A data frame: \code{method}, \code{call}, \code{kind}, \code{defaults}, \code{statistics},
-\code{formats}, \code{note}.
+A data frame: \code{method}, \code{label}, \code{call}, \code{kind}, \code{defaults},
+\code{statistics}, \code{formats}, \code{note}.
 }
 \description{
 An analysis's \code{method} is one of these keywords, or the name of any
@@ -23,7 +23,8 @@ way once \code{args} names the first one (\code{formula = ...}).
 In \code{args} and \code{code}, \code{data} is the analysis data and \code{population} the
 population's subjects.
 
-Each keyword names its function (\code{(subjects)} and \code{(code)} are the two
+Each keyword has a \code{label} -- the name a person reads, for a GUI's choice
+or a heading -- and a one-line \code{note}, and names its function (\code{(subjects)} and \code{(code)} are the two
 built into the engine), its \code{kind} -- how its \code{statistics} are passed:
 \code{continuous}, \code{categorical} or \code{none} -- the arguments it gets unless
 \code{args} gives them (\verb{<id>} stands for the subject key), its default
@@ -32,4 +33,10 @@ statistics and formats.
 The catalog is the built-in one unless \code{options(tflspec.ard_methods = )}
 holds another, or a function that uses it is given \verb{methods =} (as
 tflplanner does with its company standards).
+
+A catalog without a \code{label} column (one written before it was added)
+gets the method's own name as its label.
+}
+\examples{
+tfl_ard_methods()[, c("method", "label", "note")]
 }
