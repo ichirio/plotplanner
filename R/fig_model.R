@@ -1188,7 +1188,7 @@ tfl_check_fig_design <- function(design, adam = NULL, ggplot2_version = NULL) {
   cat <- tfl_fig_catalog()
   whole <- cat[cat$status == "implemented" & cat$type %in% c("forest", "ae_dot", "butterfly", "edish", "sankey", "sunburst") &
                  !cat$style %in% c("estimates", "subgroups"), ]
-  rbind(
+  tp <- rbind(
     t("km_risk_table", "km", "KM curves + number at risk"),
     t("km_simple", "km", "KM curves"),
     t("km_ci", "km", "KM curves + confidence bands + number at risk"),
@@ -1218,6 +1218,13 @@ tfl_check_fig_design <- function(design, adam = NULL, ggplot2_version = NULL) {
     t("pk_individual", "pk", "PK: individual profiles, log axis, one panel per group"),
     if (nrow(whole)) t(paste(whole$type, whole$style, sep = "_"), whole$type,
                        paste0(whole$description, " (whole script)"), parts = FALSE))
+  # each template's clinical category and the data it reads, from the
+  # catalog row of its type and style (one axis for both)
+  style <- substring(tp$template, nchar(tp$kind) + 2L)
+  at <- match(paste(tp$kind, style), paste(cat$type, cat$style))
+  tp$category <- cat$category[at]
+  tp$data <- cat$data[at]
+  tp
 }
 
 #' Figure templates
@@ -1251,7 +1258,12 @@ tfl_check_fig_design <- function(design, adam = NULL, ggplot2_version = NULL) {
 #' @param title The figure's title.
 #' @param ... For a whole-script template: the type's other arguments.
 #' @return `tfl_fig_templates()`: a data frame (`template`, `kind`,
-#'   `label`, `parts`); `tfl_fig_template()`: a `tfl_fig_design`.
+#'   `label`, `parts`, `category`, `data`): `category` is the clinical
+#'   category of [tfl_fig_catalog()] (Efficacy: time to event, Safety,
+#'   PK / PD ...), `data` the datasets the template reads, as the catalog
+#'   writes them (`"ADTR + ADRS"`: both; `"ADLB / ADVS + ADSL"`: ADLB or
+#'   ADVS, and ADSL) -- for a GUI's headings, and to say which templates a
+#'   study's data can draw; `tfl_fig_template()`: a `tfl_fig_design`.
 #' @export
 tfl_fig_templates <- function() .fig_templates()
 

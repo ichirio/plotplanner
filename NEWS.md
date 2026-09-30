@@ -1,5 +1,14 @@
 # tflspec (development version)
 
+* **Each figure template says its category and the data it reads**:
+  `tfl_fig_templates()` gains `category` (the clinical category of
+  `tfl_fig_catalog()`: Efficacy: time to event, Efficacy: tumour response,
+  Longitudinal, Safety, PK / PD ...) and `data` (the datasets it reads, as
+  the catalog writes them: `ADTR + ADRS`, `ADLB / ADVS + ADSL`), from the
+  catalog row of the template's type and style -- one axis for both.  For a
+  GUI's headings, and to grey the templates a study's data cannot draw
+  (tflplanner GUI review iter06).  Added columns only.
+
 * **A figure's time can stay in days**: the data step `time_unit` takes
   `unit: days` (no conversion) besides weeks, months and years --
   ADTTE's AVAL is usually in days.  It was offered by tflplanner but

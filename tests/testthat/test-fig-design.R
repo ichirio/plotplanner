@@ -104,6 +104,18 @@ test_that("the checks find what does not fit the data", {
   expect_true(any(grepl("first layer", tfl_check_fig_design(d2)$problem)))
 })
 
+test_that("every template has its clinical category and the data it reads", {
+  tp <- tfl_fig_templates()
+  expect_true(all(c("category", "data") %in% names(tp)))
+  expect_false(anyNA(tp$category))
+  expect_false(anyNA(tp$data))
+  # the catalog's categories, not new ones
+  expect_true(all(tp$category %in% tfl_fig_catalog()$category))
+  expect_identical(tp$data[tp$template == "km_risk_table"], "ADTTE")
+  expect_identical(tp$category[tp$template == "ae_dot_incidence"], "Safety")
+  expect_identical(tp$data[tp$template == "mean_se"], "ADLB / ADVS + ADSL")
+})
+
 test_that("every template draws on the example data and checks clean", {
   skip_if_not_installed("ggsurvfit")
   adam <- tfl_example_adam()

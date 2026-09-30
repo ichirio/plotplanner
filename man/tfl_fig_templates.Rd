@@ -67,7 +67,12 @@ dataset).}
 }
 \value{
 \code{tfl_fig_templates()}: a data frame (\code{template}, \code{kind},
-\code{label}, \code{parts}); \code{tfl_fig_template()}: a \code{tfl_fig_design}.
+\code{label}, \code{parts}, \code{category}, \code{data}): \code{category} is the clinical
+category of \code{\link[=tfl_fig_catalog]{tfl_fig_catalog()}} (Efficacy: time to event, Safety,
+PK / PD ...), \code{data} the datasets the template reads, as the catalog
+writes them (\code{"ADTR + ADRS"}: both; \code{"ADLB / ADVS + ADSL"}: ADLB or
+ADVS, and ADSL) -- for a GUI's headings, and to say which templates a
+study's data can draw; \code{tfl_fig_template()}: a \code{tfl_fig_design}.
 }
 \description{
 A template fills a figure design's four parts at once -- its data steps,
