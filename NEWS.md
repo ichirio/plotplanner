@@ -1,5 +1,10 @@
 # tflspec (development version)
 
+* **A figure's time can stay in days**: the data step `time_unit` takes
+  `unit: days` (no conversion) besides weeks, months and years --
+  ADTTE's AVAL is usually in days.  It was offered by tflplanner but
+  refused by the check (tflplanner GUI review iter02).
+
 * **Each ARD method has a label**: `tfl_ard_methods()` gains a `label`
   column -- the name a person reads ("Summary statistics", "Counts and
   percents", "Nested counts (e.g. SOC / PT)", "Proportion with CI" ...) --
