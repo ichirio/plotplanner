@@ -129,11 +129,13 @@
 
 # ---- tables ----------------------------------------------------------------
 
-# The roles a table definition gives table_plan() (its `tables` sheet).
+# The roles a table definition gives table_plan() (its `tables` sheet):
+# which column goes across, which go down, which carries the row text.
+# Everything else on that sheet is a layer, said by the verb it belongs to.
+.plan_role_names <- c("cols", "rows", "label", "stat")
 .plan_spec_roles <- function(sp) {
   sa <- .ard_spec_table_args(sp)
-  sa[intersect(c("cols", "rows", "label", "stats", "sep", "value", "na",
-                 "sort_stat"), names(sa))]
+  sa[intersect(.plan_role_names, names(sa))]
 }
 
 # The label column's name the roles give, as the plan will call it: one
@@ -153,6 +155,13 @@
   if (!is.null(nm) && nzchar(nm[1L])) nm[1L] else "label"
 }
 
+# Digits as plan_digits() takes them: numbers when every entry is a count
+# of decimals, text when any is "<k>s" (significant digits).
+.spec_digit_values <- function(x) {
+  n <- suppressWarnings(as.integer(x))
+  if (!anyNA(n)) n else as.character(x)
+}
+
 # The verbs a table definition stands for, in the order a report is built:
 # what tfl_table_plan() runs, and what tfl_table_code() writes.  `roles` are
 # the plan's (the workbook's, and any given in the call), which decide the
@@ -161,20 +170,23 @@
   st <- list()
   add <- function(fun, ...) st[[length(st) + 1L]] <<- .spec_call(fun, ...)
   sa <- .ard_spec_table_args(sp)
-  if (!is.null(sa[["sort"]])) add("plan_sort", sa[["sort"]])
+  if (!is.null(sa[["sort"]]) || !is.null(sa[["sort_stat"]])) {
+    add("plan_sort", sa[["sort"]], stat = sa[["sort_stat"]])
+  }
   if (!is.null(sa[["rounding"]])) add("plan_digits", rounding = sa[["rounding"]])
   lv <- .ard_spec_levels(sp)
   if (length(lv)) do.call(add, c(list("plan_levels"), as.list(lv)))
   lb <- .ard_spec_labels(sp)
   if (length(lb)) do.call(add, c(list("plan_labels"), as.list(lb)))
   cm <- .ard_spec_cells(sp)
-  if (length(cm)) do.call(add, c(list("plan_cells"), cm))
+  how <- sa[intersect(c("stats", "value", "na"), names(sa))]
+  if (length(cm) || length(how)) do.call(add, c(list("plan_cells"), cm, how))
 
   # rows with no template: the display format of one statistic, for a
   # table that lays the statistics out as rows
   f <- sp$cells[is.na(sp$cells$template), , drop = FALSE]
   if (nrow(f)) {
-    if (!identical(roles$stats, "rows")) {
+    if (!identical(sa[["stats"]], "rows")) {
       .ard_stop(paste0(
         "The `cells` sheet has rows with no `template` -- a statistic's ",
         "display format --
@@ -192,12 +204,11 @@
       .ard_stop(paste0("A `cells` row with no template needs `row`: the ",
                        "statistic it formats, as the label column prints it."))
     }
-    fm <- lapply(seq_len(nrow(f)), function(i) {
-      if (!is.na(f$signif[i])) list(signif = as.integer(f$signif[i]))
-      else list(digits = as.integer(f$digits[i]))
-    })
-    add("plan_fmt", by = .spec_label_name(roles),
-        formats = stats::setNames(fm, f$row))
+    # decimals, or "3s" for three significant digits, keyed by the row
+    # label: plan_digits(.rows = ) applies them to every value column
+    dg <- ifelse(!is.na(f$signif), paste0(f$signif, "s"), f$digits)
+    add("plan_digits", .rows = stats::setNames(
+      .spec_digit_values(dg), f$row))
   }
 
   lay <- if (nrow(sp$layout)) .ard_spec_typed(sp$layout[1L, ], "layout")
@@ -210,26 +221,23 @@
     }
     out
   }
-  a <- pick("stub_", c(vars = "vars", into = "into", indent = "indent",
+  a <- pick("stub_", c(vars = "vars", name = "name", indent = "indent",
                        summary = "group_summary", before = "before"))
   if (length(a)) do.call(add, c(list("plan_stub"), a))
   if (isTRUE(lay[["group_page"]])) {
     add("plan_paginate_group", col = lay[["group_col"]],
-        show = !identical(lay[["group_show"]], FALSE))
+        keep = if (identical(lay[["group_keep"]], FALSE)) FALSE)
   }
   a <- pick("group_", c(mode = "mode", collapse = "collapse"))
-  if (length(a) || (!is.null(lay[["group_col"]]) && !isTRUE(lay[["group_page"]]))) {
-    a$col <- lay[["group_col"]]
-    do.call(add, c(list("plan_row_group"), a))
-  }
+  if (length(a)) do.call(add, c(list("plan_row_group"), a))
   a <- pick("blank_", c(where = "where", first = "first", last = "last",
                         counted = "counted"))
   if (length(a)) do.call(add, c(list("plan_blanks"), a))
-  a <- pick("pages_", c(max_rows = "max_rows", split = "split", by = "by",
+  a <- pick("pages_", c(max_rows = "max_rows", split = "split",
                         min_group_rows = "min_group_rows",
                         cont_label = "cont_label"))
   if (length(a)) do.call(add, c(list("plan_paginate_rows"), a))
-  a <- pick("colpages_", c(every = "every", at = "at", carry = "carry",
+  a <- pick("colpages_", c(every = "every", at = "at", keep = "keep",
                            order = "order"))
   if (length(a)) do.call(add, c(list("plan_paginate_cols"), a))
 
@@ -239,7 +247,15 @@
   ct <- lapply(seq_len(nrow(cl)), function(i)
     .ard_spec_typed(cl[i, , drop = FALSE], "columns"))
   flag <- function(k) vapply(ct, function(r) isTRUE(r[[k]]), NA)
-  if (any(flag("row_title"))) sty$row_title <- cl$column[flag("row_title")]
+  # auto_width sits on the style sheet (one row per report) but is a
+  # question about the columns, so it goes to plan_columns() below
+  auto_width <- sty[["auto_width"]]
+  sty[["auto_width"]] <- NULL
+  # a kind of row's rules, `top | bottom`, as the rtf_border() they stand for
+  for (z in grep("^border_", names(sty), value = TRUE)) {
+    sty[[z]] <- do.call(.spec_call, c(list("rtf_border"), as.list(
+      stats::setNames(rep(TRUE, length(sty[[z]])), sty[[z]]))))
+  }
   if (length(sty)) do.call(add, c(list("plan_style"), sty))
   if (any(flag("hide"))) add("plan_hide", cl$column[flag("hide")])
   hd <- sp$col_header
@@ -248,15 +264,20 @@
     keep <- vapply(cells, function(v) any(!is.na(v)), NA)
     cells <- cells[keep]
     rownames(cells) <- NULL
+    hn <- sa[["header_n"]]
     add("plan_col_header", header = cells,
-        n = .ard_spec_table_args(sp)[["header_n"]])
+        values = if (!is.null(hn))
+          if (is.null(names(hn))) list(n = hn) else as.list(hn))
   }
   w <- vapply(ct, function(r) r[["width"]] %||% NA_real_, NA_real_)
-  if (any(!is.na(w)) || any(flag("decimal_split"))) {
+  if (any(!is.na(w)) || any(flag("decimal_split")) || any(flag("row_title")) ||
+      !is.null(auto_width) || !is.null(sa[["sep"]])) {
     add("plan_columns",
         widths = if (any(!is.na(w)))
           stats::setNames(w[!is.na(w)], cl$column[!is.na(w)]),
-        decimal = if (any(flag("decimal_split"))) cl$column[flag("decimal_split")])
+        decimal = if (any(flag("decimal_split"))) cl$column[flag("decimal_split")],
+        row_title = if (any(flag("row_title"))) cl$column[flag("row_title")],
+        auto_width = auto_width, sep = sa[["sep"]])
   }
   st
 }
@@ -314,9 +335,9 @@ tfl_table_code <- function(spec, output_id = NULL, data = "data",
 #' @param spec A table definition ([tfl_read_table_spec()],
 #'   [tfl_table_spec()]), or the path(s) of its workbook(s).
 #' @param output_id The table, when the definition has several.
-#' @param ... Passed to [rtfreporter::table_plan()]: a role given here (`cols`, `rows`,
-#'   `label`, `stats`, `sep`, `value`, `na`, `sort_stat`) wins over the
-#'   workbook's; `notes` as there.
+#' @param ... Roles for [rtfreporter::table_plan()] (`cols`, `rows`, `label`,
+#'   `stat`); one given here wins over the workbook's.  Everything else is
+#'   a layer: add its verb after this call.
 #' @return An [rtfreporter::table_plan()].
 #' @seealso [tfl_table_code()], the same steps as code; [tfl_as_table_spec()],
 #'   the other way round.
@@ -334,11 +355,19 @@ tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
                         else tfl_table_spec(spec), output_id)
   roles <- .plan_spec_roles(sp)
   dots <- list(...)
-  own <- intersect(names(dots), c("cols", "rows", "label", "stats", "sep",
-                                  "value", "na", "sort_stat"))
-  for (r in own) if (!is.null(dots[[r]])) roles[[r]] <- dots[[r]]
-  dots[own] <- NULL
-  p <- do.call(rtfreporter::table_plan, c(list(data), roles, dots))
+  other <- setdiff(names(dots) %||% rep("", length(dots)), .plan_role_names)
+  if (length(other)) {
+    .ard_stop(sprintf(paste0(
+      "tfl_table_plan(): %s %s not a role.  The roles are %s; anything ",
+      "else is a layer:
+  pipe the plan into its verb, e.g. ",
+      "plan_cells(stats = \"rows\", notes = FALSE)."),
+      paste(sQuote(other), collapse = ", "),
+      if (length(other) > 1L) "are" else "is",
+      paste(.plan_role_names, collapse = ", ")))
+  }
+  for (r in names(dots)) if (!is.null(dots[[r]])) roles[[r]] <- dots[[r]]
+  p <- do.call(rtfreporter::table_plan, c(list(data), roles))
   for (st in .plan_spec_steps(roles, sp)) {
     f <- .spec_fun(st$fun)
     p <- do.call(f, c(list(p), lapply(st$args, .spec_eval, env = emptyenv())))

@@ -14,9 +14,9 @@ tfl_table_plan(data, spec, output_id = NULL, ...)
 
 \item{output_id}{The table, when the definition has several.}
 
-\item{...}{Passed to \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}}: a role given here (\code{cols}, \code{rows},
-\code{label}, \code{stats}, \code{sep}, \code{value}, \code{na}, \code{sort_stat}) wins over the
-workbook's; \code{notes} as there.}
+\item{...}{Roles for \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}} (\code{cols}, \code{rows}, \code{label},
+\code{stat}); one given here wins over the workbook's.  Everything else is
+a layer: add its verb after this call.}
 }
 \value{
 An \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}}.

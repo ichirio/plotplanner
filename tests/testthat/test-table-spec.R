@@ -25,21 +25,21 @@ make_ard <- function() {
 }
 
 # ard_table() was withdrawn (#474): the one entry point is
-# normalize_ard() |> spread_ard().  These tests were written against the
+# normalize_ard() |> widen_ard().  These tests were written against the
 # collapsed call, so this helper does the split, routing each argument to the
 # step that owns it -- which also keeps them honest about where each belongs.
 ard_pipe <- function(ard, ...) {
   args <- list(...)
   keep <- intersect(names(args), setdiff(names(formals(normalize_ard)), "ard"))
   x <- do.call(normalize_ard, c(list(ard = ard), args[keep]))
-  do.call(spread_ard, c(list(x = x), args[setdiff(names(args), keep)]))
+  do.call(widen_ard, c(list(x = x), args[setdiff(names(args), keep)]))
 }
 
 # ------------------------------------------------------------ normalize_ard
 
 
 
-# ------------------------------------- normalize_ard() |> spread_ard()
+# ------------------------------------- normalize_ard() |> widen_ard()
 
 
 
@@ -119,7 +119,8 @@ make_bound_ae <- function() {
 spec_table <- function(d, spec, ...) {
   testthat::skip_if_not(exists("table_plan", mode = "function"),
                         "the plan spike is not here")
-  plan_apply(tfl_table_plan(d, spec, notes = FALSE, ...), "table")
+  plan_apply(tfl_table_plan(d, spec, ...) |>
+               plan_cells(notes = FALSE), "table")
 }
 
 dm_spec <- function(output_id = NA) {
@@ -166,7 +167,7 @@ test_that("a three-sheet spec supplies the roles as well as the cells", {
   expect_identical(as.character(gr$label), c("<65", "65-74", ">=75"))
 
   # the same table as the arguments written out
-  ref <- spread_ard(normalize_ard(make_ard()), cols = "TRT",
+  ref <- widen_ard(normalize_ard(make_ard()), cols = "TRT",
                     rows = c(group = "variable"), rounding = "sas",
                     labels = c(AGE = "Age (years)", AGEGR = "Age group",
                                SEX = "Sex"),
@@ -377,7 +378,7 @@ test_that("the rounding family: argument > spec > option > R's own", {
   d <- d[d$variable == "AGE" & d$stat_name == "mean", ]
   d$stat <- 0.25
   cell <- function(...) {
-    spread_ard(d, cols = "TRT", rows = c(group = "variable"),
+    widen_ard(d, cols = "TRT", rows = c(group = "variable"),
                cells = "{mean:.1f}", notes = FALSE, ...)$Placebo[1]
   }
   sp <- tfl_table_spec(study = c(rounding = "sas"),
@@ -389,8 +390,8 @@ test_that("the rounding family: argument > spec > option > R's own", {
     plan_apply(p, "table")$Placebo[1]
   }
   if (exists("table_plan", mode = "function")) {
-    p <- tfl_table_plan(d, sp, cols = "TRT", rows = c(group = "variable"),
-                  notes = FALSE)
+    p <- tfl_table_plan(d, sp, cols = "TRT", rows = c(group = "variable")) |>
+           plan_cells(notes = FALSE)
     expect_identical(from_spec(p), "0.3")                        # the spec
     expect_identical(from_spec(p |> plan_digits(rounding = "r")), "0.2")
   }

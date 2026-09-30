@@ -15,18 +15,18 @@ sc_ard <- function() {
 }
 
 sc_plan <- function(d) {
-  table_plan(d, cols = "TRT", rows = c(group = "variable"), notes = FALSE) |>
+  table_plan(d, cols = "TRT", rows = c(group = "variable")) |>
     plan_levels(SEX = c("M", "F")) |>
     plan_labels(AGE = "Age (years)", SEX = "Sex") |>
     plan_cells(continuous  = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
-                   categorical = "{n:d} ({p:.1f%})") |>
+               categorical = "{n:d} ({p:.1f%})", notes = FALSE) |>
     plan_digits(1, rounding = "sas") |>
-    plan_stub(into = "row_label", before = TRUE) |>
+    plan_stub(name = "row_label", before = TRUE) |>
     plan_blanks(where = "between_groups", first = TRUE) |>
     plan_paginate_rows(max_rows = 6, split = "group_safe") |>
     plan_columns(widths = c(4, 2)) |>
     plan_style(align_count_pct = TRUE) |>
-    plan_col_header(n = TRUE, rtf_col_header(c("", "{col}"),
+    plan_col_header(values = list(n = TRUE), rtf_col_header(c("", "{col}"),
                                                  c("Characteristic", "(N={n})")))
 }
 
@@ -53,7 +53,8 @@ test_that("tfl_table_code() writes the plan the definition makes", {
   expect_false(any(grepl("tfl_read_table_spec", code, fixed = TRUE)))
 
   by_code <- sc_run(code, d)
-  by_spec <- tfl_table_plan(d, sp, notes = FALSE)
+  by_spec <- tfl_table_plan(d, sp) |>
+               plan_cells(notes = FALSE)
   expect_equal(sc_pages(by_code), sc_pages(by_spec))
   expect_equal(sc_pages(by_code), sc_pages(sc_plan(d)))
 
@@ -78,7 +79,7 @@ test_that("a spanning header, widths by name and a hidden column go over too", {
     tables = data.frame(cols = "TRT | GRP", rows = "group = variable",
                         sort = "TRUE"),
     variables = data.frame(variable = "GRP", levels = "Young | Old"),
-    layout = data.frame(stub_into = "row_label", stub_before = "TRUE"),
+    layout = data.frame(stub_name = "row_label", stub_before = "TRUE"),
     columns = data.frame(column = c("row_label", ".values"),
                          width = c("4", "2")),
     col_header = data.frame(
@@ -91,7 +92,8 @@ test_that("a spanning header, widths by name and a hidden column go over too", {
   expect_true(any(grepl("plan_columns(", code, fixed = TRUE)))
   expect_true(any(grepl("plan_sort(TRUE)", code, fixed = TRUE)))
   expect_equal(sc_pages(sc_run(code, d)),
-               sc_pages(tfl_table_plan(d, sp, notes = FALSE)))
+               sc_pages(tfl_table_plan(d, sp) |>
+                          plan_cells(notes = FALSE)))
 })
 
 test_that("the example workbooks write code that runs to the same plan", {
@@ -170,6 +172,7 @@ test_that("a table and its report, written out, make the report the objects make
   env <- new.env(parent = asNamespace("tflspec"))
   env$data <- d
   suppressMessages(eval(parse(text = code), env))
-  by_objects <- tfl_report(rsp, tfl_table_plan(d, tsp, notes = FALSE))
+  by_objects <- tfl_report(rsp, tfl_table_plan(d, tsp) |>
+                                  plan_cells(notes = FALSE))
   expect_identical(sc_render(env$doc), sc_render(by_objects))
 })

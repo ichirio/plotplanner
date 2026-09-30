@@ -76,40 +76,49 @@ hand_long <- function(var_col = "PARAM") {
 # --------------------------------------------------------- the display half
 
 disp_plan <- function(ard = plan_ard()) {
-  table_plan(nz(ard), cols = "TRT", rows = c(group = "variable"),
-                notes = FALSE) |>
+  table_plan(nz(ard), cols = "TRT", rows = c(group = "variable")) |>
     plan_cells(continuous  = c("Mean (SD)" = "{mean:.1f} ({sd:.2f})"),
-               categorical = "{n:.0f} ({p:.1f%})")
+               categorical = "{n:.0f} ({p:.1f%})", notes = FALSE)
 }
 
 
-test_that("the styling verbs are style_header() / style_cols() / style_zone(), declared", {
+test_that("plan_cell_style() by place is style_header() / style_cols(), declared", {
   skip_if_no_cards2()
   p <- base_plan() |>
     plan_col_header(rtf_col_header(c("", "", "{col}")))
   arms <- c("Placebo", "Xanomeline High Dose", "Xanomeline Low Dose")
-  by_decl <- as_rtftables(p |>
-    plan_header_style(bold = TRUE, align = "center") |>
-    plan_col_style(cols = ".values", align = "center", header_bold = TRUE) |>
-    plan_zone_style(last_row = rtf_border(bottom = "double")))
   by_hand <- as_rtftables(p) |>
     style_header(bold = TRUE, align = "center") |>
-    style_cols(cols = arms, align = "center", header_bold = TRUE) |>
-    style_zone(last_row = rtf_border(bottom = "double"))
-  expect_identical(by_decl, by_hand)
-  # names, not positions: the same columns by name
-  by_name <- as_rtftables(p |>
-    plan_header_style(bold = TRUE, align = "center") |>
-    plan_col_style(cols = arms, align = "center", header_bold = TRUE) |>
-    plan_zone_style(last_row = rtf_border(bottom = "double")))
-  expect_identical(by_name, by_hand)
-  # they make pages on their own, and a workbook lists them as code
-  expect_s3_class(plan_apply(plan_header_style(p, bold = TRUE))[[1L]] %||%
-                    plan_apply(plan_header_style(p, bold = TRUE)),
-                  "rtftable")
-  sp <- suppressMessages(tfl_as_table_spec(plan_header_style(p, bold = TRUE)))
-  expect_true(any(grepl("plan_header_style() stays in code",
+    style_cols(cols = arms, align = "center")
+  # the value columns by name (`.values`), and by their own names
+  for (cols in list(".values", arms)) {
+    by_decl <- as_rtftables(p |>
+      plan_cell_style(header = TRUE, bold = TRUE, align = "center") |>
+      plan_cell_style(cols = cols, align = "center"))
+    expect_identical(by_decl, by_hand)
+  }
+  # a workbook has no sheet for a cell's own look: it is listed as code
+  sp <- suppressMessages(tfl_as_table_spec(
+    plan_cell_style(p, header = TRUE, bold = TRUE)))
+  expect_true(any(grepl("plan_cell_style() stays in code",
                         attr(sp, "not_converted"), fixed = TRUE)))
+})
+
+test_that("the style sheet's border_* columns are plan_style()'s rules of a row", {
+  skip_if_no_cards2()
+  p <- base_plan()
+  by_code <- plan_apply(plan_style(p, border_header = rtf_border(top = TRUE,
+                                                                 bottom = TRUE),
+                                   border_last_row = rtf_border(bottom = TRUE)),
+                        "pages")
+  sp <- suppressMessages(tfl_as_table_spec(
+    plan_style(p, border_header = rtf_border(top = TRUE, bottom = TRUE),
+               border_last_row = rtf_border(bottom = TRUE))))
+  expect_identical(sp$style$border_header, "top | bottom")
+  expect_identical(sp$style$border_last_row, "bottom")
+  expect_true(isTRUE(attr(sp, "same_pages")))
+  expect_error(tfl_table_spec(style = data.frame(border_body = "middle")),
+               "top \\| bottom \\| left \\| right, or none")
 })
 
 # ------------------------------------------------- conditional cell styles
@@ -117,7 +126,7 @@ test_that("the styling verbs are style_header() / style_cols() / style_zone(), d
 styled <- function(...) {
   suppressMessages(plan_apply(
     disp_plan() |>
-      plan_stub(vars = c("group", "label"), into = "row_label",
+      plan_stub(vars = c("group", "label"), name = "row_label",
                 before = TRUE) |>
       plan_cell_style(...) |>
       plan_style(border = "tfl"),
@@ -183,11 +192,10 @@ own_frame <- function() {
 # ------------------------------------------ digits, per statistic
 
 open_plan <- function() {
-  table_plan(nz(plan_ard()), cols = "TRT", rows = c(group = "variable"),
-           notes = FALSE) |>
+  table_plan(nz(plan_ard()), cols = "TRT", rows = c(group = "variable")) |>
     plan_cells(continuous  = c("n"         = "{N:.0f}",
                                "Mean (SD)" = "{mean} ({sd})"),
-               categorical = "{n:.0f} ({p:%})")
+               categorical = "{n:.0f} ({p:%})", notes = FALSE)
 }
 
 
@@ -217,17 +225,19 @@ test_that("tfl_table_plan() takes the roles from the spec's tables sheet", {
                         template = c("{mean} ({sd})", "{n} ({p})"),
                         digits   = c("1,2", "0")))
   d <- nz(plan_ard())
-  p <- tfl_table_plan(d, sp, notes = FALSE)
+  p <- tfl_table_plan(d, sp) |>
+         plan_cells(notes = FALSE)
   expect_identical(p$roles$cols, "TRT")
   expect_identical(p$roles$rows, c(group = "variable"))
   expect_equal(as.data.frame(plan_apply(p, "table")),
-               as.data.frame(spread_ard(d, cols = "TRT",
+               as.data.frame(widen_ard(d, cols = "TRT",
                  rows = c(group = "variable"),
                  cells = list(continuous  = c("Mean (SD)" = "{mean:.1f} ({sd:.2f})"),
                               categorical = "{n:.0f} ({p:.0f})"),
                  notes = FALSE)))
   # a role in the call still wins, and is checked against the data
-  p2 <- tfl_table_plan(d, sp, rows = c(block = "variable"), notes = FALSE)
+  p2 <- tfl_table_plan(d, sp, rows = c(block = "variable")) |>
+          plan_cells(notes = FALSE)
   expect_identical(p2$roles$rows, c(block = "variable"))
   bad <- tfl_table_spec(tables = data.frame(cols = "NOPE"))
   expect_error(tfl_table_plan(d, bad), "no column 'NOPE'|NOPE")
@@ -248,19 +258,19 @@ test_that("layout / columns / style give the pages the verbs give", {
                          row = c("n", "Mean (SD)", NA),
                          template = c("{N:d}", "{mean} ({sd})", "{n:d} ({p:.1f%})"),
                          digits = c(NA, "1,2", NA)),
-    layout  = data.frame(stub_into = "row_label", stub_before = "TRUE",
+    layout  = data.frame(stub_name = "row_label", stub_before = "TRUE",
                          blank_where = "between_groups", blank_first = "TRUE",
                          pages_max_rows = "6", pages_split = "group_safe"),
     columns = data.frame(column = c("row_label", ".values"),
                          width = c("4", "2")),
     style   = data.frame(align_count_pct = "TRUE", row_height_twips = "220"))
-  by_spec <- plan_apply(tfl_table_plan(d, sp, notes = FALSE), "pages")
-  by_code <- table_plan(d, cols = "TRT", rows = c(group = "variable"),
-                      notes = FALSE) |>
+  by_spec <- plan_apply(tfl_table_plan(d, sp) |>
+                          plan_cells(notes = FALSE), "pages")
+  by_code <- table_plan(d, cols = "TRT", rows = c(group = "variable")) |>
     plan_cells(continuous  = c("n" = "{N:d}",
                                "Mean (SD)" = "{mean:.1f} ({sd:.2f})"),
-               categorical = "{n:d} ({p:.1f%})") |>
-    plan_stub(into = "row_label", before = TRUE) |>
+               categorical = "{n:d} ({p:.1f%})", notes = FALSE) |>
+    plan_stub(name = "row_label", before = TRUE) |>
     plan_blanks(where = "between_groups", first = TRUE) |>
     plan_paginate_rows(max_rows = 6, split = "group_safe") |>
     plan_columns(widths = c(4, 2)) |>
@@ -273,7 +283,8 @@ test_that("layout / columns / style give the pages the verbs give", {
   sp2 <- sp
   sp2$style$row_height_twips <- "240"
   expect_false(isTRUE(all.equal(
-    plan_apply(tfl_table_plan(d, sp2, notes = FALSE), "pages"), by_code)))
+    plan_apply(tfl_table_plan(d, sp2) |>
+                 plan_cells(notes = FALSE), "pages"), by_code)))
 })
 
 test_that("a verb written after tfl_table_plan() still wins", {
@@ -282,7 +293,9 @@ test_that("a verb written after tfl_table_plan() still wins", {
   sp <- tfl_table_spec(tables = data.frame(cols = "TRT", rows = "group = variable"),
                  layout = data.frame(pages_max_rows = "6",
                                      pages_split = "group_safe"))
-  p <- tfl_table_plan(d, sp, notes = FALSE) |> plan_paginate_rows(max_rows = 40)
+  p <- tfl_table_plan(d, sp) |>
+    plan_cells(notes = FALSE) |>
+    plan_paginate_rows(max_rows = 40)
   expect_s3_class(plan_apply(p, "pages")[[1L]], "rtftable")
   expect_length(plan_apply(p, "pages"), 1L)
 })
@@ -292,16 +305,18 @@ test_that("`.values` widths follow the data; a column left out is named", {
   d <- spec_pages_ard()
   base <- function(columns) tfl_table_spec(
     tables = data.frame(cols = "TRT", rows = "group = variable"),
-    layout = data.frame(stub_into = "row_label", stub_before = "TRUE"),
+    layout = data.frame(stub_name = "row_label", stub_before = "TRUE"),
     columns = columns)
   pg <- plan_apply(tfl_table_plan(d, base(data.frame(
-    column = c("row_label", ".values"), width = c("5", "2"))), notes = FALSE),
+    column = c("row_label", ".values"), width = c("5", "2")))) |>
+      plan_cells(notes = FALSE),
     "pages")
   first <- if (inherits(pg, "rtftable")) pg else pg[[1L]]
   expect_identical(first$col_rel_width,
                    c(5, rep(2, ncol(first$data) - 1L)))
   expect_error(plan_apply(tfl_table_plan(d, base(data.frame(
-    column = "row_label", width = "5")), notes = FALSE), "pages"),
+    column = "row_label", width = "5"))) |>
+      plan_cells(notes = FALSE), "pages"),
     "not for")
 })
 
@@ -310,7 +325,8 @@ test_that("group_collapse alone does not become the grouping column", {
   skip_if_no_cards2()
   sp <- tfl_table_spec(tables = data.frame(cols = "TRT", rows = "group = variable"),
                  layout = data.frame(group_collapse = "1"))
-  p <- tfl_table_plan(spec_pages_ard(), sp, notes = FALSE)
+  p <- tfl_table_plan(spec_pages_ard(), sp) |>
+         plan_cells(notes = FALSE)
   g <- rtfreporter:::.plan_merge(rtfreporter:::.plan_of(p, "group"))
   expect_null(g$group_col)
   expect_identical(g$collapse_repeats, 1L)
@@ -325,19 +341,18 @@ test_that("stats = rows formats come from `cells` rows with no template", {
                         label = "Statistics = stat_label", stats = "rows"),
     cells = data.frame(row = c("N", "Mean", "SD"), digits = c("0", NA, NA),
                        signif = c(NA, "4", "5")))
-  by_spec <- plan_apply(tfl_table_plan(d, sp, notes = FALSE), "pages")
+  by_spec <- plan_apply(tfl_table_plan(d, sp) |>
+                          plan_cells(notes = FALSE), "pages")
   by_code <- table_plan(d, cols = "TRT", rows = c(Analyte = "variable"),
-                      label = c(Statistics = "stat_label"), stats = "rows",
-                      notes = FALSE) |>
-    plan_fmt(by = "Statistics",
-             formats = list(N = list(digits = 0), Mean = list(signif = 4),
-                            SD = list(signif = 5))) |>
+                      label = c(Statistics = "stat_label")) |>
+                        plan_cells(stats = "rows", notes = FALSE) |>
+    plan_digits(.rows = c(N = "0", Mean = "4s", SD = "5s")) |>
     plan_apply("pages")
   expect_equal(by_spec, by_code)
   # the same rows on a stats = cells table are a mistake, and said to be
   bad <- sp
   bad$tables$stats <- NA
-  expect_error(tfl_table_plan(nz(plan_ard()), bad, notes = FALSE),
+  expect_error(tfl_table_plan(nz(plan_ard()), bad),
                "not `stats = rows`")
 })
 
@@ -355,10 +370,10 @@ test_that("display values are checked where they are written", {
                "two rows")
   lay <- tflspec:::.ard_spec_typed(
     tfl_table_spec(layout = data.frame(pages_cont_label = '" (Cont.)"',
-                                 colpages_carry = "1 | 2",
+                                 colpages_keep = "1 | 2",
                                  stub_vars = "a | b"))$layout, "layout")
   expect_identical(lay$pages_cont_label, " (Cont.)")   # quotes keep spaces
-  expect_identical(lay$colpages_carry, 1:2)
+  expect_identical(lay$colpages_keep, 1:2)
   expect_identical(lay$stub_vars, c("a", "b"))
 })
 
@@ -367,7 +382,7 @@ test_that("display values are checked where they are written", {
 
 hdr_spec <- function(col_header, ...) tfl_table_spec(
   tables = data.frame(cols = "TRT", rows = "group = variable"),
-  layout = data.frame(stub_into = "row_label", stub_before = "TRUE"),
+  layout = data.frame(stub_name = "row_label", stub_before = "TRUE"),
   col_header = col_header, ...)
 first_page <- function(pg) if (inherits(pg, "rtftable")) pg else pg[[1L]]
 
@@ -380,11 +395,12 @@ test_that("a col_header sheet gives the header rtf_col_header() gives", {
     cols = c("row_label", ".values", "row_label", ".values"),
     span = c(NA, "each", NA, "each"),
     text = c(NA, "{col}", "Characteristic", "(N={n})")))
-  by_spec <- plan_apply(tfl_table_plan(d, sp, notes = FALSE), "pages")
-  by_code <- table_plan(d, cols = "TRT", rows = c(group = "variable"),
-                      notes = FALSE) |>
-    plan_stub(into = "row_label", before = TRUE) |>
-    plan_col_header(n = TRUE, rtf_col_header(
+  by_spec <- plan_apply(tfl_table_plan(d, sp) |>
+                          plan_cells(notes = FALSE), "pages")
+  by_code <- table_plan(d, cols = "TRT", rows = c(group = "variable")) |>
+               plan_cells(notes = FALSE) |>
+    plan_stub(name = "row_label", before = TRUE) |>
+    plan_col_header(values = list(n = TRUE), rtf_col_header(
       c("", "{col}"), c("Characteristic", "(N={n})"))) |>
     plan_apply("pages")
   expect_equal(by_spec, by_code)
@@ -402,14 +418,15 @@ test_that("span = a key makes one spanner per value; KEY = value selects", {
     cards::ard_categorical(variables = SEX, statistic = ~ c("n", "p"))))
   sp <- tfl_table_spec(
     tables = data.frame(cols = "TRT | GRP", rows = "group = variable"),
-    layout = data.frame(stub_into = "row_label", stub_before = "TRUE"),
+    layout = data.frame(stub_name = "row_label", stub_before = "TRUE"),
     col_header = data.frame(
       line = c(1, 1, 2, 2, 2),
       cols = c("row_label", ".values", "row_label", "GRP = Young", "GRP = Old"),
       span = c(NA, "TRT", NA, "each", "each"),
       text = c(NA, "{col1}", "Sex", "<70", ">=70"),
       border_bottom = c(NA, "single", NA, NA, NA)))
-  h <- first_page(plan_apply(tfl_table_plan(d, sp, notes = FALSE),
+  h <- first_page(plan_apply(tfl_table_plan(d, sp) |>
+                               plan_cells(notes = FALSE),
                              "pages"))$col_header
   top <- h[[1L]]
   spanners <- Filter(function(cc) cc$to > cc$from, top)
@@ -439,7 +456,8 @@ test_that("col_header refuses what it cannot place", {
   expect_error(tfl_table_spec(col_header = data.frame(line = 1, text = "x")),
                "needs a `line` and `cols`")
   bad <- function(...) plan_apply(tfl_table_plan(d, hdr_spec(
-    data.frame(line = 1, ...)), notes = FALSE), "pages")
+    data.frame(line = 1, ...))) |>
+      plan_cells(notes = FALSE), "pages")
   expect_error(bad(cols = "NOPE", text = "x"), "no column 'NOPE'")
   expect_error(bad(cols = ".values", span = "ARMX", text = "x"),
                "not a column key")
@@ -454,17 +472,18 @@ test_that("col_header refuses what it cannot place", {
 # ------------------------------------------------ plan -> workbook
 
 code_plan <- function(d = spec_pages_ard()) {
-  table_plan(d, cols = "TRT", rows = c(group = "variable"), notes = FALSE) |>
+  table_plan(d, cols = "TRT", rows = c(group = "variable")) |>
+    plan_cells(notes = FALSE) |>
     plan_labels(AGE = "Age (years)", SEX = "Sex") |>
     plan_cells(continuous  = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
                categorical = "{n:d} ({p:.1f%})") |>
     plan_digits(1, rounding = "sas") |>
-    plan_stub(into = "row_label", before = TRUE) |>
+    plan_stub(name = "row_label", before = TRUE) |>
     plan_blanks(where = "between_groups", first = TRUE) |>
     plan_paginate_rows(max_rows = 6, split = "group_safe") |>
     plan_columns(widths = c(4, 2)) |>
     plan_style(align_count_pct = TRUE) |>
-    plan_col_header(n = TRUE, rtf_col_header(c("", "{col}"),
+    plan_col_header(values = list(n = TRUE), rtf_col_header(c("", "{col}"),
                                              c("Characteristic", "(N={n})")))
 }
 
@@ -488,8 +507,9 @@ test_that("tfl_as_table_spec() writes a plan as a workbook that gives its pages"
   skip_if_not_installed("writexl"); skip_if_not_installed("readxl")
   f <- tempfile(fileext = ".xlsx"); on.exit(unlink(f), add = TRUE)
   tfl_write_table_spec(sp, f)
-  back <- plan_apply(tfl_table_plan(p$data, tfl_read_table_spec(f, output_id = "T1"),
-                              notes = FALSE), "pages")
+  back <- plan_apply(
+    tfl_table_plan(p$data, tfl_read_table_spec(f, output_id = "T1")) |>
+      plan_cells(notes = FALSE), "pages")
   expect_equal(back, plan_apply(p, "pages"))
 })
 
@@ -520,9 +540,9 @@ test_that("a one-arm spanner comes back as one spanner per arm", {
   d <- normalize_ard(cards::ard_stack(
     adsl, .by = c(TRT, GRP),
     cards::ard_categorical(variables = SEX, statistic = ~ c("n", "p"))))
-  p <- table_plan(d, cols = c("TRT", "GRP"), rows = c(group = "variable"),
-                notes = FALSE) |>
-    plan_stub(into = "row_label", before = TRUE) |>
+  p <- table_plan(d, cols = c("TRT", "GRP"), rows = c(group = "variable")) |>
+         plan_cells(notes = FALSE) |>
+    plan_stub(name = "row_label", before = TRUE) |>
     plan_col_header(rtf_col_header(
       list(col_cell(1, ""), col_cell(c(2, 3), "ONLY")),
       c("Sex", "{col2}")))
@@ -556,9 +576,8 @@ test_that("numbers given by the caller may be keyed at any depth", {
   adsl$AGE[1:20] <- NA
   d <- normalize_ard(cards::ard_continuous(adsl, by = c(TRT, SEX),
                                            variables = AGE))
-  p <- table_plan(d, cols = c("TRT", "SEX"), rows = c(group = "variable"),
-                notes = FALSE) |>
-    plan_cells(continuous = "{mean:.1f}")
+  p <- table_plan(d, cols = c("TRT", "SEX"), rows = c(group = "variable")) |>
+    plan_cells(continuous = "{mean:.1f}", notes = FALSE)
   arm <- c(table(adsl$TRT))
   cell <- table(adsl$TRT, adsl$SEX)
   cell <- stats::setNames(as.vector(cell), paste(
@@ -567,11 +586,11 @@ test_that("numbers given by the caller may be keyed at any depth", {
                         c("", "", "{col2} N={n}"))
   # from the ARD: NA and a warning, not AGE's non-missing count
   expect_warning(out <- suppressMessages(plan_apply(
-    plan_col_header(p, n = TRUE, hdr), "pages")), "only AGE")
+    plan_col_header(p, values = list(n = TRUE), hdr), "pages")), "only AGE")
   expect_identical(hdr_rows(out)[[2L]][3L], "F N=NA")
   for (n in list(c(arm, cell), function(data) c(arm, cell))) {
-    out <- suppressMessages(plan_apply(plan_col_header(p, n = n, hdr),
-                                       "pages"))
+    out <- suppressMessages(plan_apply(
+      plan_col_header(p, hdr, values = list(n = n)), "pages"))
     expect_identical(hdr_rows(out)[[1L]][3L], "Placebo N=86")
     expect_identical(hdr_rows(out)[[2L]][3:4], c("F N=53", "M N=33"))
   }
@@ -583,10 +602,12 @@ test_that("numbers given by the caller may be keyed at any depth", {
                             span = c("TRT", "each"),
                             text = c("{col1} (N={n})", "{col2} (N={n})")))
   expect_warning(suppressMessages(plan_apply(
-    tfl_table_plan(d, sp, notes = FALSE), "pages")), "printed as NA")
+    tfl_table_plan(d, sp) |>
+      plan_cells(notes = FALSE), "pages")), "printed as NA")
   out <- suppressMessages(plan_apply(
-    tfl_table_plan(d, sp, notes = FALSE) |>
-      plan_col_header(n = c(arm, cell)), "pages"))
+    tfl_table_plan(d, sp) |>
+      plan_cells(notes = FALSE) |>
+      plan_col_header(values = list(n = c(arm, cell))), "pages"))
   h <- hdr_rows(out)
   expect_true("Placebo (N=86)" %in% h[[1L]])
   expect_identical(h[[2L]][3:4], c("F (N=53)", "M (N=33)"))
@@ -609,10 +630,11 @@ two_pop <- function() {
 }
 two_pop_plan <- function(d, n, text = "T (N={n})") {
   table_plan(d, cols = "BASEGR", rows = c(PARAM = "PARAM"),
-           label = c(label = ".label"), notes = FALSE) |>
-    plan_cells("{n}") |>
-    plan_paginate_group(show = FALSE) |>
-    plan_col_header(n = n, rtf_col_header(
+           label = c(label = ".label")) |>
+    plan_cells("{n}", notes = FALSE) |>
+    plan_paginate_group(keep = FALSE) |>
+    plan_col_header(values = if (is.list(n)) n else list(n = n),
+                    rtf_col_header(
       list(col_cell(1, ""), col_cell(c(2, 3), text)),
       c("", "{col} (n={n})")))
 }
@@ -634,13 +656,14 @@ test_that("both populations in one header, from code and from a workbook", {
                         label = "label = .label",
                         header_n = "n = page | N = table"),
     cells = data.frame(template = "{n}"),
-    layout = data.frame(group_page = "TRUE", group_show = "FALSE"),
+    layout = data.frame(group_page = "TRUE", group_keep = "FALSE"),
     col_header = data.frame(
       line = c(1, 2, 2), cols = c(".values", "1", ".values"),
       span = c(NA, NA, "each"),
       text = c("T (N={N}), tested n={n}", NA, "{col} (n={n})")))
   pg <- expect_silent(suppressMessages(plan_apply(
-    tfl_table_plan(x$d, sp, notes = FALSE), "pages")))
+    tfl_table_plan(x$d, sp) |>
+      plan_cells(notes = FALSE), "pages")))
   lab <- vapply(pg, function(p) {
     l <- vapply(p$col_header[[1L]], `[[`, "", "label")
     l[nzchar(l)][1L]
