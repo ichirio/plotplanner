@@ -1,5 +1,12 @@
 # tflspec (development version)
 
+* **Each ARD method has a label**: `tfl_ard_methods()` gains a `label`
+  column -- the name a person reads ("Summary statistics", "Counts and
+  percents", "Nested counts (e.g. SOC / PT)", "Proportion with CI" ...) --
+  beside its one-line `note`, for a GUI's choices and headings (tflplanner).
+  A catalog without the column (a company's own, written before) reads
+  its method names as labels.
+
 * Development reopens at 0.0.24.9000, after the 0.0.24 release.
 
 # tflspec 0.0.24

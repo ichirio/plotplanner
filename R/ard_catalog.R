@@ -118,6 +118,14 @@
                "hierarchical", "max", "subjects", "total_n",
                "proportion_ci", "mean_ci", "ttest", "wilcox", "chisq",
                "fisher", "custom"),
+    # the name a person reads (a GUI's choice, a heading); `note` says more
+    label = c("Summary statistics", "Counts and percents",
+              "Count of one level", "Missing counts",
+              "Nested counts (e.g. SOC / PT)", "Worst level per subject",
+              "Subjects with a record", "Number of subjects",
+              "Proportion with CI", "Mean with CI", "t test",
+              "Wilcoxon rank-sum test", "Chi-square test",
+              "Fisher's exact test", "Custom R code"),
     call = c("cards::ard_continuous", "cards::ard_categorical",
              "cards::ard_dichotomous", "cards::ard_missing",
              "cards::ard_stack_hierarchical", "cardx::ard_tabulate_max",
@@ -170,7 +178,8 @@
 #' In `args` and `code`, `data` is the analysis data and `population` the
 #' population's subjects.
 #'
-#' Each keyword names its function (`(subjects)` and `(code)` are the two
+#' Each keyword has a `label` -- the name a person reads, for a GUI's choice
+#' or a heading -- and a one-line `note`, and names its function (`(subjects)` and `(code)` are the two
 #' built into the engine), its `kind` -- how its `statistics` are passed:
 #' `continuous`, `categorical` or `none` -- the arguments it gets unless
 #' `args` gives them (`<id>` stands for the subject key), its default
@@ -180,13 +189,20 @@
 #' holds another, or a function that uses it is given `methods =` (as
 #' tflplanner does with its company standards).
 #'
-#' @return A data frame: `method`, `call`, `kind`, `defaults`, `statistics`,
-#'   `formats`, `note`.
+#' A catalog without a `label` column (one written before it was added)
+#' gets the method's own name as its label.
+#'
+#' @return A data frame: `method`, `label`, `call`, `kind`, `defaults`,
+#'   `statistics`, `formats`, `note`.
+#' @examples
+#' tfl_ard_methods()[, c("method", "label", "note")]
 #' @export
 tfl_ard_methods <- function() {
   m <- getOption("tflspec.ard_methods") %||% .ard_methods_builtin()
   m[] <- lapply(m, function(v) ifelse(is.na(v), "", v))
-  m
+  if (!"label" %in% names(m)) m$label <- ""
+  m$label[!nzchar(m$label)] <- m$method[!nzchar(m$label)]
+  m[c("method", "label", setdiff(names(m), c("method", "label")))]
 }
 
 #' The statistics an ARD analysis may ask for
