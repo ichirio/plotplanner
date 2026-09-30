@@ -332,6 +332,8 @@
   out$value[!is.na(out$value) & !nzchar(out$value)] <- NA_character_
   if ("note" %in% names(d)) out$note <- as.character(d$note)
   out <- out[!is.na(out$key) & nzchar(out$key), , drop = FALSE]
+  # the keys of an ARD spec sharing the workbook are the ARD spec's
+  out <- out[!out$key %in% .spec_kind_keys$ard, , drop = FALSE]
   bad <- setdiff(out$key, names(.ard_spec_study_keys))
   if (length(bad)) {
     .ard_stop(sprintf("The `study` sheet has %s %s; it reads: %s.",
@@ -966,7 +968,9 @@ print.tfl_table_spec <- function(x, ...) {
     }
   }
   empty <- vapply(sheets, function(d) !nrow(d), NA) & low != "study"
-  skip <- startsWith(nm, "_") | low == "about" | empty
+  # the sheets of another spec sharing the workbook (tfl_write_specs())
+  theirs <- low %in% unlist(.spec_kind_sheets()[c("ard", "listing")])
+  skip <- startsWith(nm, "_") | low == "about" | empty | theirs
   res <- low %in% .ard_spec_reserved & !skip
   if (any(res)) {
     message(sprintf(paste0(
@@ -1082,12 +1086,23 @@ tfl_read_table_spec <- function(path, output_id = NULL) {
   if (is.null(output_id)) sp else .ard_spec_scope(sp, output_id)
 }
 
-#' Write an ARD table definition to a workbook
+#' Write a table or report definition to a workbook
+#'
+#' Each writer writes the sheets its kind of spec needs and no more:
+#' `tfl_write_table_spec()` the table sheets (`tables`, `variables`,
+#' `cells`, `layout`, `columns`, `style`, `col_header`),
+#' `tfl_write_report_spec()` the report sheets (`report`, `page`, `header`,
+#' `footer`, `titles`, `footnotes`), each with the `study` sheet (showing the
+#' keys that kind reads: `rounding`; `output_path`, `program_dir`) and an
+#' `about` sheet stating `spec_version`.  Its own sheets are written even
+#' when empty, so their columns are there to fill in; a sheet of the other
+#' half is written only when the spec has rows in it, so nothing is dropped.
+#' What each column means is a comment on its header cell
+#' ([tfl_spec_columns()]).  Both halves in one workbook:
+#' [tfl_write_specs()].
 #'
 #' @param spec An [tfl_table_spec()] (or what it accepts).
-#' @param path Destination `.xlsx` (needs \pkg{writexl}).  The workbook
-#'   gets every sheet of [tfl_table_spec()], empty ones included so their columns
-#'   are there to fill in, and an `about` sheet stating `spec_version`.
+#' @param path Destination `.xlsx`.
 #'
 #' @return `path`, invisibly.
 #'
@@ -1098,27 +1113,14 @@ tfl_read_table_spec <- function(path, output_id = NULL) {
 #' @seealso [tfl_table_spec()], [tfl_read_table_spec()]
 #' @export
 tfl_write_table_spec <- function(spec, path) {
+  .ard_spec_xlsx_path(path, "tfl_write_table_spec")
   sp <- tfl_table_spec(spec)
-  sheets <- lapply(names(.ard_spec_schema()), function(s) {
-    d <- sp[[s]]
-    rownames(d) <- NULL
-    d
-  })
-  names(sheets) <- names(.ard_spec_schema())
   # the study sheet always shows its keys, blank or not, so the one place
   # the study's rounding is decided is visible in every workbook
-  st <- sp$study
-  for (k in setdiff(names(.ard_spec_study_keys), st$key)) {
-    st[nrow(st) + 1L, c("key", "value")] <- list(k, NA_character_)
-  }
-  sheets <- c(list(study = st), sheets)
-  .ard_spec_xlsx_path(path, "tfl_write_table_spec")
-  .ard_need("writexl", "tfl_write_table_spec()")
-  about <- data.frame(key = "spec_version",
-                      value = as.character(.ard_spec_version),
-                      stringsAsFactors = FALSE)
-  writexl::write_xlsx(c(sheets, list(about = about)), path)
-  invisible(path)
+  sheets <- c(list(study = .spec_study_sheet(sp$study, "table")),
+              .spec_half_sheets(sp, "table"),
+              list(about = .spec_about()))
+  .write_spec_book(sheets, path)
 }
 
 #' Scaffold a definition workbook from an ARD

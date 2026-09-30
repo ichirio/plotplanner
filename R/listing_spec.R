@@ -250,10 +250,8 @@ tfl_read_listing_spec <- function(path, output_id = NULL, check = TRUE) {
 #' @return `tfl_write_listing_spec()`: `path`, invisibly.
 #' @export
 tfl_write_listing_spec <- function(spec, path) {
-  .ard_need("writexl", "tfl_write_listing_spec()")
   spec <- tfl_listing_spec(spec, check = FALSE)
-  writexl::write_xlsx(unclass(spec), path)
-  invisible(path)
+  .write_spec_book(unclass(spec)[names(.listing_sheets)], path)
 }
 
 #' @export

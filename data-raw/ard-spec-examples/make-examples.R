@@ -562,21 +562,9 @@ pk_plan <- normalize_ard(ard_pk) |>
   plan_paginate_cols(every = 13, keep = 1:2)
 
 # ------------------------------------------------------ write and check
-# A `_README` sheet explains the columns to whoever opens the file.  The
-# reader ignores every sheet whose name starts with `_`, so it is safe to
-# keep, edit or delete.
-readme <- utils::read.csv(file.path("data-raw", "ard-spec-examples",
-                                    "readme-sheet.csv"),
-                          stringsAsFactors = FALSE, fileEncoding = "UTF-8",
-                          check.names = FALSE)
-write_book <- function(spec, path) {
-  tfl_write_table_spec(spec, path)
-  nms <- readxl::excel_sheets(path)
-  sheets <- lapply(nms, function(s)
-    as.data.frame(readxl::read_excel(path, sheet = s, col_types = "text")))
-  names(sheets) <- nms
-  writexl::write_xlsx(c(list(`_README` = readme), sheets), path)
-}
+# Each workbook holds the sheets its spec needs; what a column means is a
+# comment on its header cell (tfl_spec_columns()).
+write_book <- function(spec, path) tfl_write_table_spec(spec, path)
 
 run_checks <- function(path_of) {
   check("DM",  normalize_ard(ard_dm), path_of("DM"),  dm_code,  dm_plan,
@@ -720,7 +708,7 @@ report_spec <- tfl_table_spec(
   footer = do.call(tbl, ftr_rows),
   footnotes = do.call(tbl, fn_rows))
 report_book <- file.path(out_dir, "report.xlsx")
-write_book(report_spec, report_book)
+tfl_write_report_spec(report_spec, report_book)
 
 cat("\nThe report half: report.xlsx + study.xlsx -> tfl_report():\n")
 code_plans <- list(DM = dm_plan, AE = ae_plan, ORR = orr_plan, LB = lb_plan,

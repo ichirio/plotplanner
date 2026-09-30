@@ -4,7 +4,13 @@
 \alias{tfl_write_ard_spec}
 \title{Write an ARD definition to a workbook}
 \usage{
-tfl_write_ard_spec(spec, path, statistics = NULL, methods = NULL)
+tfl_write_ard_spec(
+  spec,
+  path,
+  statistics = NULL,
+  methods = NULL,
+  catalogs = FALSE
+)
 }
 \arguments{
 \item{spec}{An ARD definition: an \code{\link[=tfl_ard_spec]{tfl_ard_spec()}}, or a list of the sheets.}
@@ -13,12 +19,17 @@ tfl_write_ard_spec(spec, path, statistics = NULL, methods = NULL)
 
 \item{statistics, methods}{The catalogs (\code{\link[=tfl_ard_statistics]{tfl_ard_statistics()}},
 \code{\link[=tfl_ard_methods]{tfl_ard_methods()}}) to use instead of the current ones.}
+
+\item{catalogs}{\code{TRUE} also writes the catalogs the spec is checked
+against, as the sheets \verb{_methods} and \verb{_statistics} (for reference: the
+reader passes over sheets whose name starts with \verb{_}).}
 }
 \value{
 \code{path}, invisibly.
 }
 \description{
-Writes the four sheets, a \verb{_README}, and the catalogs the spec is checked
-against (\verb{_methods}, \verb{_statistics}) for reference; \code{\link[=tfl_read_ard_spec]{tfl_read_ard_spec()}}
-takes one back.
+Writes the four sheets (\code{study}, \code{datasets}, \code{populations}, \code{analyses})
+and no more; what each column means is a comment on its header cell
+(\code{\link[=tfl_spec_columns]{tfl_spec_columns()}}).  \code{\link[=tfl_read_ard_spec]{tfl_read_ard_spec()}} takes one back.  With
+other specs in one workbook: \code{\link[=tfl_write_specs]{tfl_write_specs()}}.
 }

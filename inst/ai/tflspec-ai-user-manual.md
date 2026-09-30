@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9003** (the development version,
+**This manual documents tflspec 0.0.24.9004** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -43,9 +43,15 @@ differ, trust the package, not this file, and fetch the matching copy with
 5. **Unknown columns are errors**, never ignored — a typo in a header would
    otherwise be a setting that silently never applies. The one exception is
    a `note` column, allowed on every sheet and never read.
-6. **Sheets whose name starts with `_`** (`_README`, `_methods`,
-   `_statistics`, `_tflplanner` ...) and `about` are notes: never read as
-   part of the definition.
+6. **Sheets whose name starts with `_`** (`_methods`, `_statistics`,
+   `_tflplanner` ...) and `about` are notes: never read as part of the
+   definition.  **Each writer writes only its spec's sheets** (a table
+   spec: `study`, the seven table sheets, `about`; a report spec: `study`,
+   the six report sheets, `about`; an ARD spec: its four sheets); what a
+   column means is a comment on its header cell (`tfl_spec_columns()`).
+   Several specs may share one workbook (`tfl_write_specs()`): each reader
+   takes its own sheets and passes over the others' sheets and `study`
+   keys.
 7. **`output_id` is the key.** A row with a blank `output_id` is the study
    default; a report's own row replaces the default row **per sheet** (and,
    on the keyed sheets, per key).
@@ -129,7 +135,8 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 | write the cards code of one output | `tfl_ard_code(spec, output_id)` |
 | run the ARD spec, one study ARD | `tfl_build_ard(spec)`; one output's rows: `tfl_ard_for(ard, output_id)` |
 | scaffold a table spec from an ARD | `tfl_table_spec_template(ard)` |
-| read / write a table (+ report) spec | `tfl_read_table_spec()` / `tfl_read_report_spec()` / `tfl_write_table_spec()` |
+| read / write a table (+ report) spec | `tfl_read_table_spec()` / `tfl_read_report_spec()` / `tfl_write_table_spec()` / `tfl_write_report_spec()` |
+| several specs in one workbook; what a column means | `tfl_write_specs(path, ard, table, report, listing)`; `tfl_spec_columns(sheet)` |
 | the plan a table spec stands for | `tfl_table_plan(data, spec)` (then any rtfreporter verb: last wins) |
 | the plan as code | `tfl_table_code(spec)` |
 | a plan written in code, back to a workbook | `tfl_as_table_spec(plan)` |
@@ -371,6 +378,7 @@ back): rename the value or choose another separator.
 `tfl_ard_spec_hash` `tfl_ard_methods` `tfl_ard_statistics`
 
 **Table spec:** `tfl_table_spec` `tfl_read_table_spec` `tfl_write_table_spec`
+`tfl_write_report_spec` `tfl_write_specs` `tfl_spec_columns`
 `tfl_table_spec_template` `tfl_table_plan` `tfl_table_code`
 `tfl_as_table_spec`
 
