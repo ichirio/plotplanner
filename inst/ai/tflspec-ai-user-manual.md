@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9002** (the development version,
+**This manual documents tflspec 0.0.24.9003** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -271,8 +271,10 @@ dataset of the data catalog (`.rds`, `.xpt`, `.sas7bdat`, `.csv`,
 `tfl_fig_design()`, `tfl_read_fig_design()` / `tfl_write_fig_design()`
 (one `.yml` a figure), `tfl_fig_design_code()` writes the ggplot2 script,
 `tfl_check_fig_design()` / `tfl_fig_advice()` check it, `tfl_fig_template()`
-starts one (`tfl_fig_templates()` lists 38), `tfl_fig_parts()` lists every
-piece and field.
+starts one (`tfl_fig_templates()` lists 38, each with its `category` --
+the clinical category of `tfl_fig_catalog()` -- and the `data` it reads:
+`"ADTR + ADRS"` both, `"ADLB / ADVS + ADSL"` one of ADLB / ADVS and ADSL),
+`tfl_fig_parts()` lists every piece and field.
 
 ```yaml
 template: km_risk_table
