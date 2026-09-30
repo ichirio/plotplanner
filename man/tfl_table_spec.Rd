@@ -37,7 +37,7 @@ An object of class \code{tfl_table_spec}: a list of the sheets' data
 frames.
 }
 \description{
-\code{tfl_table_spec()} validates the definition that \code{\link[rtfreporter:spread_ard]{rtfreporter::spread_ard()}} accepts as
+\code{tfl_table_spec()} validates the definition that \code{\link[rtfreporter:widen_ard]{rtfreporter::widen_ard()}} accepts as
 \verb{spec =}, and \code{\link[=tfl_read_table_spec]{tfl_read_table_spec()}} builds one from a workbook.  It holds
 what would otherwise be repeated in every script --- which keys go
 across and down, the display label and order of each variable, and the
@@ -78,7 +78,7 @@ for that variable, the \code{cells} rows for that variable / context / row.
 So one workbook can hold a house style and every report's own changes to
 it.  \code{\link[=tfl_read_table_spec]{tfl_read_table_spec()}} narrows it to one report with \verb{output_id =}.
 
-Explicit \code{\link[rtfreporter:spread_ard]{rtfreporter::spread_ard()}} arguments win over the spec, and the spec wins
+Explicit \code{\link[rtfreporter:widen_ard]{rtfreporter::widen_ard()}} arguments win over the spec, and the spec wins
 over the defaults.
 
 Lists inside a cell are \code{|}-separated (\code{TR01AG1 | SEROSTAT}).  A column
@@ -97,17 +97,23 @@ setting that silently never applies.
 \item{\code{label}}{The row-label source, in the same notation
 (\code{label = AEDECOD}).  Blank keeps \code{.label}; \code{NA} builds it to tell
 rows apart and then drops it; \code{NULL} leaves it out.}
-\item{\code{stats}, \code{value}, \code{sep}, \code{sort_stat}, \code{na}}{As the
-\code{\link[rtfreporter:spread_ard]{rtfreporter::spread_ard()}} arguments of the same name.}
-\item{\code{sort}}{\code{TRUE}, \code{FALSE}, or the keys in order:
-\code{.overall | group1 | .depth | -n | label}.}
+\item{\code{stats}, \code{value}, \code{na}}{How a cell is filled, as
+\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_cells()}} takes them: \code{stats = rows} puts each
+statistic on a row of its own.}
+\item{\code{sort}}{\code{TRUE}, \code{FALSE}, or the keys in order, \code{-} for
+descending: \code{.overall | group1 | .depth | -n | label}.}
+\item{\code{sort_stat}}{The statistic totalled across the columns for a
+frequency order (\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_sort()}}'s \code{stat}).}
+\item{\code{sep}}{What joins several column keys into one column's name
+(\code{Placebo____n} by default; \verb{_} gives \code{Placebo_n}), the name the
+\code{columns} sheet refers to (\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_columns()}}'s \code{sep}).}
 \item{\code{header_n}}{Which population a \code{col_header} text's \code{{n}} is,
 on pages split by a group value: \code{page} (each page's own --- the
 subjects with that lab test) or \code{table} (the analysis set, the
 ARD rows without the page key).  Several at once name their
 tokens: \code{n = page | N = table} gives \code{{n}} and \code{{N}}.  Blank: the
 page's, with a warning when the ARD states both.  See
-\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_col_header()}}'s \code{n}.}
+\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_col_header()}}'s \code{values}.}
 }
 }
 
@@ -143,8 +149,8 @@ when comma-separated: \verb{1,2} for \code{{mean} ({sd})}.}
 For a \code{stats = rows} table (one statistic per row, the raw value in the
 cell) a row with \strong{no template} is instead that statistic's display
 format: \code{row} names the statistic as the label column prints it (\code{N},
-\code{Mean}) and \code{digits} / \code{signif} say how many, as \code{\link[rtfreporter:fmt_numeric]{rtfreporter::fmt_numeric()}} takes
-them (\verb{fmt_numeric(by = <label column>, formats = )}).
+\code{Mean}) and \code{digits} / \code{signif} say how many, for every value column
+(\code{plan_digits(.rows = c(Mean = 2, SD = "3s"))}).
 }
 
 \section{\code{layout}}{
@@ -152,16 +158,17 @@ them (\verb{fmt_numeric(by = <label column>, formats = )}).
 One row per report, each column one argument of the plan verb its
 prefix names:
 \describe{
-\item{\verb{pages_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_rows()}}: \code{max_rows}, \code{split}, \code{by},
+\item{\verb{pages_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_rows()}}: \code{max_rows}, \code{split},
 \code{min_group_rows}, \code{cont_label}.}
-\item{\verb{group_*}}{\code{col}, \code{mode} and \code{collapse} of \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_row_group()}};
-\code{group_page = TRUE} is \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_group()}}, one page per value
-of \code{group_col}, and \code{group_show = FALSE} hides that column.}
+\item{\verb{group_*}}{\code{mode} and \code{collapse} of \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_row_group()}}.
+\code{group_page = TRUE} is \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_group()}}: one page per
+value of \code{group_col} (blank: the outermost row key), and
+\code{group_keep = FALSE} leaves that column unprinted.}
 \item{\verb{blank_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_blanks()}}: \code{where}, \code{first}, \code{last},
 \code{counted}.}
-\item{\verb{stub_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_stub()}}: \code{vars}, \code{into}, \code{indent}, \code{summary},
+\item{\verb{stub_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_stub()}}: \code{vars}, \code{name}, \code{indent}, \code{summary},
 \code{before}.}
-\item{\verb{colpages_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_cols()}}: \code{every}, \code{at}, \code{carry},
+\item{\verb{colpages_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_cols()}}: \code{every}, \code{at}, \code{keep},
 \code{order}.}
 }
 }
@@ -169,7 +176,7 @@ of \code{group_col}, and \code{group_show = FALSE} hides that column.}
 \section{\code{columns}}{
 
 One row per printed column, by \strong{name} --- the finished table's, so
-a folded stub is the name given to \code{stub_into}.  \code{.values} stands for
+a folded stub is the name given to \code{stub_name}.  \code{.values} stands for
 every spread column, however many the data turned out to have.
 \describe{
 \item{\code{width}}{Relative width.  Named columns win over \code{.values};
@@ -177,17 +184,25 @@ when widths are given, every printed column needs one.}
 \item{\code{row_title}}{\code{TRUE} for a row-heading column.}
 \item{\code{decimal_split}}{\code{TRUE} to line up the decimal points
 (\code{\link[rtfreporter:set_decimal_split]{rtfreporter::set_decimal_split()}}).}
+Together with \code{style}'s \code{auto_width}, these are
+\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_columns()}}.
 \item{\code{hide}}{\code{TRUE} to use the column without printing it.}
 }
 }
 
 \section{\code{style}}{
 
-One row per report: \code{border}, \code{align_count_pct}, \code{auto_width},
-\code{row_height_twips}, \code{header_row_height_twips},
-\code{blank_row_height_twips}, \code{font}, \code{font_size_half_points},
-\code{table_align}, \code{cell_valign}, as \code{\link[rtfreporter:rtftable]{rtfreporter::rtftable()}} / \code{\link[rtfreporter:as_rtftables]{rtfreporter::as_rtftables()}} take
-them.
+One row per report, each column an argument of
+\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_style()}}: \code{border}, \code{align_count_pct}, \code{font},
+\code{font_size_half_points}, \code{row_height_twips}, \code{row_height_exact},
+\code{header_row_height_twips}, \code{blank_row_height_twips},
+\code{cell_padding_left_twips}, \code{cell_padding_right_twips}, \code{cell_valign},
+\code{table_align}, \code{markup}, \code{blank_row_normalize}, and the rules of one
+kind of row, \code{border_header}, \code{border_spanning}, \code{border_body},
+\code{border_first_row}, \code{border_last_row}: the sides drawn (\code{top | bottom})
+or \code{none}, as \code{\link[rtfreporter:rtf_border]{rtfreporter::rtf_border()}} takes them.  \code{border} and the
+\verb{border_*} columns are one or the other.  \code{auto_width} is
+\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_columns()}}'s.
 
 Values are checked where they are written: a number, \code{TRUE} / \code{FALSE}
 or a \code{|}-list, as the column needs.  Quote a text value (\code{" (Cont.)"})
@@ -214,7 +229,7 @@ arm's spanner the arm), \code{{n1}}, \code{{n2}} (the population at that
 depth of the keys) and \code{{n:sum}} (the total over the cell's
 columns).  \code{{n}} is read from the ARD whenever a text uses it; a
 number the ARD does not state prints \code{NA} with a warning, and
-\code{plan_col_header(n = )} after \code{tfl_table_plan()} supplies it.
+\code{plan_col_header(values = )} after \code{tfl_table_plan()} supplies it.
 Quote a text to keep leading spaces: \code{"  Category"}.}
 \item{\code{align}, \code{bold}, \code{border_top}, \code{border_bottom}}{As
 \code{\link[rtfreporter:col_cell]{rtfreporter::col_cell()}} / \code{\link[rtfreporter:rtf_border]{rtfreporter::rtf_border()}} take them (\code{single}, \code{none}, ...).}

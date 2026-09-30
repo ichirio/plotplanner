@@ -9,13 +9,13 @@ tables,,1 行 = 1 帳票。役割と表全体のオプション。コードで�
 tables,cols,横に展開するキー。外側から順に。,TR01AG1 | SEROSTAT
 tables,rows,縦のキー。name = 列名 で列名を付け替え。引用符で囲んだ値は固定の見出し。,"group1 = AEBODSYS | grp = ""Worst Post-Baseline Values"""
 tables,label,行ラベルの元。空欄 = .label。NA = 行の区別にだけ使って列は出さない。NULL = 使わない。,label = AEDECOD
-tables,stats,cells（テンプレートでセルを作る）/ rows（統計量ごとに 1 行、生の値）。,rows
-tables,value,stats = rows のときの値。stat（数値）/ stat_fmt（cards 整形済み文字列）。,stat
-tables,sep,cols が複数のとき列名をつなぐ文字。既定は ____。,_
+tables,stats,cells（テンプレートでセルを作る）/ rows（統計量ごとに 1 行、生の値）。plan_cells(stats = )。,rows
+tables,value,stats = rows のときの値。stat（数値）/ stat_fmt（cards 整形済み文字列）。plan_cells(value = )。,stat
+tables,sep,cols が複数のとき値の列名をつなぐ文字。既定は ____。columns シートはこの名前で列を指す。plan_columns(sep = )。,_
 tables,sort,TRUE / FALSE / 並べ替えキーの列挙。,.overall | group1 | .depth | -n | label
-tables,sort_stat,列方向に合計して .sort_stat 列にする統計量名。,n
+tables,sort_stat,列方向に合計して並べ替えに使う統計量名。plan_sort(stat = )。,n
 tables,na,どのテンプレートも埋められなかったセルの値。,-
-tables,header_n,ページ（検査項目など）で分けた表のヘッダー {n} がどの母集団か。page = そのページの母集団（その検査を受けた人）/ table = 解析対象集団（ページキーを持たない ARD 行）。両方なら n = page | N = table で {n} と {N}。空欄 = page（両方あって食い違えば警告）。どちらも ARD に入れておくこと。,n = page | N = table
+tables,header_n,ページ（検査項目など）で分けた表のヘッダー {n} がどの母集団か。page = そのページの母集団（その検査を受けた人）/ table = 解析対象集団（ページキーを持たない ARD 行）。両方なら n = page | N = table で {n} と {N}。空欄 = page（両方あって食い違えば警告）。どちらも ARD に入れておくこと。plan_col_header(values = list(n = ...))。,n = page | N = table
 variables,,1 行 = 1 変数。解析変数だけでなく列キーやラベル列の名前も書ける。,
 variables,variable,変数名（解析変数・列キー・ラベル列名）。,AGEGR1
 variables,label,変数名の代わりに表示する文字。,Age (years)
@@ -29,22 +29,22 @@ cells,when,条件（R の式）。成り立つときだけこの行を使う。�
 cells,template,セルの書き方。{統計量:書式} を埋め込む。,{mean} ({sd})
 cells,digits,書式のないトークンの小数桁。カンマ区切りでトークンごと。,"2,3"
 cells,signif,有効桁（digits より優先）。,4
-cells,（template 空欄の行）,stats = rows の帳票だけ：統計量ごとの表示桁。row = 統計量名（ラベル列の値）、digits / signif を書く（fmt_numeric と同じ）。variable / context は空欄。,row = Mean / signif = 4
+cells,（template 空欄の行）,stats = rows の帳票だけ：統計量ごとの表示桁。row = 統計量名（ラベル列の値）、digits / signif を書く（plan_digits(.rows = ) になる。signif は 4s のように有効桁）。variable / context は空欄。,row = Mean / signif = 4
 (全体),（読み方）,ここまでの 4 シートで table data.frame、以下の 4 シート（layout / columns / style / col_header）で列ヘッダー付きの rtftable のページまで。tfl_table_plan(data; tfl_read_table_spec(path; output_id = )) で読む。後に書いた plan_*() が勝つ。,
 layout,,1 行 = 1 帳票。ページ・グループ・空行・スタブ。列名の接頭辞が対応する plan_*() を表す。,
-layout,pages_max_rows / pages_split / pages_by / pages_min_group_rows / pages_cont_label,plan_paginate_rows() の max_rows / split / by / min_group_rows / cont_label。先頭・末尾の空白を残すときは引用符で囲む。,"26 / group_force / "" (Cont.)"""
-layout,group_col / group_mode / group_collapse,plan_row_group() の col / mode / collapse。collapse は TRUE か列（名前・位置）の | 区切り。,value / 1 | 2
-layout,group_page / group_show,group_page = TRUE で group_col の値ごとに改ページ（plan_paginate_group）。group_show = FALSE でその列を表示しない。,TRUE / FALSE
+layout,pages_max_rows / pages_split / pages_min_group_rows / pages_cont_label,plan_paginate_rows() の max_rows / split / min_group_rows / cont_label。先頭・末尾の空白を残すときは引用符で囲む。値ごとの改ページは group_page。,"26 / group_force / "" (Cont.)"""
+layout,group_mode / group_collapse,plan_row_group() の mode / collapse。collapse は TRUE か列（名前・位置）の | 区切り。グループの列は行キーから決まる。,value / 1 | 2
+layout,group_page / group_col / group_keep,group_page = TRUE で group_col（空欄なら一番外の行キー）の値ごとに改ページ（plan_paginate_group の col / keep）。group_keep = FALSE でその列を表示しない。,TRUE / PARAM / FALSE
 layout,blank_where / blank_first / blank_last / blank_counted,plan_blanks() の where / first / last / counted。,between_groups / TRUE
-layout,stub_vars / stub_into / stub_indent / stub_summary / stub_before,plan_stub() の vars / into / indent / group_summary / before。,row_label / TRUE
+layout,stub_vars / stub_name / stub_indent / stub_summary / stub_before,plan_stub() の vars / name / indent / group_summary / before。,row_label / TRUE
 layout,colpages_every / colpages_at / colpages_carry / colpages_order,plan_paginate_cols() の every / at / carry / order（列方向のページ分割）。,16 | 29 / 1 | 2
-columns,,1 行 = 印字される列 1 つ。列は名前で指定（畳んだスタブは stub_into の名前）。.values = 展開された値の列すべて。,
+columns,,1 行 = 印字される列 1 つ。列は名前で指定（畳んだスタブは stub_name の名前、値の列は tables の sep でつないだ名前）。.values = 展開された値の列すべて。,
 columns,column,列名、または .values。,row_label
 columns,width,相対幅。幅を書くなら印字される全列に必要（.values でまとめて指定できる）。,5
-columns,row_title,TRUE で行見出しの列。,TRUE
+columns,row_title,TRUE で行見出しの列。plan_columns(row_title = )。,TRUE
 columns,decimal_split,TRUE で小数点を揃える（set_decimal_split）。,TRUE
 columns,hide,TRUE で処理には使うが印字しない。,TRUE
-style,,1 行 = 1 帳票。border / align_count_pct / auto_width / row_height_twips / header_row_height_twips / blank_row_height_twips / font / font_size_half_points / table_align / cell_valign（rtftable と同じ引数）。,align_count_pct = TRUE
+style,,1 行 = 1 帳票。border / align_count_pct / row_height_twips / header_row_height_twips / blank_row_height_twips / font / font_size_half_points / table_align / cell_valign（plan_style と同じ引数）。auto_width は plan_columns(auto_width = ) になる。,align_count_pct = TRUE
 col_header,,1 行 = 列ヘッダーのセル 1 つ。帳票の行があればデフォルトのヘッダーを丸ごと置き換える。,
 col_header,line,ヘッダーの行番号（1 = 一番上）。,1
 col_header,cols,セルが乗る列。列名 / .values（値の列すべて）/ 位置（3、3:31、3:last）/ KEY = 値（そのキーがその値の列）を | 区切りで。,.values / grp1 | grp2 / variable = n

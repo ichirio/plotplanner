@@ -1,5 +1,33 @@
 # tflspec (development version)
 
+* **Table definitions follow rtfreporter's redesigned plan verbs**
+  (rtfreporter >= 0.8.1.9003, ichirio/rtfreporter#498).  What
+  `tfl_table_plan()` builds, `tfl_table_code()` writes and
+  `tfl_as_table_spec()` reads back:
+  - `table_plan()` takes only the roles (`cols`, `rows`, `label`, `stat`),
+    and so does `tfl_table_plan()`'s `...`: `stats`, `value`, `na` (and
+    `notes`) are `plan_cells()`'s, `sort_stat` is `plan_sort(stat = )`,
+    `sep` is `plan_columns(sep = )`, `header_n` is
+    `plan_col_header(values = )`.
+  - A `cells` row with no template (a `stats = rows` table's digits) is
+    `plan_digits(.rows = )`; `plan_fmt()` is gone.
+  - `columns$row_title` and `style$auto_width` go to `plan_columns()`.
+  - The `style` sheet is `plan_style()`'s closed list of arguments; it
+    gains `row_height_exact`, the cell paddings, `markup`,
+    `blank_row_normalize` and the rules of one kind of row,
+    `border_header` ... `border_last_row`, written `top | bottom` or
+    `none`.
+  - **Workbook columns renamed** to the verbs' arguments:
+    `layout$stub_into` is `stub_name`, `group_show` is `group_keep`,
+    `colpages_carry` is `colpages_keep`; `layout$pages_by` is removed
+    (one page per value is `group_page = TRUE` with `group_col`), and
+    `group_col` belongs to the page group only.  A workbook with a former
+    column is refused with what to write instead; nothing is read under
+    its old name.  The example workbooks are rebuilt, and the five
+    example reports are byte-identical to 0.0.23.9000's.
+  - The ORR example's derived key is `orr` (it was `orr_ci`): with
+    `sep = "_"` a value containing the separator cannot be split back.
+
 * **tflspec is the spec side only** (#29; step 4 of plan E, Discussion #23).
   The table engine -- the ARD functions and the plan -- now lives in
   rtfreporter (>= 0.8.1.9001) under its names: `normalize_ard()`,

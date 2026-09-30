@@ -42,22 +42,26 @@
 #   text  as written; quote it ("...") to keep leading or trailing spaces
 .ard_spec_types <- list(
   layout = c(
-    pages_max_rows = "int", pages_split = "text", pages_by = "list",
+    pages_max_rows = "int", pages_split = "text",
     pages_min_group_rows = "int", pages_cont_label = "text",
     group_col = "text", group_mode = "text", group_collapse = "flex",
-    group_page = "bool", group_show = "bool",
+    group_page = "bool", group_keep = "bool",
     blank_where = "text", blank_first = "bool", blank_last = "bool",
     blank_counted = "bool",
-    stub_vars = "list", stub_into = "text", stub_indent = "int",
+    stub_vars = "list", stub_name = "text", stub_indent = "int",
     stub_summary = "text", stub_before = "bool",
-    colpages_every = "int", colpages_at = "ids", colpages_carry = "ids",
+    colpages_every = "int", colpages_at = "ids", colpages_keep = "ids",
     colpages_order = "list"),
   style = c(
     border = "text", align_count_pct = "bool", auto_width = "bool",
-    row_height_twips = "int", header_row_height_twips = "int",
-    blank_row_height_twips = "int", font = "text",
-    font_size_half_points = "int", table_align = "text",
-    cell_valign = "text"),
+    row_height_twips = "int", row_height_exact = "bool",
+    header_row_height_twips = "int", blank_row_height_twips = "int",
+    cell_padding_left_twips = "int", cell_padding_right_twips = "int",
+    font = "text", font_size_half_points = "int", table_align = "text",
+    cell_valign = "text", markup = "text", blank_row_normalize = "text",
+    border_header = "sides", border_spanning = "sides",
+    border_body = "sides", border_first_row = "sides",
+    border_last_row = "sides"),
   columns = c(
     column = "text", width = "num", row_title = "bool",
     decimal_split = "bool", hide = "bool"),
@@ -130,6 +134,15 @@
     },
     list = .ard_spec_split(x),
     ids  = ids(x),
+    sides = {
+      # the rules of one kind of row: the sides drawn, or `none`
+      v <- tolower(.ard_spec_split(x))
+      if (identical(v, "none")) return(character())
+      if (!length(v) || !all(v %in% c("top", "bottom", "left", "right"))) {
+        bad("sides from top | bottom | left | right, or none")
+      }
+      v
+    },
     text = gsub("\\n", "\n", gsub("\r\n", "\n",
                                    .ard_spec_unquote(x), fixed = TRUE),
                 fixed = TRUE))
@@ -201,6 +214,16 @@
 # written ahead of the reader.
 .ard_spec_reserved <- c("cell_styles", "listing", "listing_cols", "figures")
 
+# Columns an older workbook may still carry, and what became of them when
+# the plan verbs were redesigned (rtfreporter#498).  No column is read under
+# its former name: the workbook is told what to write instead.
+.ard_spec_retired <- list(
+  layout = c(stub_into = "renamed `stub_name`",
+             colpages_carry = "renamed `colpages_keep`",
+             group_show = "renamed `group_keep`",
+             pages_by = paste0("removed: one page per value is ",
+                               "`group_page = TRUE` with `group_col`")))
+
 # A sheet in the shape the schema says: every column present, text trimmed,
 # blank cells NA, wholly blank rows gone.  A column the sheet does not read is
 # an error -- a typo in a header would otherwise be a setting that silently
@@ -213,6 +236,8 @@
   extra <- setdiff(names(d), c(allowed, "note"))
   if (length(extra)) {
     home <- vapply(extra, function(cn) {
+      why <- .ard_spec_retired[[sheet]][cn]
+      if (!is.null(why) && !is.na(why)) return(paste0(" (", why, ")"))
       if (cn %in% names(.ard_spec_study_keys)) {
         return(" (one per study: a key of the `study` sheet)")
       }
@@ -362,7 +387,7 @@
 #' A workbook-shaped definition of how an ARD becomes a table
 #'
 #' @description
-#' `tfl_table_spec()` validates the definition that [rtfreporter::spread_ard()] accepts as
+#' `tfl_table_spec()` validates the definition that [rtfreporter::widen_ard()] accepts as
 #' `spec =`, and [tfl_read_table_spec()] builds one from a workbook.  It holds
 #' what would otherwise be repeated in every script --- which keys go
 #' across and down, the display label and order of each variable, and the
@@ -400,7 +425,7 @@
 #' So one workbook can hold a house style and every report's own changes to
 #' it.  [tfl_read_table_spec()] narrows it to one report with `output_id =`.
 #'
-#' Explicit [rtfreporter::spread_ard()] arguments win over the spec, and the spec wins
+#' Explicit [rtfreporter::widen_ard()] arguments win over the spec, and the spec wins
 #' over the defaults.
 #'
 #' Lists inside a cell are `|`-separated (`TR01AG1 | SEROSTAT`).  A column
@@ -417,17 +442,23 @@
 #'   \item{`label`}{The row-label source, in the same notation
 #'     (`label = AEDECOD`).  Blank keeps `.label`; `NA` builds it to tell
 #'     rows apart and then drops it; `NULL` leaves it out.}
-#'   \item{`stats`, `value`, `sep`, `sort_stat`, `na`}{As the
-#'     [rtfreporter::spread_ard()] arguments of the same name.}
-#'   \item{`sort`}{`TRUE`, `FALSE`, or the keys in order:
-#'     `.overall | group1 | .depth | -n | label`.}
+#'   \item{`stats`, `value`, `na`}{How a cell is filled, as
+#'     [rtfreporter::plan_cells()] takes them: `stats = rows` puts each
+#'     statistic on a row of its own.}
+#'   \item{`sort`}{`TRUE`, `FALSE`, or the keys in order, `-` for
+#'     descending: `.overall | group1 | .depth | -n | label`.}
+#'   \item{`sort_stat`}{The statistic totalled across the columns for a
+#'     frequency order ([rtfreporter::plan_sort()]'s `stat`).}
+#'   \item{`sep`}{What joins several column keys into one column's name
+#'     (`Placebo____n` by default; `_` gives `Placebo_n`), the name the
+#'     `columns` sheet refers to ([rtfreporter::plan_columns()]'s `sep`).}
 #'   \item{`header_n`}{Which population a `col_header` text's `{n}` is,
 #'     on pages split by a group value: `page` (each page's own --- the
 #'     subjects with that lab test) or `table` (the analysis set, the
 #'     ARD rows without the page key).  Several at once name their
 #'     tokens: `n = page | N = table` gives `{n}` and `{N}`.  Blank: the
 #'     page's, with a warning when the ARD states both.  See
-#'     [rtfreporter::plan_col_header()]'s `n`.}
+#'     [rtfreporter::plan_col_header()]'s `values`.}
 #' }
 #'
 #' @section `variables`:
@@ -459,29 +490,30 @@
 #' For a `stats = rows` table (one statistic per row, the raw value in the
 #' cell) a row with **no template** is instead that statistic's display
 #' format: `row` names the statistic as the label column prints it (`N`,
-#' `Mean`) and `digits` / `signif` say how many, as [rtfreporter::fmt_numeric()] takes
-#' them (`fmt_numeric(by = <label column>, formats = )`).
+#' `Mean`) and `digits` / `signif` say how many, for every value column
+#' (`plan_digits(.rows = c(Mean = 2, SD = "3s"))`).
 #'
 #' @section `layout`:
 #' One row per report, each column one argument of the plan verb its
 #' prefix names:
 #' \describe{
-#'   \item{`pages_*`}{[rtfreporter::plan_paginate_rows()]: `max_rows`, `split`, `by`,
+#'   \item{`pages_*`}{[rtfreporter::plan_paginate_rows()]: `max_rows`, `split`,
 #'     `min_group_rows`, `cont_label`.}
-#'   \item{`group_*`}{`col`, `mode` and `collapse` of [rtfreporter::plan_row_group()];
-#'     `group_page = TRUE` is [rtfreporter::plan_paginate_group()], one page per value
-#'     of `group_col`, and `group_show = FALSE` hides that column.}
+#'   \item{`group_*`}{`mode` and `collapse` of [rtfreporter::plan_row_group()].
+#'     `group_page = TRUE` is [rtfreporter::plan_paginate_group()]: one page per
+#'     value of `group_col` (blank: the outermost row key), and
+#'     `group_keep = FALSE` leaves that column unprinted.}
 #'   \item{`blank_*`}{[rtfreporter::plan_blanks()]: `where`, `first`, `last`,
 #'     `counted`.}
-#'   \item{`stub_*`}{[rtfreporter::plan_stub()]: `vars`, `into`, `indent`, `summary`,
+#'   \item{`stub_*`}{[rtfreporter::plan_stub()]: `vars`, `name`, `indent`, `summary`,
 #'     `before`.}
-#'   \item{`colpages_*`}{[rtfreporter::plan_paginate_cols()]: `every`, `at`, `carry`,
+#'   \item{`colpages_*`}{[rtfreporter::plan_paginate_cols()]: `every`, `at`, `keep`,
 #'     `order`.}
 #' }
 #'
 #' @section `columns`:
 #' One row per printed column, by **name** --- the finished table's, so
-#' a folded stub is the name given to `stub_into`.  `.values` stands for
+#' a folded stub is the name given to `stub_name`.  `.values` stands for
 #' every spread column, however many the data turned out to have.
 #' \describe{
 #'   \item{`width`}{Relative width.  Named columns win over `.values`;
@@ -489,15 +521,23 @@
 #'   \item{`row_title`}{`TRUE` for a row-heading column.}
 #'   \item{`decimal_split`}{`TRUE` to line up the decimal points
 #'     ([rtfreporter::set_decimal_split()]).}
+#'   Together with `style`'s `auto_width`, these are
+#'   [rtfreporter::plan_columns()].
 #'   \item{`hide`}{`TRUE` to use the column without printing it.}
 #' }
 #'
 #' @section `style`:
-#' One row per report: `border`, `align_count_pct`, `auto_width`,
-#' `row_height_twips`, `header_row_height_twips`,
-#' `blank_row_height_twips`, `font`, `font_size_half_points`,
-#' `table_align`, `cell_valign`, as [rtfreporter::rtftable()] / [rtfreporter::as_rtftables()] take
-#' them.
+#' One row per report, each column an argument of
+#' [rtfreporter::plan_style()]: `border`, `align_count_pct`, `font`,
+#' `font_size_half_points`, `row_height_twips`, `row_height_exact`,
+#' `header_row_height_twips`, `blank_row_height_twips`,
+#' `cell_padding_left_twips`, `cell_padding_right_twips`, `cell_valign`,
+#' `table_align`, `markup`, `blank_row_normalize`, and the rules of one
+#' kind of row, `border_header`, `border_spanning`, `border_body`,
+#' `border_first_row`, `border_last_row`: the sides drawn (`top | bottom`)
+#' or `none`, as [rtfreporter::rtf_border()] takes them.  `border` and the
+#' `border_*` columns are one or the other.  `auto_width` is
+#' [rtfreporter::plan_columns()]'s.
 #'
 #' Values are checked where they are written: a number, `TRUE` / `FALSE`
 #' or a `|`-list, as the column needs.  Quote a text value (`" (Cont.)"`)
@@ -522,7 +562,7 @@
 #'     depth of the keys) and `{n:sum}` (the total over the cell's
 #'     columns).  `{n}` is read from the ARD whenever a text uses it; a
 #'     number the ARD does not state prints `NA` with a warning, and
-#'     `plan_col_header(n = )` after `tfl_table_plan()` supplies it.
+#'     `plan_col_header(values = )` after `tfl_table_plan()` supplies it.
 #'     Quote a text to keep leading spaces: `"  Category"`.}
 #'   \item{`align`, `bold`, `border_top`, `border_bottom`}{As
 #'     [rtfreporter::col_cell()] / [rtfreporter::rtf_border()] take them (`single`, `none`, ...).}
@@ -749,9 +789,9 @@ print.tfl_table_spec <- function(x, ...) {
   v
 }
 
-# The table-wide arguments one `tables` row supplies, as spread_ard() takes
+# The table-wide arguments one `tables` row supplies, as widen_ard() takes
 # them.  Only what the row says is returned: an argument it leaves blank
-# keeps spread_ard()'s own default.
+# keeps widen_ard()'s own default.
 .ard_spec_table_args <- function(sp) {
   out <- list()
   r <- .ard_spec_study_value(sp, "rounding")
@@ -865,7 +905,7 @@ print.tfl_table_spec <- function(x, ...) {
   eval(call("~", cond, tpl), baseenv())
 }
 
-# The `cells` sheet as spread_ard()'s `cells` map.  Rows sharing variable /
+# The `cells` sheet as widen_ard()'s `cells` map.  Rows sharing variable /
 # context / row are one chain, in sheet order; the map key is the variable,
 # the context, both (a variable summarised two ways), or `default`.
 .ard_spec_cells <- function(sp) {
@@ -1407,6 +1447,19 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   .plan_to_spec(x, output_id, check)
 }
 
+# One kind of row's rules as the `style` sheet writes them: the sides drawn
+# (`top | bottom`), or `none`.  Only a default rule on the four outer sides
+# converts; a style, width, colour or inside rule stays in code (NULL).
+.spec_border_sides <- function(b) {
+  if (!inherits(b, "rtf_border")) return(NULL)
+  plain <- rtfreporter::rtf_border(top = TRUE)$top
+  if (!is.null(b$inside_h) || !is.null(b$inside_v)) return(NULL)
+  sides <- c("top", "bottom", "left", "right")
+  on <- sides[!vapply(b[sides], is.null, NA)]
+  if (!all(vapply(b[on], identical, NA, plain))) return(NULL)
+  if (length(on)) paste(on, collapse = " | ") else "none"
+}
+
 # ---------------------------------------------------------------------------
 #  A plan written as code, back to a workbook
 # ---------------------------------------------------------------------------
@@ -1431,15 +1484,15 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   # everything is read from what the plan resolves to and from
   # plan_layers(): never from the plan's own fields
   a <- suppressMessages(rtfreporter::plan_apply(p, "args"))
-  s <- a$spread
+  s <- a$widen
   L <- suppressMessages(rtfreporter::plan_layers(p))
   pages <- L$pages
   pnames <- L$columns$names
   spread <- L$columns$spread
   ly <- L$layers
 
-  for (r in intersect(c("variable", "stat_name", "stat"), names(L$roles))) {
-    miss("table_plan(%s = ): a column rename stays in code", r)
+  if ("stat" %in% names(L$roles)) {
+    miss("table_plan(stat = ): naming your statistic columns stays in code")
   }
 
   # -- tables ---------------------------------------------------------------
@@ -1474,7 +1527,8 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
     label = lab,
     stats = s$stats %||% NA_character_,
     value = s$value %||% NA_character_,
-    sep = s$sep %||% NA_character_,
+    sep = if (is.null(s$sep) || identical(s$sep, "____")) NA_character_
+          else s$sep,
     sort = if (is.null(srt)) NA_character_
            else if (is.logical(srt)) as.character(srt) else bar(srt),
     sort_stat = s$sort_stat %||% NA_character_,
@@ -1520,26 +1574,14 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
       }
     }
   }
-  fm <- ly$fmt
-  if (length(fm)) {
-    if (!identical(fm$by, L$label) || !is.list(fm$formats)) {
-      miss("plan_fmt(): only by = <label column> with formats = converts")
-    } else {
-      if (!is.null(fm$cols) && !identical(sort(as.character(
-          if (is.numeric(fm$cols)) L$columns$page_names[fm$cols] else fm$cols)),
-          sort(spread))) {
-        miss("plan_fmt(cols = ): taken as the value columns")
-      }
-      for (st in names(fm$formats)) {
-        f <- fm$formats[[st]]
-        cl[[length(cl) + 1L]] <- crow(NA, NA, st, NA, NA,
-          if (!is.null(f$digits)) as.character(f$digits) else NA,
-          if (!is.null(f$signif)) as.character(f$signif) else NA)
-      }
-      for (o in setdiff(names(fm), c("by", "formats", "cols"))) {
-        miss("plan_fmt(%s = ) stays in code", o)
-      }
-    }
+  # plan_digits(.rows = ): one statistic's digits in every value column,
+  # the `cells` rows with no template
+  rd <- ly$digits$.rows
+  for (st in names(rd)) {
+    v <- as.character(rd[[st]])
+    sig <- grepl("s$", v)
+    cl[[length(cl) + 1L]] <- crow(NA, NA, st, NA, NA,
+      if (!sig) v else NA, if (sig) sub("s$", "", v) else NA)
   }
   cells <- if (length(cl)) do.call(rbind, cl) else NULL
 
@@ -1553,15 +1595,16 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   }
   st <- ly$stub
   if (length(st)) {
-    put("stub_vars", st$vars); put("stub_into", st$label)
+    put("stub_vars", st$vars); put("stub_name", st$name)
     put("stub_indent", st$indent); put("stub_summary", st$group_summary)
     if (isTRUE(st$before)) put("stub_before", TRUE)
   }
   g <- ly$group
-  put("group_col", g$group_col); put("group_mode", g$group_by)
-  put("group_collapse", g$collapse_repeats)
-  if (isTRUE(g$.page)) put("group_page", TRUE)
-  if (identical(g$.show, FALSE)) put("group_show", FALSE)
+  put("group_mode", g$group_by); put("group_collapse", g$collapse_repeats)
+  if (isTRUE(g$.page)) {
+    put("group_page", TRUE); put("group_col", g$group_col)
+    if (identical(g$.keep, FALSE)) put("group_keep", FALSE)
+  }
   b <- ly$blanks
   if (!is.null(b$blank_rows) && !(is.character(b$blank_rows) &&
                                    length(b$blank_rows) == 1L)) {
@@ -1571,14 +1614,14 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   put("blank_counted", b$count_blank_rows)
   pg <- ly$pages
   put("pages_max_rows", pg$max_rows); put("pages_split", pg$split)
-  put("pages_by", pg$page_by); put("pages_min_group_rows", pg$min_group_rows)
+  put("pages_min_group_rows", pg$min_group_rows)
   put("pages_cont_label", pg$cont_label)
   if (!is.null(pg$split_rows)) miss("plan_paginate_rows(break_before = ) stays in code")
   cp <- ly$colpages
   put("colpages_every", cp$every); put("colpages_at", cp$at)
-  put("colpages_carry", cp$carry); put("colpages_order", cp$page_order)
-  for (o in intersect(c("cols", "by", "col_header", "width",
-                        "allow_span_break"), names(cp))) {
+  put("colpages_keep", cp$keep); put("colpages_order", cp$order)
+  for (o in intersect(c("cut_by", "col_header", "fit", "allow_span_break"),
+                      names(cp))) {
     miss("plan_paginate_cols(%s = ) stays in code", o)
   }
   layout <- if (length(lay) > 1L) as.data.frame(lay, stringsAsFactors = FALSE)
@@ -1586,30 +1629,32 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   # -- style and columns ------------------------------------------------------
   sty <- ly$style
   style <- list(output_id = id)
+  sc <- ly$columns
   for (nm in names(sty)) {
     v <- sty[[nm]]
-    if (nm %in% c("col_rel_width", "row_title")) next
-    if (nm %in% names(.ard_spec_types$style)) {
-      style[[nm]] <- if (is.logical(v)) as.character(v) else as.character(v)
+    if (startsWith(nm, "border_")) {
+      sides <- .spec_border_sides(v)
+      if (is.null(sides)) miss("plan_style(%s = ): only a plain rtf_border() converts", nm)
+      else style[[nm]] <- sides
+    } else if (nm %in% names(.ard_spec_types$style)) {
+      style[[nm]] <- as.character(v)
     } else {
       miss("plan_style(%s = ) stays in code", nm)
     }
   }
-  if ("styles" %in% L$declared) miss("plan_cell_style() stays in code")
-  for (l in ly$restyle) {
-    miss("%s() stays in code", switch(l$fun, style_header = "plan_header_style",
-                                      style_cols = "plan_col_style",
-                                      "plan_zone_style"))
+  if (!is.null(sc$auto_width)) style$auto_width <- as.character(sc$auto_width)
+  # a cell's own look (by column, in the header, or by condition) has no
+  # sheet: it stays in code
+  if ("styles" %in% L$declared || length(ly$restyle)) {
+    miss("plan_cell_style() stays in code")
   }
   style <- if (length(style) > 1L) as.data.frame(style, stringsAsFactors = FALSE)
 
   colw <- rep(NA_real_, length(pnames)); names(colw) <- pnames
   w <- L$columns$widths
-  sc <- ly$columns
-  # widths one a column in order: plan_columns(widths = ) without names
-  # (formerly plan_style(widths = )), read back from the pages
-  positional <- !is.null(sty$col_rel_width) ||
-    (length(sc$widths) && is.null(names(sc$widths)))
+  # widths one a column in order (plan_columns(widths = ) without names),
+  # read back from the pages
+  positional <- length(sc$widths) && is.null(names(sc$widths))
   if (positional && length(w) == length(pnames)) colw[] <- w
   if (length(sc$widths) && !is.null(names(sc$widths))) {
     for (k in names(sc$widths)) {
@@ -1617,10 +1662,10 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
       else if (k %in% pnames) colw[[k]] <- sc$widths[[k]]
     }
   }
-  rt <- sty$row_title
+  rt <- sc$row_title
   rt <- if (is.null(rt)) character() else if (is.numeric(rt)) pnames[rt] else rt
   hide <- setdiff(a$rtf$drop_cols %||% character(),
-                  if (identical(g$.show, FALSE))
+                  if (identical(g$.keep, FALSE))
                     c(g$group_col, L$group_col) else NULL)
   dec <- sc$decimal %||% character()
   for (l in ly$after) {
@@ -1663,7 +1708,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
                                    stringsAsFactors = FALSE), hc)
   }
   if (identical(H$source, "resolved") && isTRUE(H$literal_n)) {
-    miss("plan_col_header(n = ): a literal N stays in code (use {n})")
+    miss("plan_col_header(values = ): a literal N stays in code (use {n})")
   }
   tables$header_n <- H$n_text %||% NA_character_
 
@@ -1674,7 +1719,8 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   same <- NA
   if (isTRUE(check)) {
     back <- tryCatch(suppressMessages(rtfreporter::plan_apply(
-      tfl_table_plan(L$data, sp, notes = FALSE), "pages")),
+      rtfreporter::plan_cells(tfl_table_plan(L$data, sp), notes = FALSE),
+      "pages")),
       error = function(e) e)
     same <- !inherits(back, "error") && isTRUE(all.equal(back, pages))
     if (inherits(back, "error")) {
