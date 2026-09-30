@@ -20,9 +20,10 @@ A single path.
 \code{file.path(study$output_path, report$file)}, with \code{{output_id}} filled:
 the path \code{\link[rtfreporter:generate_rtfreport]{rtfreporter::generate_rtfreport()}} writes to.
 }
-\section{Lifecycle}{
+\section{The table engine}{
 
-\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
+The ARD functions and the plan are rtfreporter's:
+\code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{

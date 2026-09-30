@@ -19,13 +19,15 @@ rtfreporter  the RTF renderer; usable on its own
 | Listings | an Excel listing spec (sheets `listings`, `listing_cols`) -> the listing program, or its pages | `tfl_read_listing_spec()`, `tfl_listing_code()`, `tfl_listing()` |
 | Figures | an Excel plot spec -> a ggplot2 skeleton script | `tfl_fig_spec()`, `tfl_fig_code()`, `tfl_fig_km()`, `tfl_fig_waterfall()`, `tfl_fig_swimmer()` |
 
-A plan is a table source for rtfreporter: `rtf_tables(doc, plan)` and
-`rtfreporter::as_rtftables(plan)` both accept it (tflspec registers an
-`as_rtftables()` method).
+A plan is rtfreporter's (`table_plan()`, the `plan_*()` verbs): tflspec
+writes and reads the specifications, and rtfreporter (>= 0.8.2) is the
+engine that turns an ARD and a plan into RTF pages.  `rtf_tables(doc, plan)`
+takes a plan directly.
 
-Status: early development. The table half moved here from rtfreporter's
-`feat/474-ard-experimental` branch (ichirio/rtfreporter#474); the figure half
-was tflspec. Discussion and sample code:
+Working with an AI assistant? Attach `tflspec_ai_manual()` (the manual of
+the version you have installed) to the chat session.
+
+Status: early development (0.0.x). Discussion and sample code:
 [Discussions](https://github.com/ichirio/tflspec/discussions).
 
 ## Tables

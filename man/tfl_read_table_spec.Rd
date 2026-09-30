@@ -25,9 +25,10 @@ An \code{\link[=tfl_table_spec]{tfl_table_spec()}}.
 \description{
 Read an ARD table definition from a workbook
 }
-\section{Lifecycle}{
+\section{The table engine}{
 
-\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
+The ARD functions and the plan are rtfreporter's:
+\code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{

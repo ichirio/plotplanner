@@ -33,9 +33,10 @@ generate_rtfreport(tfl_report(spec, plan), tfl_report_path(spec),
                    overwrite = TRUE)
 }\if{html}{\out{</div>}}
 }
-\section{Lifecycle}{
+\section{The table engine}{
 
-\strong{Experimental.}  The engine is rtfreporter's: \code{help("ard-tables", package = "rtfreporter")}.
+The ARD functions and the plan are rtfreporter's:
+\code{help("ard-tables", package = "rtfreporter")}.
 }
 
 \seealso{
