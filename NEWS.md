@@ -1,5 +1,15 @@
 # tflspec (development version)
 
+* **Docs** (#64, brush-up).
+  - A pkgdown site (https://ichirio.github.io/tflspec/), its reference in
+    the AI manual's chapters; `URL` and `BugReports` in DESCRIPTION.
+  - The README follows the one workflow: ARD spec, table spec, report,
+    listing, figure design, ARS (the figure sections folded into one).
+  - The AI manual says how to write an analysis that takes a formula
+    (survival, models), what `statistics` means for CIs, tests and models,
+    the keywords' own arguments, and what `tables$value` is (a column, not
+    a template); its two examples are run by the tests as written.
+
 * **Round trips checked by what a reader gets** (#64, brush-up).
   - `tfl_as_table_spec()` compares the RTF, byte by byte, not the page
     objects (two page objects may hold the same output differently); its

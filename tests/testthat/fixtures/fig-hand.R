@@ -6,6 +6,16 @@
 # a geom's default line width from it).  Each function takes the example ADaM (as
 # tfl_example_adam() gives it) and returns the plots the script assigns,
 # by the names it assigns them.
+#
+# Two things a hand-written figure must match, or its layer data differs
+# from the template's while the picture is the same:
+# - ggplot2 4.0 takes a geom's default line width (and other defaults) from
+#   the theme's base_size: a figure without the template's
+#   theme_minimal(base_size = 10) has linewidth 0.5 where the template's
+#   has 10 / 22 = 0.4545.
+# - A column's `label` attribute names a legend by default.  dplyr keeps
+#   it through joins and summaries; base merge() and tapply() drop it, so
+#   it is put back by hand.
 
 pal_of <- function(x) {
   lv <- if (is.factor(x)) levels(droplevels(x)) else sort(unique(as.character(x)))

@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9013** (the development version,
+**This manual documents tflspec 0.0.24.9014** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -197,6 +197,36 @@ argument is written in one place: a column, or `args`, never both.
 - `formats`: `mean=xx.x | p=xx.x% | AGE:sd=xx.xx` — the `xx` part says the
   decimals only.
 - `custom` takes R in `code`; `args` passes arguments to the method.
+- In `args` and `code`, `data` is the analysis data and `population` the
+  analysis set's subjects.
+- A function that takes a **formula** (`cardx::ard_survival_survdiff`,
+  `cardx::ard_regression`, `cardx::ard_stats_aov`) leaves `by` and
+  `variables` blank and gets `formula = ...` in `args`.
+  `cardx::ard_survival_survfit` takes `y` as **text**
+  (`y = "survival::Surv(AVAL, 1 - CNSR)"`) and the groups in `variables`.
+- For CIs, tests and models, `statistics` chooses which of the results to
+  **keep** (`estimate | conf.low | conf.high`); for `continuous`,
+  `categorical` and `missing` it says what to compute.
+- `tfl_read_ard_spec(check = FALSE)` (and `tfl_read_listing_spec(check =
+  FALSE)`) read a definition still being written; a table or report spec
+  is always checked when read.
+- A keyword has arguments of its own unless `args` gives them:
+  `hierarchical` and `max` get `denominator = population, id = <id>`
+  (`tfl_ard_methods()$defaults`).
+
+Rows of `analyses` for a Kaplan-Meier estimate and a Cox model (the
+columns not given are blank):
+
+```r
+# manual example: analyses rows for survival and a model
+km  <- list(output_id = "T-14-2-2", analysis_id = "KM", population_id = "SAF",
+            dataset = "ADTTE", method = "cardx::ard_survival_survfit",
+            variables = "TRTA",
+            args = 'y = "survival::Surv(AVAL, 1 - CNSR)", times = c(30, 90)')
+cox <- list(output_id = "T-14-2-2", analysis_id = "HR", population_id = "SAF",
+            dataset = "ADTTE", method = "cardx::ard_regression",
+            args = 'formula = survival::Surv(AVAL, 1 - CNSR) ~ TRTA, method = "coxph", package = "survival"')
+```
 
 ### 5.1 CDISC ARS — writing and reading the analyses as the standard
 
@@ -251,7 +281,9 @@ once. The `study` sheet has `key` / `value` (`rounding`: `sas` / `iec` /
 | `cols` | `table_plan(cols = )` | column keys, outermost first: `TR01AG1 \| SEROSTAT` |
 | `rows` | `table_plan(rows = )` | `name = column`; a quoted value is a constant heading |
 | `label` | `table_plan(label = )` | blank keeps `.label`; `NA` builds then drops; `NULL` leaves out |
-| `stats`, `value`, `na` | `plan_cells()` | `stats = rows`: one statistic a row |
+| `stats` | `plan_cells(stats = )` | `cells` (default: a cell from a template) or `rows` (one statistic a row, the raw values) |
+| `value` | `plan_cells(value = )` | which column a cell's values come from: `stat` (the number; default) or `stat_fmt` (cards' formatted text). **Not** a template: templates are `cells$template` |
+| `na` | `plan_cells(na = )` | what a cell no template could fill prints |
 | `sep` | `plan_columns(sep = )` | what joins several column keys into a column name (default `____`) |
 | `sort` | `plan_sort()` | `TRUE`, `FALSE`, or keys in order, `-` for descending |
 | `sort_stat` | `plan_sort(stat = )` | the statistic totalled for a frequency order |
@@ -261,10 +293,20 @@ once. The `study` sheet has `key` / `value` (`rounding`: `sas` / `iec` /
 → `plan_labels()`, `plan_levels()`.
 
 **cells**: `variable`, `context`, `row`, `when`, `template`, `digits`,
-`signif` → `plan_cells()`. Rows with the same variable / context / row are
+`signif` → `plan_cells()`. A row with `variable` blank is the table's
+default template. Rows with the same variable / context / row are
 one chain tried in order; `when` is an R guard (`n == 0`). A row with **no
 template** in a `stats = rows` table is one statistic's digits →
 `plan_digits(.rows = c(Mean = 2, SD = "3s"))` (`"3s"` = 3 significant).
+
+A table of subjects by SOC and PT, `n (%)` in every cell:
+
+```r
+# manual example: a table's tables and cells rows
+tables <- data.frame(output_id = "T-14-3-1", cols = "TRTA",
+                     rows = "group1 = AESOC", label = "label = AEDECOD")
+cells  <- data.frame(output_id = "T-14-3-1", template = "{n} ({p:.1f%})")
+```
 
 **layout** (one row a table; prefix = verb, suffix = argument):
 
@@ -477,14 +519,14 @@ back): rename the value or choose another separator.
 **Table spec:** `tfl_table_spec` `tfl_read_table_spec` `tfl_write_table_spec`
 `tfl_write_report_spec` `tfl_write_specs` `tfl_spec_columns`
 `tfl_table_spec_template` `tfl_table_plan` `tfl_table_code`
-`tfl_as_table_spec` `tfl_as_listing_spec`
+`tfl_as_table_spec`
 
 **Report spec:** `tfl_read_report_spec` `tfl_report` `tfl_report_code`
 `tfl_report_path`
 
 **Listing spec:** `tfl_listing_spec` `tfl_read_listing_spec`
 `tfl_write_listing_spec` `tfl_listing` `tfl_listing_code`
-`tfl_read_data_code`
+`tfl_as_listing_spec` `tfl_read_data_code`
 
 **Figure design:** `tfl_fig_design` `tfl_read_fig_design`
 `tfl_write_fig_design` `tfl_fig_design_code` `tfl_check_fig_design`
