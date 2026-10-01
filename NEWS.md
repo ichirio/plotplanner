@@ -1,5 +1,10 @@
 # tflspec (development version)
 
+* **`tfl_listing(data, spec)`**: the data comes first, as in
+  `tfl_table_plan(data, spec)`, so a listing can be piped from its data
+  (#68).  No alias: a call in the old order (`tfl_listing(spec, data)`)
+  stops with "the order of the arguments changed: tfl_listing(data, spec)".
+
 * **Docs** (#64, brush-up).
   - A pkgdown site (https://ichirio.github.io/tflspec/), its reference in
     the AI manual's chapters; `URL` and `BugReports` in DESCRIPTION.

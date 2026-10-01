@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9014** (the development version,
+**This manual documents tflspec 0.0.24.9015** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -145,7 +145,7 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 | a plan written in code, back to a workbook | `tfl_as_table_spec(plan)` |
 | a listing written in code (`listing_spec()` / `plan_listing()`), back to a listing spec | `tfl_as_listing_spec(x, output_id, dataset = )` |
 | the document / its code / its file | `tfl_report(spec, output_id, content = plan)` / `tfl_report_code(spec)` / `tfl_report_path(spec)` |
-| a listing's program / its pages | `tfl_listing_code(spec)` / `tfl_listing(spec, data)` |
+| a listing's program / its pages | `tfl_listing_code(spec)` / `tfl_listing(data, spec)` |
 | a figure: start / check / write the script | `tfl_fig_template()` / `tfl_check_fig_design()` / `tfl_fig_design_code()` |
 | attach this manual to a chat session | `tflspec_ai_manual(file = )` |
 
@@ -493,9 +493,11 @@ back): rename the value or choose another separator.
   what it makes: `tfl_build_ard()` (builds and saves the ARD),
   `tfl_table_plan()`, `tfl_listing()`, `tfl_report()`; its program is
   `tfl_<kind>_code()`.
-- The spec (or the data, for a plan) comes first, then `output_id`, then
-  the rest: `tfl_ard_code(spec, output_id)`, `tfl_table_code(spec,
-  output_id)`, `tfl_report(spec, output_id, content)`. A template takes
+- The spec comes first, then `output_id`, then the rest:
+  `tfl_ard_code(spec, output_id)`, `tfl_table_code(spec, output_id)`,
+  `tfl_report(spec, output_id, content)`. A function that makes pages from
+  data takes the data first: `tfl_table_plan(data, spec)`,
+  `tfl_listing(data, spec)`. A template takes
   its material first and the path second: `tfl_table_spec_template(ard,
   path)`, `tfl_fig_list_template(adam, path)`.
 - `tfl_plot_*()` draw one part (`tfl_plot_sankey()`); `tfl_fig_*()` make a

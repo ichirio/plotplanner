@@ -43,7 +43,7 @@ test_that("a plan's listing through its spec and a workbook gives the same RTF",
   on.exit(unlink(f), add = TRUE)
   tfl_write_listing_spec(sp, f)
   back <- tfl_read_listing_spec(f)
-  expect_identical(lr_rtf(tfl_listing(back, d, "L-1")), want)
+  expect_identical(lr_rtf(tfl_listing(d, back, "L-1")), want)
 
   # through the program it writes
   dir <- tempfile("lr")
@@ -89,8 +89,8 @@ test_that("the new listing columns are checked", {
   sp <- tfl_listing_spec(l, transform(cl, width = "5"))
   sp2 <- tfl_listing_spec(transform(l, wrap = "rtfreporter::listing_wrap"),
                           transform(cl, width = "5"))
-  expect_identical(lr_rtf(tfl_listing(sp2, d, "L")),
-                   lr_rtf(tfl_listing(sp, d, "L")))
+  expect_identical(lr_rtf(tfl_listing(d, sp2, "L")),
+                   lr_rtf(tfl_listing(d, sp, "L")))
   expect_match(tfl_listing_code(sp2, "L", data.frame(dataset = "ADSL",
                                                      path = "a.rds",
                                                      derive = NA)),

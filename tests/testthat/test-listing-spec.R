@@ -121,7 +121,7 @@ test_that("tfl_listing() gives the pages the code gives", {
   cat <- data.frame(dataset = "ADAE", path = rds, derive = NA)
   env <- new.env(parent = asNamespace("rtfreporter"))
   eval(parse(text = tfl_listing_code(sp, "L-1", cat)), env)
-  pages <- tfl_listing(sp, adae, "L-1")
+  pages <- tfl_listing(adae, sp, "L-1")
   expect_identical(pages, env$content)
 
   # what the definition says happened: SEVERE only (NA dropped), sorted,
@@ -137,9 +137,18 @@ test_that("tfl_listing(): one listing needs no output_id; a bad sort says so", {
   sp <- tfl_listing_spec(lapply(ls_rows(), function(d)
     d[d$output_id == "L-2", , drop = FALSE]))
   adsl <- data.frame(USUBJID = c("A", "B", "C"), AGE = c(30, 50, 40))
-  pages <- tfl_listing(sp, adsl)
+  pages <- tfl_listing(adsl, sp)
   expect_s3_class(pages[[1]], "rtftable")
-  expect_error(tfl_listing(sp, adsl["USUBJID"]), "sorts by AGE, which the data has not")
+  expect_error(tfl_listing(adsl["USUBJID"], sp), "sorts by AGE, which the data has not")
+})
+
+test_that("tfl_listing() in the old order (spec, data) says the order changed", {
+  sp <- tfl_listing_spec(lapply(ls_rows(), function(d)
+    d[d$output_id == "L-2", , drop = FALSE]))
+  adsl <- data.frame(USUBJID = c("A", "B", "C"), AGE = c(30, 50, 40))
+  msg <- "the order of the arguments changed: tfl_listing\\(data, spec\\)"
+  expect_error(tfl_listing(sp, adsl), msg)
+  expect_error(tfl_listing("listing.xlsx", adsl), msg)
 })
 
 test_that("a dataset the catalog has not stops the program, saying so", {

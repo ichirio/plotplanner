@@ -122,7 +122,7 @@ tfl_as_listing_spec <- function(x, output_id = "L", dataset = NA_character_,
 
   same <- NA
   if (isTRUE(compare) && !is.null(data)) {
-    back <- tryCatch(suppressMessages(tfl_listing(sp, data, output_id)),
+    back <- tryCatch(suppressMessages(tfl_listing(data, sp, output_id)),
                      error = function(e) e)
     if (inherits(back, "error")) {
       miss("the spec does not run: %s", conditionMessage(back))
