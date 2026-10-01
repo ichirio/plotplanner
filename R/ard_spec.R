@@ -32,7 +32,7 @@
   populations = c("population_id", "dataset", "where", "derive"),
   analyses = c("output_id", "analysis_id", "label", "method", "dataset",
                "population_id", "where", "by", "variables", "statistics",
-               "formats", "args", "code"))
+               "formats", "args", "code", "purpose", "reason"))
 
 .split_bar <- function(x) {
   if (is.null(x) || is.na(x) || !nzchar(trimws(x))) return(character())
@@ -131,12 +131,13 @@ tfl_write_ard_spec <- function(spec, path, statistics = NULL, methods = NULL,
   data.frame(
     sheet = c("study", "datasets", "datasets", "populations", "populations",
               "analyses", "analyses", "analyses", "analyses", "analyses",
-              "analyses"),
+              "analyses", "analyses"),
     column = c("key / value", "dataset / path", "derive",
                "population_id / dataset / where", "derive",
                "output_id / analysis_id", "method",
                "dataset / population_id / where",
-               "by / variables / statistics", "formats", "args / code"),
+               "by / variables / statistics", "formats", "args / code",
+               "purpose / reason"),
     description = c(
       "id: the subject key (USUBJID); output: where the study ARD goes",
       "a name for the data, and its file relative to the study folder",
@@ -148,7 +149,8 @@ tfl_write_ard_spec <- function(spec, path, statistics = NULL, methods = NULL,
       "the analysis data: `dataset` restricted to the population and `where`",
       "grouping and analysis variables, statistics (tfl_ard_statistics()); | between several",
       "stat_fmt formats: statistic=format, | between them (mean=xx.x | p=xx.x% | AGE:sd=xx.xx); blank = the default of the statistic",
-      "more arguments as R; `code` for custom (data, population are bound)"),
+      "more arguments as R; `code` for custom (data, population are bound)",
+      "for CDISC ARS (tfl_ars()): PRIMARY / SECONDARY / EXPLORATORY OUTCOME MEASURE; SPECIFIED IN PROTOCOL / SPECIFIED IN SAP (default) / DATA DRIVEN / REQUESTED BY REGULATORY AGENCY"),
     stringsAsFactors = FALSE)
 }
 

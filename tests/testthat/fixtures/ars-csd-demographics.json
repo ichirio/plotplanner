@@ -1,0 +1,1656 @@
+{
+ "name": "Common Safety Displays",
+ "id": "CSD",
+ "version": 1,
+ "mainListOfContents": {
+  "name": "List of Planned Analyses",
+  "label": "LOPA",
+  "contentsList": {
+   "listItems": [
+    {
+     "name": "Summary of Demographics",
+     "level": 1,
+     "order": 1,
+     "outputId": "Out14-1-1",
+     "sublist": {
+      "listItems": [
+       {
+        "name": "Summary of Subjects by Treatment",
+        "level": 2,
+        "order": 1,
+        "analysisId": "An01_05_SAF_Summ_ByTrt"
+       },
+       {
+        "name": "Age",
+        "level": 2,
+        "order": 2,
+        "sublist": {
+         "listItems": [
+          {
+           "name": "Summary by Treatment",
+           "level": 3,
+           "order": 1,
+           "analysisId": "An03_01_Age_Summ_ByTrt"
+          },
+          {
+           "name": "Comparison by Treatment",
+           "level": 3,
+           "order": 2,
+           "analysisId": "An03_01_Age_Comp_ByTrt"
+          }
+         ]
+        }
+       },
+       {
+        "name": "Age Group",
+        "level": 2,
+        "order": 3,
+        "sublist": {
+         "listItems": [
+          {
+           "name": "Summary of Subjects by Treatment",
+           "level": 3,
+           "order": 1,
+           "analysisId": "An03_02_AgeGrp_Summ_ByTrt"
+          },
+          {
+           "name": "Comparison of Subjects by Treatment",
+           "level": 3,
+           "order": 2,
+           "analysisId": "An03_02_AgeGrp_Comp_ByTrt"
+          }
+         ]
+        }
+       },
+       {
+        "name": "Sex",
+        "level": 2,
+        "order": 4,
+        "sublist": {
+         "listItems": [
+          {
+           "name": "Summary of Subjects by Treatment",
+           "level": 3,
+           "order": 1,
+           "analysisId": "An03_03_Sex_Summ_ByTrt"
+          },
+          {
+           "name": "Comparison of Subjects by Treatment",
+           "level": 3,
+           "order": 2,
+           "analysisId": "An03_03_Sex_Comp_ByTrt"
+          }
+         ]
+        }
+       },
+       {
+        "name": "Ethnicity",
+        "level": 2,
+        "order": 5,
+        "sublist": {
+         "listItems": [
+          {
+           "name": "Summary of Subjects by Treatment",
+           "level": 3,
+           "order": 1,
+           "analysisId": "An03_04_Ethnic_Summ_ByTrt"
+          },
+          {
+           "name": "Comparison of Subjects by Treatment",
+           "level": 3,
+           "order": 2,
+           "analysisId": "An03_04_Ethnic_Comp_ByTrt"
+          }
+         ]
+        }
+       },
+       {
+        "name": "Race",
+        "level": 2,
+        "order": 6,
+        "sublist": {
+         "listItems": [
+          {
+           "name": "Summary of Subjects by Treatment",
+           "level": 3,
+           "order": 1,
+           "analysisId": "An03_05_Race_Summ_ByTrt"
+          },
+          {
+           "name": "Comparison of Subjects by Treatment",
+           "level": 3,
+           "order": 2,
+           "analysisId": "An03_05_Race_Comp_ByTrt"
+          }
+         ]
+        }
+       },
+       {
+        "name": "Height",
+        "level": 2,
+        "order": 7,
+        "sublist": {
+         "listItems": [
+          {
+           "name": "Summary by Treatment",
+           "level": 3,
+           "order": 1,
+           "analysisId": "An03_06_Height_Summ_ByTrt"
+          },
+          {
+           "name": "Comparison by Treatment",
+           "level": 3,
+           "order": 2,
+           "analysisId": "An03_06_Height_Comp_ByTrt"
+          }
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  }
+ },
+ "referenceDocuments": [
+  {
+   "name": "Statistical Analysis Plan",
+   "id": "CDISCPILOT01_SAP",
+   "location": "./sap.pdf"
+  },
+  {
+   "name": "Clinical Study Report",
+   "id": "CDISCPILOT01_CSR",
+   "location": "./csr-cdiscpilot01.pdf"
+  },
+  {
+   "name": "at14-5-01.sas",
+   "id": "at14-5-01_sas",
+   "location": "./at14-5-01.sas"
+  },
+  {
+   "name": "AE Summary Table Shell",
+   "id": "AE_Summary_Table_Shell",
+   "location": "./AE_Summary_Table_Shell.pdf"
+  }
+ ],
+ "terminologyExtensions": [
+  {
+   "id": "TermEx1",
+   "sponsorTerms": [
+    {
+     "id": "TermEx1_1",
+     "submissionValue": "ADDITIONAL EXAMPLE",
+     "description": "The analysis was included in the set as an additional example to demonstrate both a different type of analysis and sponsor terminology for analysis reason."
+    }
+   ],
+   "enumeration": "AnalysisReasonEnum"
+  }
+ ],
+ "analysisOutputCategorizations": [
+  {
+   "id": "Catn_01_Grp",
+   "categories": [
+    {
+     "id": "Catn_01_Grp_1_Pop",
+     "label": "Population Description"
+    },
+    {
+     "id": "Catn_01_Grp_2_Saf",
+     "label": "Safety"
+    },
+    {
+     "id": "Catn_01_Grp_3_Eff",
+     "label": "Efficacy"
+    }
+   ],
+   "label": "Group of Analyses"
+  },
+  {
+   "id": "Catn_02_DClass",
+   "categories": [
+    {
+     "id": "Catn_02_Dclass_1_Sbj",
+     "label": "Subject-level",
+     "subCategorizations": [
+      {
+       "id": "Catn_03_SbjDType",
+       "categories": [
+        {
+         "id": "Catn_03_SbjDType_1_Dm",
+         "label": "Demographics"
+        }
+       ],
+       "label": "Subject-level Data Type"
+      }
+     ]
+    },
+    {
+     "id": "Catn_02_Dclass_2_Evt",
+     "label": "Events",
+     "subCategorizations": [
+      {
+       "id": "Catn_04_EvtDType",
+       "categories": [
+        {
+         "id": "Catn_04_EvtDType_1_Ae",
+         "label": "Adverse Events"
+        },
+        {
+         "id": "Catn_04_EvtDType_2_Ce",
+         "label": "Clinical Events"
+        },
+        {
+         "id": "Catn_04_EvtDType_3_Ds",
+         "label": "Disposition"
+        }
+       ],
+       "label": "Events Data Type"
+      },
+      {
+       "id": "Catn_05_EvtAType",
+       "categories": [
+        {
+         "id": "Catn_05_EvtAType_1_Occ",
+         "label": "Occurrence"
+        },
+        {
+         "id": "Catn_05_EvtAType_2_Tte",
+         "label": "Time-to-Event"
+        }
+       ],
+       "label": "Events Analysis Type"
+      }
+     ]
+    },
+    {
+     "id": "Catn_02_Dclass_3_Fnd",
+     "label": "Findings",
+     "subCategorizations": [
+      {
+       "id": "Catn_06_FndDType",
+       "categories": [
+        {
+         "id": "Catn_06_FndDType_1_Vs",
+         "label": "Vital Signs"
+        },
+        {
+         "id": "Catn_06_FndDType_2_Lb",
+         "label": "Laboratory Tests"
+        }
+       ],
+       "label": "Findings Data Type"
+      },
+      {
+       "id": "Catn_07_FndAType",
+       "categories": [
+        {
+         "id": "Catn_07_FndAType_1_Chg",
+         "label": "Change from Baseline"
+        },
+        {
+         "id": "Catn_07_FndAType_2_Sft",
+         "label": "Shift Table"
+        }
+       ],
+       "label": "Findings Analysis Type"
+      }
+     ]
+    }
+   ],
+   "label": "Analysis Data Class"
+  }
+ ],
+ "analysisSets": [
+  {
+   "name": "Safety Population",
+   "label": "SAF",
+   "id": "AnalysisSet_02_SAF",
+   "level": 1,
+   "order": 1,
+   "condition": {
+    "dataset": "ADSL",
+    "variable": "SAFFL",
+    "comparator": "EQ",
+    "value": [
+     "Y"
+    ]
+   }
+  }
+ ],
+ "analysisGroupings": [
+  {
+   "name": "Treatment",
+   "id": "AnlsGrouping_01_Trt",
+   "dataDriven": false,
+   "groupingDataset": "ADSL",
+   "groupingVariable": "TRT01A",
+   "groups": [
+    {
+     "name": "Placebo",
+     "id": "AnlsGrouping_01_Trt_1",
+     "level": 1,
+     "order": 1,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "TRT01A",
+      "comparator": "EQ",
+      "value": [
+       "Placebo"
+      ]
+     }
+    },
+    {
+     "name": "Xanomeline Low Dose",
+     "id": "AnlsGrouping_01_Trt_2",
+     "level": 1,
+     "order": 2,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "TRT01A",
+      "comparator": "EQ",
+      "value": [
+       "Xanomeline Low Dose"
+      ]
+     }
+    },
+    {
+     "name": "Xanomeline High Dose",
+     "id": "AnlsGrouping_01_Trt_3",
+     "level": 1,
+     "order": 3,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "TRT01A",
+      "comparator": "EQ",
+      "value": [
+       "Xanomeline High Dose"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Gender",
+   "id": "AnlsGrouping_02_Sex",
+   "dataDriven": false,
+   "groupingDataset": "ADSL",
+   "groupingVariable": "SEX",
+   "groups": [
+    {
+     "name": "Male",
+     "id": "AnlsGrouping_02_Sex_1",
+     "level": 1,
+     "order": 1,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "SEX",
+      "comparator": "EQ",
+      "value": [
+       "M"
+      ]
+     }
+    },
+    {
+     "name": "Female",
+     "id": "AnlsGrouping_02_Sex_2",
+     "level": 1,
+     "order": 2,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "SEX",
+      "comparator": "EQ",
+      "value": [
+       "F"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Age Group",
+   "id": "AnlsGrouping_03_AgeGp",
+   "dataDriven": false,
+   "groupingDataset": "ADSL",
+   "groupingVariable": "AGEGR1",
+   "groups": [
+    {
+     "name": "< 65 years",
+     "id": "AnlsGrouping_03_AgeGp_1",
+     "level": 1,
+     "order": 1,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "AGEGR1",
+      "comparator": "EQ",
+      "value": [
+       "<65"
+      ]
+     }
+    },
+    {
+     "name": "≥ 65 years",
+     "id": "AnlsGrouping_03_AgeGp_2",
+     "level": 1,
+     "order": 2,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "AGEGR1",
+      "comparator": "IN",
+      "value": [
+       "65-80",
+       ">80"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Primary Race",
+   "id": "AnlsGrouping_04_Race",
+   "dataDriven": false,
+   "groupingDataset": "ADSL",
+   "groupingVariable": "RACE",
+   "groups": [
+    {
+     "name": "American Indian or Alaska Native",
+     "id": "AnlsGrouping_04_Race_1",
+     "level": 1,
+     "order": 1,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "RACE",
+      "comparator": "EQ",
+      "value": [
+       "AMERICAN INDIAN OR ALASKA NATIVE"
+      ]
+     }
+    },
+    {
+     "name": "Asian",
+     "id": "AnlsGrouping_04_Race_2",
+     "level": 1,
+     "order": 2,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "RACE",
+      "comparator": "EQ",
+      "value": [
+       "ASIAN"
+      ]
+     }
+    },
+    {
+     "name": "Black or African American",
+     "id": "AnlsGrouping_04_Race_3",
+     "level": 1,
+     "order": 3,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "RACE",
+      "comparator": "EQ",
+      "value": [
+       "BLACK OR AFRICAN AMERICAN"
+      ]
+     }
+    },
+    {
+     "name": "Native Hawaiian or Other Pacific Islander",
+     "id": "AnlsGrouping_04_Race_4",
+     "level": 1,
+     "order": 4,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "RACE",
+      "comparator": "EQ",
+      "value": [
+       "NATIVE HAWAIIAN OR OTHER PACIFIC ISLANDER"
+      ]
+     }
+    },
+    {
+     "name": "White",
+     "id": "AnlsGrouping_04_Race_5",
+     "level": 1,
+     "order": 5,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "RACE",
+      "comparator": "EQ",
+      "value": [
+       "WHITE"
+      ]
+     }
+    },
+    {
+     "name": "Multiple",
+     "id": "AnlsGrouping_04_Race_6",
+     "level": 1,
+     "order": 6,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "RACE",
+      "comparator": "EQ",
+      "value": [
+       "MULTIPLE"
+      ]
+     }
+    },
+    {
+     "name": "Not Reported",
+     "id": "AnlsGrouping_04_Race_7",
+     "level": 1,
+     "order": 7,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "RACE",
+      "comparator": "EQ",
+      "value": [
+       "NOT REPORTED"
+      ]
+     }
+    },
+    {
+     "name": "Unknown",
+     "id": "AnlsGrouping_04_Race_8",
+     "level": 1,
+     "order": 8,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "RACE",
+      "comparator": "EQ",
+      "value": [
+       "UNKNOWN"
+      ]
+     }
+    },
+    {
+     "name": "Other",
+     "id": "AnlsGrouping_04_Race_9",
+     "level": 1,
+     "order": 9,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "RACE",
+      "comparator": "EQ",
+      "value": [
+       "OTHER"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "Ethnicity",
+   "id": "AnlsGrouping_05_Ethnic",
+   "dataDriven": false,
+   "groupingDataset": "ADSL",
+   "groupingVariable": "ETHNIC",
+   "groups": [
+    {
+     "name": "Hispanic or Latino",
+     "id": "AnlsGrouping_05_Ethnic_1",
+     "level": 1,
+     "order": 1,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "ETHNIC",
+      "comparator": "EQ",
+      "value": [
+       "HISPANIC OR LATINO"
+      ]
+     }
+    },
+    {
+     "name": "Not Hispanic or Latino",
+     "id": "AnlsGrouping_05_Ethnic_2",
+     "level": 1,
+     "order": 2,
+     "condition": {
+      "dataset": "ADSL",
+      "variable": "ETHNIC",
+      "comparator": "EQ",
+      "value": [
+       "NOT HISPANIC OR LATINO"
+      ]
+     }
+    }
+   ]
+  }
+ ],
+ "methods": [
+  {
+   "name": "Count by group for a categorical variable",
+   "description": "Count across groups for a categorical variable, based on subject occurrence",
+   "label": "Grouped count for categorical variable",
+   "id": "Mth01_CatVar_Count_ByGrp",
+   "operations": [
+    {
+     "name": "Count of subjects",
+     "label": "n",
+     "id": "Mth01_CatVar_Count_ByGrp_1_n",
+     "order": 1,
+     "resultPattern": "(N=XX)"
+    }
+   ]
+  },
+  {
+   "name": "Summary by group of a categorical variable",
+   "description": "Descriptive summary statistics across groups for a categorical variable, based on subject occurrence",
+   "label": "Grouped summary of categorical variable",
+   "id": "Mth01_CatVar_Summ_ByGrp",
+   "operations": [
+    {
+     "name": "Count of subjects",
+     "label": "n",
+     "id": "Mth01_CatVar_Summ_ByGrp_1_n",
+     "order": 1,
+     "resultPattern": "XXX"
+    },
+    {
+     "name": "Percent of subjects",
+     "label": "%",
+     "id": "Mth01_CatVar_Summ_ByGrp_2_pct",
+     "order": 2,
+     "referencedOperationRelationships": [
+      {
+       "id": "Mth01_CatVar_Summ_ByGrp_2_pct_NUM",
+       "referencedOperationRole": {
+        "controlledTerm": "NUMERATOR"
+       },
+       "operationId": "Mth01_CatVar_Summ_ByGrp_1_n",
+       "description": "The count operation whose result provides the numerator for calculation of the percentage. The referenced analysis should be the analysis that contains this percent operation."
+      },
+      {
+       "id": "Mth01_CatVar_Summ_ByGrp_2_pct_DEN",
+       "referencedOperationRole": {
+        "controlledTerm": "DENOMINATOR"
+       },
+       "operationId": "Mth01_CatVar_Count_ByGrp_1_n",
+       "description": "The count operation whose result provides the denominator for calculation of the percentage. The referenced analysis should have the same analysis set and subject grouping(s) as the analysis containing this percent operation."
+      }
+     ],
+     "resultPattern": "( XX.X)"
+    }
+   ],
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "7. GENERAL CONSIDERATIONS FOR DATA ANALYSES",
+       "pageNumbers": [
+        9
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Summary by group of a continuous variable",
+   "description": "Descriptive summary statistics across groups for a continuous variable",
+   "label": "Grouped summary of continuous variable",
+   "id": "Mth02_ContVar_Summ_ByGrp",
+   "operations": [
+    {
+     "name": "Count of non-missing values",
+     "label": "n",
+     "id": "Mth02_ContVar_Summ_ByGrp_1_n",
+     "order": 1,
+     "resultPattern": "XX"
+    },
+    {
+     "name": "Mean",
+     "label": "Mean",
+     "id": "Mth02_ContVar_Summ_ByGrp_2_Mean",
+     "order": 2,
+     "resultPattern": "XX.X"
+    },
+    {
+     "name": "Standard deviation",
+     "label": "SD",
+     "id": "Mth02_ContVar_Summ_ByGrp_3_SD",
+     "order": 3,
+     "resultPattern": "(XX.XX)"
+    },
+    {
+     "name": "Median",
+     "label": "Median",
+     "id": "Mth02_ContVar_Summ_ByGrp_4_Median",
+     "order": 4,
+     "resultPattern": "XX.X"
+    },
+    {
+     "name": "First quartile",
+     "label": "Q1",
+     "id": "Mth02_ContVar_Summ_ByGrp_5_Q1",
+     "order": 5,
+     "resultPattern": "XX.X"
+    },
+    {
+     "name": "Third quartile",
+     "label": "Q3",
+     "id": "Mth02_ContVar_Summ_ByGrp_6_Q3",
+     "order": 6,
+     "resultPattern": "XX.X"
+    },
+    {
+     "name": "Minimum",
+     "label": "Min",
+     "id": "Mth02_ContVar_Summ_ByGrp_7_Min",
+     "order": 7,
+     "resultPattern": "XX"
+    },
+    {
+     "name": "Maximum",
+     "label": "Max",
+     "id": "Mth02_ContVar_Summ_ByGrp_8_Max",
+     "order": 8,
+     "resultPattern": "XX"
+    }
+   ],
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "7. GENERAL CONSIDERATIONS FOR DATA ANALYSES",
+       "pageNumbers": [
+        9
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "Pearson's chi-square test group comparison for a categorical variable",
+   "description": "Comparison of groups by Pearson's chi-square test for a categorical variable",
+   "label": "Pearson's chi-square test group comparison for categorical variable",
+   "id": "Mth03_CatVar_Comp_PChiSq",
+   "operations": [
+    {
+     "name": "P-value",
+     "label": "p-value",
+     "id": "Mth03_CatVar_Comp_PChiSq_1_pval",
+     "order": 1,
+     "resultPattern": "X.XXXX"
+    }
+   ],
+   "codeTemplate": {
+    "context": "SAS Version 9.4",
+    "code": "proc freq data={dataset};\ntable {grp1var}*{grp2var}/chisq;\nexact pchi; \nods output PearsonChiSq=results.PCHI{outdssfx};\nrun;",
+    "parameters": [
+     {
+      "name": "dataset",
+      "description": "Input dataset",
+      "valueSource": "dataset"
+     },
+     {
+      "name": "grp1var",
+      "description": "First grouping variable",
+      "valueSource": "orderedGroupings[1].groupingVariable"
+     },
+     {
+      "name": "grp2var",
+      "description": "Second grouping variable",
+      "valueSource": "orderedGroupings[2].groupingVariable"
+     },
+     {
+      "name": "outdssfx",
+      "description": "Output dataset suffix",
+      "valueSource": "orderedGroupings[2].groupingVariable"
+     }
+    ]
+   }
+  },
+  {
+   "name": "Analysis of variance group comparison for a continuous variable",
+   "description": "Comparison of groups by analysis of variance (ANOVA) for a continuous variable",
+   "label": "ANOVA group comparison for continuous variable",
+   "id": "Mth04_ContVar_Comp_Anova",
+   "operations": [
+    {
+     "name": "P-value",
+     "label": "p-value",
+     "id": "Mth04_ContVar_Comp_Anova_1_pval",
+     "order": 1,
+     "resultPattern": "X.XXXX"
+    }
+   ],
+   "codeTemplate": {
+    "context": "SAS Version 9.4",
+    "code": "proc glm data={dataset};\nclass {grp1var};\nmodel {grp2var}={gpr1var};\nods output OverallANOVA=results.ANOV{outdssfx} (where=(source = 'Model'));\nrun;",
+    "parameters": [
+     {
+      "name": "dataset",
+      "description": "Input dataset",
+      "valueSource": "dataset"
+     },
+     {
+      "name": "grp1var",
+      "description": "First grouping variable",
+      "valueSource": "orderedGroupings[1].groupingVariable"
+     },
+     {
+      "name": "grp2var",
+      "description": "Second grouping variable",
+      "valueSource": "variable"
+     },
+     {
+      "name": "outdssfx",
+      "description": "Output dataset suffix",
+      "valueSource": "variable"
+     }
+    ]
+   }
+  }
+ ],
+ "analyses": [
+  {
+   "name": "Summary of Subjects by Treatment",
+   "id": "An01_05_SAF_Summ_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth01_CatVar_Count_ByGrp",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "6. ANALYSIS POPULATIONS",
+       "pageNumbers": [
+        9
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "USUBJID",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": true
+    }
+   ]
+  },
+  {
+   "name": "Summary of Age by Treatment",
+   "label": "Age",
+   "id": "An03_01_Age_Summ_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth02_ContVar_Summ_ByGrp",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "AGE",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": true
+    }
+   ]
+  },
+  {
+   "name": "Comparison of Age by Treatment",
+   "label": "Age",
+   "id": "An03_01_Age_Comp_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth04_ContVar_Comp_Anova",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "AGE",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": false
+    }
+   ],
+   "programmingCode": {
+    "context": "SAS Version 9.4",
+    "code": "proc glm data=ADSL;\nclass TRT01A;\nmodel AGE=TRT01A;\nods output OverallANOVA=results.ANOVAGE (where=(source = 'Model'));\nrun;"
+   }
+  },
+  {
+   "name": "Summary of Subjects by Treatment and Age Group",
+   "label": "Age Group",
+   "id": "An03_02_AgeGrp_Summ_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth01_CatVar_Summ_ByGrp",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "USUBJID",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": true
+    },
+    {
+     "order": 2,
+     "groupingId": "AnlsGrouping_03_AgeGp",
+     "resultsByGroup": true
+    }
+   ],
+   "referencedAnalysisOperations": [
+    {
+     "referencedOperationRelationshipId": "Mth01_CatVar_Summ_ByGrp_2_pct_NUM",
+     "analysisId": "An03_02_AgeGrp_Summ_ByTrt"
+    },
+    {
+     "referencedOperationRelationshipId": "Mth01_CatVar_Summ_ByGrp_2_pct_DEN",
+     "analysisId": "An01_05_SAF_Summ_ByTrt"
+    }
+   ]
+  },
+  {
+   "name": "Comparison of Age Group by Treatment",
+   "label": "Age Group",
+   "id": "An03_02_AgeGrp_Comp_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth03_CatVar_Comp_PChiSq",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "USUBJID",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": false
+    },
+    {
+     "order": 2,
+     "groupingId": "AnlsGrouping_03_AgeGp",
+     "resultsByGroup": false
+    }
+   ],
+   "programmingCode": {
+    "context": "SAS Version 9.4",
+    "code": "proc freq data=ADSL;\ntable TRT01A*AGEGR1/chisq;\nexact pchi; \nods output PearsonChiSq=results.PCHIAGEGR1;\nrun;"
+   }
+  },
+  {
+   "name": "Summary of Subjects by Treatment and Sex",
+   "label": "Sex",
+   "id": "An03_03_Sex_Summ_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth01_CatVar_Summ_ByGrp",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "USUBJID",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": true
+    },
+    {
+     "order": 2,
+     "groupingId": "AnlsGrouping_02_Sex",
+     "resultsByGroup": true
+    }
+   ],
+   "referencedAnalysisOperations": [
+    {
+     "referencedOperationRelationshipId": "Mth01_CatVar_Summ_ByGrp_2_pct_NUM",
+     "analysisId": "An03_03_Sex_Summ_ByTrt"
+    },
+    {
+     "referencedOperationRelationshipId": "Mth01_CatVar_Summ_ByGrp_2_pct_DEN",
+     "analysisId": "An01_05_SAF_Summ_ByTrt"
+    }
+   ]
+  },
+  {
+   "name": "Comparison of Sex by Treatment",
+   "label": "Sex",
+   "id": "An03_03_Sex_Comp_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth03_CatVar_Comp_PChiSq",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "USUBJID",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": false
+    },
+    {
+     "order": 2,
+     "groupingId": "AnlsGrouping_02_Sex",
+     "resultsByGroup": false
+    }
+   ],
+   "programmingCode": {
+    "context": "SAS Version 9.4",
+    "code": "proc freq data=ADSL;\ntable TRT01A*SEX/chisq;\nexact pchi; \nods output PearsonChiSq=results.PCHISEX;\nrun;"
+   }
+  },
+  {
+   "name": "Summary of Subjects by Treatment and Ethnicity",
+   "label": "Ethnicity",
+   "id": "An03_04_Ethnic_Summ_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth01_CatVar_Summ_ByGrp",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "USUBJID",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": true
+    },
+    {
+     "order": 2,
+     "groupingId": "AnlsGrouping_05_Ethnic",
+     "resultsByGroup": true
+    }
+   ],
+   "referencedAnalysisOperations": [
+    {
+     "referencedOperationRelationshipId": "Mth01_CatVar_Summ_ByGrp_2_pct_NUM",
+     "analysisId": "An03_04_Ethnic_Summ_ByTrt"
+    },
+    {
+     "referencedOperationRelationshipId": "Mth01_CatVar_Summ_ByGrp_2_pct_DEN",
+     "analysisId": "An01_05_SAF_Summ_ByTrt"
+    }
+   ]
+  },
+  {
+   "name": "Comparison of Ethnicity by Treatment",
+   "label": "Ethnicity",
+   "id": "An03_04_Ethnic_Comp_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth03_CatVar_Comp_PChiSq",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "USUBJID",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": false
+    },
+    {
+     "order": 2,
+     "groupingId": "AnlsGrouping_05_Ethnic",
+     "resultsByGroup": false
+    }
+   ],
+   "programmingCode": {
+    "context": "SAS Version 9.4",
+    "code": "proc freq data=ADSL;\ntable TRT01A*ETHNIC/chisq;\nexact pchi; \nods output PearsonChiSq=results.PCHIETHNIC;\nrun;"
+   }
+  },
+  {
+   "name": "Summary of Subjects by Treatment and Race",
+   "label": "Race",
+   "id": "An03_05_Race_Summ_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth01_CatVar_Summ_ByGrp",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "USUBJID",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": true
+    },
+    {
+     "order": 2,
+     "groupingId": "AnlsGrouping_04_Race",
+     "resultsByGroup": true
+    }
+   ],
+   "referencedAnalysisOperations": [
+    {
+     "referencedOperationRelationshipId": "Mth01_CatVar_Summ_ByGrp_2_pct_NUM",
+     "analysisId": "An03_05_Race_Summ_ByTrt"
+    },
+    {
+     "referencedOperationRelationshipId": "Mth01_CatVar_Summ_ByGrp_2_pct_DEN",
+     "analysisId": "An01_05_SAF_Summ_ByTrt"
+    }
+   ]
+  },
+  {
+   "name": "Comparison of Race by Treatment",
+   "label": "Race",
+   "id": "An03_05_Race_Comp_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth03_CatVar_Comp_PChiSq",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "USUBJID",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": false
+    },
+    {
+     "order": 2,
+     "groupingId": "AnlsGrouping_04_Race",
+     "resultsByGroup": false
+    }
+   ],
+   "programmingCode": {
+    "context": "SAS Version 9.4",
+    "code": "proc freq data=ADSL;\ntable TRT01A*RACE/chisq;\nexact pchi; \nods output PearsonChiSq=results.PCHIRACE;\nrun;"
+   }
+  },
+  {
+   "name": "Summary of Height by Treatment",
+   "label": "Height",
+   "id": "An03_06_Height_Summ_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth02_ContVar_Summ_ByGrp",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "HEIGHTBL",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": true
+    }
+   ]
+  },
+  {
+   "name": "Comparison of Height by Treatment",
+   "label": "Height",
+   "id": "An03_06_Height_Comp_ByTrt",
+   "reason": {
+    "controlledTerm": "SPECIFIED IN SAP"
+   },
+   "purpose": {
+    "controlledTerm": "PRIMARY OUTCOME MEASURE"
+   },
+   "methodId": "Mth04_ContVar_Comp_Anova",
+   "version": 1,
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_SAP",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "9.2. Demographic and Baseline Characteristics",
+       "pageNumbers": [
+        13
+       ]
+      }
+     ]
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_02_Dclass_1_Sbj",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "dataset": "ADSL",
+   "variable": "HEIGHTBL",
+   "analysisSetId": "AnalysisSet_02_SAF",
+   "orderedGroupings": [
+    {
+     "order": 1,
+     "groupingId": "AnlsGrouping_01_Trt",
+     "resultsByGroup": false
+    }
+   ],
+   "programmingCode": {
+    "context": "SAS Version 9.4",
+    "code": "proc glm data=ADSL;\nclass TRT01A;\nmodel HEIGHTBL=TRT01A;\nods output OverallANOVA=results.ANOVHEIGHTBL (where=(source = 'Model'));\nrun;"
+   }
+  }
+ ],
+ "globalDisplaySections": [
+  {
+   "sectionType": "Header",
+   "subSections": [
+    {
+     "id": "GlobalDisp_Header_1",
+     "text": "Study - CDISC 360"
+    },
+    {
+     "id": "GlobalDisp_Header_2",
+     "text": "Page x of y"
+    }
+   ]
+  },
+  {
+   "sectionType": "Title",
+   "subSections": [
+    {
+     "id": "GlobalDisp_Title_1",
+     "text": "Safety Population"
+    }
+   ]
+  },
+  {
+   "sectionType": "Footer",
+   "subSections": [
+    {
+     "id": "GlobalDisp_Footer_1",
+     "text": "Program: <pid>.sas, Output: <pid><oid>.rtf, Generated on: DDMONYYYY:HH:MM"
+    }
+   ]
+  }
+ ],
+ "outputs": [
+  {
+   "name": "Summary of Demographics",
+   "id": "Out14-1-1",
+   "displays": [
+    {
+     "order": 1,
+     "display": {
+      "name": "Demographics",
+      "label": "Demog",
+      "id": "Disp14-1-1",
+      "version": 1,
+      "displayTitle": "Summary of Demographics",
+      "displaySections": [
+       {
+        "sectionType": "Header",
+        "orderedSubSections": [
+         {
+          "order": 1,
+          "subSectionId": "GlobalDisp_Header_1"
+         },
+         {
+          "order": 2,
+          "subSectionId": "GlobalDisp_Header_2"
+         }
+        ]
+       },
+       {
+        "sectionType": "Title",
+        "orderedSubSections": [
+         {
+          "order": 1,
+          "subSection": {
+           "id": "Disp14-1-1_Title_1",
+           "text": "Table 14.1.1"
+          }
+         },
+         {
+          "order": 2,
+          "subSection": {
+           "id": "Disp14-1-1_Title_2",
+           "text": "Summary of Demographics"
+          }
+         },
+         {
+          "order": 3,
+          "subSectionId": "GlobalDisp_Title_1"
+         }
+        ]
+       },
+       {
+        "sectionType": "Footer",
+        "orderedSubSections": [
+         {
+          "order": 1,
+          "subSection": {
+           "id": "Disp14-1-1_Footer_1",
+           "text": "Source dataset: adsl, Generated on: DDMONYYYY:HH:MM"
+          }
+         },
+         {
+          "order": 2,
+          "subSectionId": "GlobalDisp_Footer_1"
+         }
+        ]
+       },
+       {
+        "sectionType": "Rowlabel Header",
+        "orderedSubSections": [
+         {
+          "order": 1,
+          "subSection": {
+           "id": "Disp14-1-1_RLbHd_1",
+           "text": "Characteristics"
+          }
+         }
+        ]
+       }
+      ]
+     }
+    }
+   ],
+   "version": 1,
+   "fileSpecifications": [
+    {
+     "name": "t14-1-1-demog (RTF)",
+     "label": "t14-1-1-demog",
+     "fileType": {
+      "controlledTerm": "rtf"
+     },
+     "location": "./t14-1-1-demog.rtf"
+    },
+    {
+     "name": "t14-1-1-demog (PDF)",
+     "label": "t14-1-1-demog",
+     "fileType": {
+      "controlledTerm": "pdf"
+     },
+     "location": "./t14-1-1-demog.pdf"
+    }
+   ],
+   "categoryIds": [
+    "Catn_01_Grp_1_Pop",
+    "Catn_03_SbjDType_1_Dm"
+   ],
+   "documentRefs": [
+    {
+     "referenceDocumentId": "CDISCPILOT01_CSR",
+     "pageRefs": [
+      {
+       "refType": "PhysicalRef",
+       "label": "Table 14-2.01",
+       "firstPage": 46,
+       "lastPage": 48
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

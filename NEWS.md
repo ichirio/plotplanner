@@ -1,5 +1,28 @@
 # tflspec (development version)
 
+* **The specs as a CDISC ARS reporting event** (#53, stage 1 of the ARS
+  export).  `tfl_ars()` writes what the ARD spec analyses -- and, when
+  given, the table / report specs' levels, titles, footnotes, header,
+  footer and file -- as the CDISC Analysis Results Standard v1.0 model;
+  `tfl_write_ars_json()` writes it as the ARS JSON (the exchange form; the
+  same specs always give the same file); `tfl_check_ars()` checks required
+  fields and every reference, and with jsonvalidate the JSON against
+  CDISC's JSON Schema for ARS v1.0 (shipped in `inst/ars/`, MIT).  The
+  specs stay the source.
+  - The layout is CDISC's own example's (Common Safety Displays): a
+    categorical variable is a count of the subject key grouped by the
+    variable, its percentage pointing at the output's subject count by
+    group (added, and said, when the output has none); a hierarchy is one
+    analysis per depth; a population is an analysis set, `where` a data
+    subset (`&`, `|`, `!`, `%in%` become WhereClauses).
+  - What ARS cannot say (a derivation, display formats, `args`, the
+    table's look, a condition with no WhereClause) is listed by
+    `tfl_ars_unmapped()` with the reason, never dropped silently.
+  - The ARD spec's `analyses` gain two optional columns, `purpose` and
+    `reason` (the CDISC terms).  A purpose is the SAP's decision, so it is
+    never guessed: blank, `tfl_check_ars()` names the analysis.
+  - jsonlite joins Imports; jsonvalidate is suggested.
+
 * **Each spec is written with only the sheets it needs** (#51).
   `tfl_write_table_spec()` writes `study` (its key: `rounding`), the table
   sheets and `about`; the new `tfl_write_report_spec()` writes `study`

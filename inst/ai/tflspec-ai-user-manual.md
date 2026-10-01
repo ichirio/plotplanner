@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9004** (the development version,
+**This manual documents tflspec 0.0.24.9005** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -137,6 +137,7 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 | scaffold a table spec from an ARD | `tfl_table_spec_template(ard)` |
 | read / write a table (+ report) spec | `tfl_read_table_spec()` / `tfl_read_report_spec()` / `tfl_write_table_spec()` / `tfl_write_report_spec()` |
 | several specs in one workbook; what a column means | `tfl_write_specs(path, ard, table, report, listing)`; `tfl_spec_columns(sheet)` |
+| the specs as CDISC ARS (JSON), and its check | `tfl_ars(ard_spec, table_spec, report_spec)` → `tfl_write_ars_json(ars, path)`; `tfl_check_ars(ars)`; what ARS cannot say: `tfl_ars_unmapped(ars)` |
 | the plan a table spec stands for | `tfl_table_plan(data, spec)` (then any rtfreporter verb: last wins) |
 | the plan as code | `tfl_table_code(spec)` |
 | a plan written in code, back to a workbook | `tfl_as_table_spec(plan)` |
@@ -157,7 +158,7 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 | `study` | `key`, `value` | `id`: the subject key (`USUBJID`); `output`: where the study ARD goes (`output/ard/ard.rds`) |
 | `datasets` | `dataset`, `level`, `path`, `derive` | a name for the data, its level (`SDTM` / `ADaM`), its file relative to the study folder, new columns (`NAME = R expression`, `|` between them) |
 | `populations` | `population_id`, `dataset`, `where`, `derive` | an analysis set: the subjects of `dataset` for which `where` (R) holds; `derive` adds columns (`TRTA = TRT01A`) |
-| `analyses` | `output_id`, `analysis_id`, `label`, `method`, `dataset`, `population_id`, `where`, `by`, `variables`, `statistics`, `formats`, `args`, `code` | one analysis a row; both ids become ARD columns |
+| `analyses` | `output_id`, `analysis_id`, `label`, `method`, `dataset`, `population_id`, `where`, `by`, `variables`, `statistics`, `formats`, `args`, `code`, `purpose`, `reason` | one analysis a row; both ids become ARD columns; `purpose` / `reason` (CDISC terms) only for `tfl_ars()` |
 
 - `method`: a keyword — `continuous`, `categorical`, `dichotomous`,
   `missing`, `hierarchical`, `max`, `subjects`, `total_n`, `proportion_ci`,
@@ -376,6 +377,9 @@ back): rename the value or choose another separator.
 **ARD spec:** `tfl_ard_spec` `tfl_read_ard_spec` `tfl_write_ard_spec`
 `tfl_ard_spec_template` `tfl_ard_code` `tfl_build_ard` `tfl_ard_for`
 `tfl_ard_spec_hash` `tfl_ard_methods` `tfl_ard_statistics`
+
+**CDISC ARS:** `tfl_ars` `tfl_write_ars_json` `tfl_check_ars`
+`tfl_ars_unmapped`
 
 **Table spec:** `tfl_table_spec` `tfl_read_table_spec` `tfl_write_table_spec`
 `tfl_write_report_spec` `tfl_write_specs` `tfl_spec_columns`
