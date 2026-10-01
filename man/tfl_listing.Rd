@@ -4,13 +4,13 @@
 \alias{tfl_listing}
 \title{A listing's pages from its definition}
 \usage{
-tfl_listing(spec, data, output_id = NULL, type = "multiline")
+tfl_listing(data, spec, output_id = NULL, type = "multiline")
 }
 \arguments{
-\item{spec}{A \code{\link[=tfl_listing_spec]{tfl_listing_spec()}}, or the path of its workbook.}
-
 \item{data}{The listing's dataset (already read, and reworked if it
 needs to be).}
+
+\item{spec}{A \code{\link[=tfl_listing_spec]{tfl_listing_spec()}}, or the path of its workbook.}
 
 \item{output_id}{The listing; may be left out when the definition has one.}
 
@@ -26,6 +26,11 @@ keep the rows \code{where} says, sort them, print dates as text, and lay them
 out with rtfreporter's \code{listing_spec()} / \code{as_rtftables()}.  The pages go
 to \code{\link[=tfl_report]{tfl_report()}} or \code{rtf_tables()} like a table's.
 }
+\details{
+The data comes first, as in \code{\link[=tfl_table_plan]{tfl_table_plan()}}, so a listing can be
+piped from its data.  (Before 0.0.24.9015 the spec came first; a call in
+that order stops, saying so.)
+}
 \examples{
 spec <- tfl_listing_spec(
   listings = data.frame(output_id = "L-1", dataset = "ADSL",
@@ -35,6 +40,6 @@ spec <- tfl_listing_spec(
                             label = c("Subject", "Age / Sex")))
 adsl <- data.frame(USUBJID = sprintf("S-\%02d", 1:12),
                    AGE = 40 + 1:12, SEX = rep(c("F", "M"), 6))
-pages <- tfl_listing(spec, adsl)
+pages <- tfl_listing(adsl, spec)
 length(pages)
 }

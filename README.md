@@ -93,7 +93,7 @@ rows a page) and `listing_cols` (one row a printed column).
 ```r
 spec  <- tfl_read_listing_spec("spec/listing_figure_spec.xlsx")
 tfl_listing_code(spec, "L-16-2-7", datasets = catalog)   # the program
-pages <- tfl_listing(spec, adae, "L-16-2-7")             # or the pages
+pages <- tfl_listing(adae, spec, "L-16-2-7")             # or the pages
 ```
 
 `tfl_as_listing_spec()` writes a listing coded with rtfreporter back as a

@@ -380,9 +380,13 @@ tfl_listing_code <- function(spec, output_id = NULL, datasets,
 #' out with rtfreporter's `listing_spec()` / `as_rtftables()`.  The pages go
 #' to [tfl_report()] or `rtf_tables()` like a table's.
 #'
-#' @inheritParams tfl_listing_code
+#' The data comes first, as in [tfl_table_plan()], so a listing can be
+#' piped from its data.  (Before 0.0.24.9015 the spec came first; a call in
+#' that order stops, saying so.)
+#'
 #' @param data The listing's dataset (already read, and reworked if it
 #'   needs to be).
+#' @inheritParams tfl_listing_code
 #' @return A list of `rtftable` pages.
 #' @examples
 #' spec <- tfl_listing_spec(
@@ -393,10 +397,18 @@ tfl_listing_code <- function(spec, output_id = NULL, datasets,
 #'                             label = c("Subject", "Age / Sex")))
 #' adsl <- data.frame(USUBJID = sprintf("S-%02d", 1:12),
 #'                    AGE = 40 + 1:12, SEX = rep(c("F", "M"), 6))
-#' pages <- tfl_listing(spec, adsl)
+#' pages <- tfl_listing(adsl, spec)
 #' length(pages)
 #' @export
-tfl_listing <- function(spec, data, output_id = NULL, type = "multiline") {
+tfl_listing <- function(data, spec, output_id = NULL, type = "multiline") {
+  # the order before 0.0.24.9015 was (spec, data): say so, not a puzzle
+  if (inherits(data, "tfl_listing_spec") ||
+      (is.data.frame(spec) && !is.data.frame(data))) {
+    .ard_stop(paste0(
+      "tfl_listing(): the order of the arguments changed: ",
+      "tfl_listing(data, spec).\n  The data comes first, as in ",
+      "tfl_table_plan(data, spec)."))
+  }
   .spec_need_rtfreporter()
   x <- .listing_one(spec, output_id, "tfl_listing")
   l <- x$listing
