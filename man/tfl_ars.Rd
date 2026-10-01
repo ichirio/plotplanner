@@ -8,7 +8,7 @@ tfl_ars(
   ard_spec,
   table_spec = NULL,
   report_spec = NULL,
-  profile = "cdisc",
+  profile = c("cdisc", "siera"),
   study_id = NULL,
   purpose = NULL,
   reason = "SPECIFIED IN SAP",
@@ -23,7 +23,14 @@ tfl_ars(
 given for both): the levels of a grouping, and each output's titles,
 footnotes, header, footer and file.}
 
-\item{profile}{\code{"cdisc"}: the layout of CDISC's examples.}
+\item{profile}{\code{"cdisc"}: the layout of CDISC's examples.  \code{"siera"}:
+the same, made runnable by siera's \code{readARS()} (still valid CDISC
+ARS): each method carries an R code template, a proportion with its CI
+is an analysis of the variable, each output's subject count comes
+first, ids keep only letters, digits and \verb{_}, and the list of outputs
+is there.  An analysis siera has no template for (a test other than
+chi-square, \code{missing}, \code{mean_ci}, \code{custom} ...) is left out and listed
+by \code{\link[=tfl_ars_unmapped]{tfl_ars_unmapped()}}.  \code{\link[=tfl_ars_ard]{tfl_ars_ard()}} runs it.}
 
 \item{study_id}{The reporting event's id; default the ARD spec's \code{study}
 key \code{study_id}, else \code{"STUDY"}.}

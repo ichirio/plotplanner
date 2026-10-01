@@ -74,13 +74,19 @@ tfl_write_ars_json <- function(ars, path, pretty = TRUE) {
 #' @param ars A [tfl_ars()], or the path of an ARS `.json` file.
 #' @param schema Check against the JSON Schema too (needs jsonvalidate;
 #'   skipped with a message when it is not installed).
+#' @param profile `"siera"` checks also what siera needs to run it (three
+#'   analyses an output, one analysis set an output and of one condition,
+#'   a code template for each method, ids of letters, digits and `_`).
+#'   Default: the profile the `tfl_ars()` was written with, else `"cdisc"`.
 #' @return A data frame, one row per problem (none: zero rows): `part` (the
 #'   class and id), `field` and `problem`.
 #' @examples
 #' f <- system.file("ars", "ars_ldm.json", package = "tflspec")
 #' file.exists(f)
 #' @export
-tfl_check_ars <- function(ars, schema = TRUE) {
+tfl_check_ars <- function(ars, schema = TRUE, profile = NULL) {
+  profile <- profile %||% attr(ars, "profile") %||% "cdisc"
+  profile <- match.arg(profile, c("cdisc", "siera"))
   out <- data.frame(part = character(), field = character(),
                     problem = character(), stringsAsFactors = FALSE)
   add <- function(p, f, x) out[nrow(out) + 1L, ] <<- list(p, f, x)
@@ -235,5 +241,6 @@ tfl_check_ars <- function(ars, schema = TRUE) {
       }
     }
   }
+  if (profile == "siera") out <- rbind(out, .ars_siera_checks(re))
   unique(out)
 }

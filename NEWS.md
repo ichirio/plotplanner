@@ -1,5 +1,25 @@
 # tflspec (development version)
 
+* **ARS siera can run, and the round trip** (#55, stage 2 of the ARS
+  export).  `tfl_ars(profile = "siera")` writes the reporting event so
+  siera's `readARS()` runs it, still valid CDISC ARS: each method carries
+  an R code template (written for tflspec against siera's contract), a
+  proportion with its CI is an analysis of the variable, each output's
+  subject count comes first, ids keep only letters, digits and `_`, the
+  list of outputs is there.  A hierarchy keeps its nesting: a level below
+  the first counts only the pairs of it and the level above that are in
+  the data.  What siera has no template for is left out and listed by
+  `tfl_ars_unmapped()`; `tfl_check_ars()` checks what siera needs beyond
+  the model (three analyses an output, one analysis set of one condition,
+  a code template for each method).
+  - `tfl_ars_ard(ars, adam)` has siera make the ARD: the ADaM written as
+    CSV (siera's contract), siera's programmes run each in an environment
+    of its own, `OutputId` given back as the spec's output id.
+  - The tests run the round trip on the CDISC pilot data: every number
+    siera makes from the ARS is tflspec's from the spec (demographics,
+    TEAEs by SOC and PT, proportions with Wilson CIs).
+  - siera (>= 0.5.6) is suggested.
+
 * **The specs as a CDISC ARS reporting event** (#53, stage 1 of the ARS
   export).  `tfl_ars()` writes what the ARD spec analyses -- and, when
   given, the table / report specs' levels, titles, footnotes, header,

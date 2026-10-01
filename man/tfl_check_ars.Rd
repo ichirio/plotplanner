@@ -4,13 +4,18 @@
 \alias{tfl_check_ars}
 \title{Check a CDISC ARS reporting event}
 \usage{
-tfl_check_ars(ars, schema = TRUE)
+tfl_check_ars(ars, schema = TRUE, profile = NULL)
 }
 \arguments{
 \item{ars}{A \code{\link[=tfl_ars]{tfl_ars()}}, or the path of an ARS \code{.json} file.}
 
 \item{schema}{Check against the JSON Schema too (needs jsonvalidate;
 skipped with a message when it is not installed).}
+
+\item{profile}{\code{"siera"} checks also what siera needs to run it (three
+analyses an output, one analysis set an output and of one condition,
+a code template for each method, ids of letters, digits and \verb{_}).
+Default: the profile the \code{tfl_ars()} was written with, else \code{"cdisc"}.}
 }
 \value{
 A data frame, one row per problem (none: zero rows): \code{part} (the

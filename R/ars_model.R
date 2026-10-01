@@ -198,7 +198,14 @@
 #'   ([tfl_read_table_spec()], [tfl_read_report_spec()]; one object may be
 #'   given for both): the levels of a grouping, and each output's titles,
 #'   footnotes, header, footer and file.
-#' @param profile `"cdisc"`: the layout of CDISC's examples.
+#' @param profile `"cdisc"`: the layout of CDISC's examples.  `"siera"`:
+#'   the same, made runnable by siera's `readARS()` (still valid CDISC
+#'   ARS): each method carries an R code template, a proportion with its CI
+#'   is an analysis of the variable, each output's subject count comes
+#'   first, ids keep only letters, digits and `_`, and the list of outputs
+#'   is there.  An analysis siera has no template for (a test other than
+#'   chi-square, `missing`, `mean_ci`, `custom` ...) is left out and listed
+#'   by [tfl_ars_unmapped()].  [tfl_ars_ard()] runs it.
 #' @param study_id The reporting event's id; default the ARD spec's `study`
 #'   key `study_id`, else `"STUDY"`.
 #' @param purpose,reason For analyses whose `purpose` / `reason` is blank:
@@ -213,7 +220,8 @@
 #' @seealso [tfl_write_ars_json()], [tfl_check_ars()], [tfl_ars_unmapped()]
 #' @export
 tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
-                    profile = "cdisc", study_id = NULL, purpose = NULL,
+                    profile = c("cdisc", "siera"), study_id = NULL,
+                    purpose = NULL,
                     reason = "SPECIFIED IN SAP", dataset_names = NULL) {
   profile <- match.arg(profile)
   if (!inherits(ard_spec, "tfl_ard_spec")) ard_spec <- tfl_ard_spec(ard_spec)
@@ -382,13 +390,20 @@ tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
 
   a <- x$analyses
   analyses <- list()
+  # each ARS analysis, what it was written from: the spec row, its method,
+  # its role (bign: the output's subject count; any: subjects with any
+  # record; level: a depth of a hierarchy; count / value / test_count /
+  # test_value / other: as .ars_method_shape()) and its variable
   ids <- data.frame(output_id = character(), analysis_id = character(),
-                    ars_id = character(), stringsAsFactors = FALSE)
+                    ars_id = character(), method = character(),
+                    role = character(), variable = character(),
+                    by = character(), stringsAsFactors = FALSE)
   bign <- list()   # output / population / grouping -> the subject count
   pending_den <- list()
 
   add_analysis <- function(r, id, name, ds, var, mz, grp, no_res = character(),
-                           ss = NULL, pur, rea) {
+                           ss = NULL, pur, rea, role, v = NA_character_,
+                           m = r$method) {
     an <- list(id = id, name = name, version = 1L)
     if (!is.na(rea)) an$reason <- list(controlledTerm = rea)
     if (!is.na(pur)) an$purpose <- list(controlledTerm = pur)
@@ -405,7 +420,8 @@ tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
                                                model = an, mz = mz,
                                                pop = r$population_id,
                                                grp = grp)
-    ids[nrow(ids) + 1L, ] <<- list(r$output_id, r$analysis_id, id)
+    ids[nrow(ids) + 1L, ] <<- list(r$output_id, r$analysis_id, id, m, role,
+                                   v, paste(.split_bar(r$by), collapse = "|"))
     id
   }
 
@@ -485,7 +501,7 @@ tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
     if (m == "hierarchical") {
       if (over) {
         id <- add_analysis(r, aid("ANY"), lbl %||% "Any", ds, subj, mz, g_by,
-                           ss = ss, pur = pur, rea = rea)
+                           ss = ss, pur = pur, rea = rea, role = "any")
         need_den(id, r, by, mz, pds %|NA|% ds, pur, rea)
       }
       for (k in seq_along(vars)) {
@@ -495,7 +511,7 @@ tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
                                               collapse = " / ")),
                                  collapse = ": "),
                            ds, subj, mz, c(g_by, gv), ss = ss, pur = pur,
-                           rea = rea)
+                           rea = rea, role = "level", v = vars[k])
         need_den(id, r, by, mz, pds %|NA|% ds, pur, rea)
       }
     } else if (m == "total_n" || (m == "categorical" && !length(by) &&
@@ -509,15 +525,22 @@ tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
       bv <- if (m == "total_n") by else vars
       gv <- vapply(bv, grouping, "", ds = ds, out = out)
       id <- add_analysis(r, aid(), lbl %||% "Number of subjects", ds, subj,
-                         mz, gv, ss = ss, pur = pur, rea = rea)
+                         mz, gv, ss = ss, pur = pur, rea = rea, role = "bign",
+                         m = "total_n")
       bign[[paste(out, r$population_id, paste(bv, collapse = ","),
                   sep = "\r")]] <- list(id = id, op = mz$op[["N"]])
+    } else if (m == "subjects") {
+      # subjects with any record of the data: counted by the grouping alone
+      id <- add_analysis(r, aid(), lbl %||% r$analysis_id, ds, subj, mz,
+                         g_by, ss = ss, pur = pur, rea = rea, role = "any")
+      need_den(id, r, by, mz, pds %|NA|% ds, pur, rea)
     } else if (shape == "count") {
       for (v in vars) {
         gv <- c(g_by, grouping(ds, v, out))
         id <- add_analysis(r, if (several) aid(v) else aid(),
                            lbl %||% label_of(out, v), ds, subj, mz, gv,
-                           ss = ss, pur = pur, rea = rea)
+                           ss = ss, pur = pur, rea = rea, role = "count",
+                           v = v)
         need_den(id, r, by, mz, pds %|NA|% ds, pur, rea)
       }
     } else if (shape %in% c("value", "test_value")) {
@@ -525,20 +548,21 @@ tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
         add_analysis(r, if (several) aid(v) else aid(),
                      lbl %||% label_of(out, v), ds, v, mz, g_by,
                      no_res = if (shape == "test_value") g_by else character(),
-                     ss = ss, pur = pur, rea = rea)
+                     ss = ss, pur = pur, rea = rea, role = shape, v = v)
       }
     } else if (shape == "test_count") {
       for (v in vars) {
         gv <- c(g_by, grouping(ds, v, out))
         add_analysis(r, if (several) aid(v) else aid(),
                      lbl %||% label_of(out, v), ds, subj, mz, gv,
-                     no_res = gv, ss = ss, pur = pur, rea = rea)
+                     no_res = gv, ss = ss, pur = pur, rea = rea,
+                     role = "test_count", v = v)
       }
     } else {
       # custom or pkg::function: what it analyses is in its code
       add_analysis(r, aid(), lbl %||% r$analysis_id, ds,
                    if (length(vars)) vars[1L] else subj, mz, g_by,
-                   ss = ss, pur = pur, rea = rea)
+                   ss = ss, pur = pur, rea = rea, role = "other")
       if (length(vars) > 1L) miss(tag, "variables", paste(
         "a custom analysis is one ARS analysis: its variables beyond the",
         "first are in its code only"))
@@ -559,7 +583,8 @@ tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
                                     p$by),
                                   collapse = "_"),
                          "Number of subjects", p$ds, subj, mz, gv,
-                         pur = p$pur, rea = p$rea)
+                         pur = p$pur, rea = p$rea, role = "bign",
+                         m = "total_n")
       # the count comes first in its output
       k <- length(analyses)
       first <- match(p$out, vapply(analyses, `[[`, "", "output"))
@@ -668,8 +693,10 @@ tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
   if (length(methods)) re$methods <- lapply(methods, `[[`, "model")
   if (length(analyses)) re$analyses <- lapply(analyses, `[[`, "model")
   if (length(outputs)) re$outputs <- outputs
-  structure(re, class = "tfl_ars", profile = profile, unmapped = unique(un),
-            ids = ids)
+  out <- structure(re, class = "tfl_ars", profile = profile,
+                   unmapped = unique(un), ids = ids)
+  if (profile == "siera") out <- .ars_siera(out)
+  out
 }
 
 `%|NA|%` <- function(a, b) if (is.null(a) || is.na(a)) b else a
