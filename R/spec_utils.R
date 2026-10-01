@@ -165,3 +165,17 @@
     listing = if (inherits(x, "tfl_listing_spec")) x else refuse())
 }
 
+
+# The RTF of table pages, as bytes: what a reader gets, with the run time
+# fixed so that two renderings of the same pages compare equal.
+.spec_rtf <- function(pages) {
+  old <- options(rtfreporter.render_time =
+                   as.POSIXct("2000-01-01 00:00:00", tz = "UTC"))
+  on.exit(options(old), add = TRUE)
+  f <- tempfile(fileext = ".rtf")
+  on.exit(unlink(f), add = TRUE)
+  doc <- rtfreporter::rtf_tables(rtfreporter::rtf_document(), pages)
+  suppressMessages(rtfreporter::generate_rtfreport(doc, f, overwrite = TRUE,
+                                                   program = "program.R"))
+  readBin(f, "raw", file.info(f)$size)
+}

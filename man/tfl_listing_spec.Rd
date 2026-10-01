@@ -40,10 +40,16 @@ A listing is defined in two sheets, keyed by \code{output_id}:
 \item \code{listings}, one row a listing: \code{output_id}; \code{type} (an rtfreporter
 listing type, blank for the default); \code{dataset} (of the data catalog);
 \code{where} (an R condition on its columns); \code{sort} (variables, \code{|} between
-them, \code{-} in front for descending); \code{max_rows} (rows a page).
+them, \code{-} in front for descending); \code{max_rows} (rows a page);
+\code{blank_row} (\code{TRUE} / \code{FALSE}: a blank row after each record; blank:
+the type's); \code{wrap} (the name of an R function that breaks a cell into
+lines, \code{listing_spec(wrap = )}; blank: the type's own rule).
 \item \code{listing_cols}, one row a printed column, in order: \code{output_id}; \code{vars}
 (\code{|} between variables stacked in the column); \code{label} (the header, \verb{\\n}
-for a line break); \code{width} (characters); \code{collapse_repeats} (\code{TRUE}
+for a line break); \code{width} (characters); \code{sep} (what separates the
+stacked variables -- quote it, \code{" / "}, to keep its spaces; blank: the
+type's, \code{/}); \code{align} (\code{left} /
+\code{center} / \code{right}; blank: the type's); \code{collapse_repeats} (\code{TRUE}
 prints a value once until it changes).
 }
 

@@ -429,6 +429,7 @@ tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
                         page = if (length(page)) page,
                         default_format = if (length(fmt))
                           do.call(.spec_call, c(list("rtf_default_format"), fmt)),
+                        watermark = r$watermark,
                         program = prog))
   # a report may go without the study's running header or footer -- one
   # that puts its run line under the table instead, say
@@ -441,7 +442,10 @@ tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
         c(if (length(hdr)) "header", if (length(ftr)) "footer")])
   }
   if (identical(r$type %||% "table", "figure")) {
-    st[[length(st) + 1L]] <- .spec_call("rtf_figures", doc, .spec_sym(content))
+    twips <- function(v) if (!is.null(v)) as.integer(round(v * 1440))
+    st[[length(st) + 1L]] <- .spec_call("rtf_figures", doc, .spec_sym(content),
+      width_twips = twips(r$figure_width_in),
+      height_twips = twips(r$figure_height_in))
   } else {
     st[[length(st) + 1L]] <- .spec_call("rtf_tables", doc, .spec_sym(content),
       auto_section = r$auto_section,

@@ -54,7 +54,10 @@ together.  A sheet found in two of them is an error.
 \code{table_font_size_half_points}, \code{title_font_size_half_points},
 \code{footnote_font_size_half_points},
 and \code{page_header} / \code{page_footer} (\code{FALSE} drops that running band for
-the report, the study's default lines included).
+the report, the study's default lines included), \code{watermark} (a word
+drawn behind every page, \code{rtf_document(watermark = )}: \code{DRAFT}), and
+\code{figure_width_in} / \code{figure_height_in} (a figure report's figure size in
+inches, \code{\link[rtfreporter:rtf_figures]{rtfreporter::rtf_figures()}}).
 }
 
 \section{\code{page}}{

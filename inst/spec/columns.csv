@@ -146,6 +146,9 @@ report,title_font_size_half_points,"The titles' font size in half-points; blank:
 report,footnote_font_size_half_points,"The footnotes' font size in half-points; blank: the document's.",14
 report,page_header,"TRUE / FALSE: FALSE drops the running page header for this report, the study's default lines included; blank: TRUE.",FALSE
 report,page_footer,"TRUE / FALSE: FALSE drops the running page footer, likewise; blank: TRUE.",FALSE
+report,watermark,"A word drawn diagonally behind every page (rtf_document(watermark = )); blank: none.",DRAFT
+report,figure_width_in,"A figure report: the figure's width in inches (rtf_figures(width_twips = )); blank: the figure's own.",9
+report,figure_height_in,"A figure report: the figure's height in inches (rtf_figures(height_twips = )); blank: the figure's own.",5
 page,,"Report: one row a report; the page (rtf_page()) and the document's text defaults (rtf_default_format()). Blank: rtfreporter's options (landscape Letter, 0.75 in margins).",
 page,paper_size,"letter / legal / A4 / A3 / A5; blank: letter.",A4
 page,orientation,"landscape / portrait; blank: landscape.",portrait
@@ -189,8 +192,12 @@ listings,dataset,"The dataset listed (of the ARD spec's datasets catalog).",ADAE
 listings,where,"An R condition on its columns choosing the rows; blank: every row.","AESEV == ""SEVERE"""
 listings,sort,"The sort variables, | between them, - in front for descending; blank: the data's order.",USUBJID | -ASTDY
 listings,max_rows,"Rows a page, a whole number; blank: rtfreporter's default.",20
+listings,blank_row,"TRUE / FALSE: a blank row after each record (listing_spec(blank_row = )); blank: the type's.",FALSE
+listings,wrap,"The name of an R function that breaks a cell into lines (listing_spec(wrap = )); blank: the type's own rule.",my_wrap
 listing_cols,,"Listing: one row a printed column, in order (listing_col()).",
 listing_cols,vars,"The variables stacked in the column, | between them.",USUBJID | AGE
 listing_cols,label,"The column header; \n is a line break; blank: the variables' names.",Subject\nAge
 listing_cols,width,"Characters a line before the cell wraps (listing_col(width = )), a whole number; blank: never wraps.",12
+listing_cols,sep,"What separates the stacked variables (listing_col(sep = )); quote it to keep its spaces; blank: the type's (/).",""" / """
+listing_cols,align,"left / center / right (listing_col(align = )); blank: the type's (left).",center
 listing_cols,collapse_repeats,"TRUE / FALSE: TRUE prints a value once until it changes; blank: FALSE.",TRUE

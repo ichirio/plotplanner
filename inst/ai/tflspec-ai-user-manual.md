@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9012** (the development version,
+**This manual documents tflspec 0.0.24.9013** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -143,6 +143,7 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 | the plan a table spec stands for | `tfl_table_plan(data, spec)` (then any rtfreporter verb: last wins) |
 | the plan as code | `tfl_table_code(spec)` |
 | a plan written in code, back to a workbook | `tfl_as_table_spec(plan)` |
+| a listing written in code (`listing_spec()` / `plan_listing()`), back to a listing spec | `tfl_as_listing_spec(x, output_id, dataset = )` |
 | the document / its code / its file | `tfl_report(spec, output_id, content = plan)` / `tfl_report_code(spec)` / `tfl_report_path(spec)` |
 | a listing's program / its pages | `tfl_listing_code(spec)` / `tfl_listing(spec, data)` |
 | a figure: start / check / write the script | `tfl_fig_template()` / `tfl_check_fig_design()` / `tfl_fig_design_code()` |
@@ -300,7 +301,8 @@ a position or range `3:last`, or `KEY = value`), `span` (blank: one cell;
 `{col1}`, `{n}`, `{n1}`, `{n:sum}`), `align`, `bold`, `border_top`,
 `border_bottom` → `plan_col_header(header = )`.
 
-`tfl_as_table_spec(plan)` writes a plan back as a workbook and lists what a
+`tfl_as_table_spec(plan)` writes a plan back as a workbook (compared by its
+RTF, byte by byte; `compare = FALSE` skips that) and lists what a
 sheet cannot say (`attr(, "not_converted")`) — a look computed row by
 row (`bold = ~ ...`), `plan_after()` steps, guarded labels stay in code.
 
@@ -314,7 +316,7 @@ file.
 
 | Sheet | Columns |
 |---|---|
-| `report` | `type` (`table` / `listing` / `figure`), `file` (`{output_id}.rtf`), `program`, `auto_section`, `section_align`, `auto_title`, `title_align`, `table_font_size_half_points`, `title_font_size_half_points`, `footnote_font_size_half_points`, `page_header`, `page_footer` |
+| `report` | `type` (`table` / `listing` / `figure`), `file` (`{output_id}.rtf`), `program`, `auto_section`, `section_align`, `auto_title`, `title_align`, `table_font_size_half_points`, `title_font_size_half_points`, `footnote_font_size_half_points`, `page_header`, `page_footer`, `watermark` (`DRAFT`), `figure_width_in`, `figure_height_in` |
 | `page` | `paper_size`, `orientation`, `width_in`, `height_in`, margins `margin_*_in`, `header_dist_in`, `footer_dist_in`, `font_size_half_points`, `title_format`, `footnote_format`, `title_width`, `footnote_width`, `markup` |
 | `header`, `footer`, `titles`, `footnotes` | `line`, `left`, `center`, `right` — a report's line replaces the default line of the same number |
 
@@ -330,10 +332,13 @@ Page tokens in the running header / footer: `{PAGE}`, `{TOTAL_PAGES}`,
 
 | Sheet | Columns |
 |---|---|
-| `listings` (one row a listing) | `output_id`, `type` (`multiline`), `dataset`, `where` (R), `sort` (`-` for descending), `max_rows` |
-| `listing_cols` (one row a column) | `output_id`, `vars` (`|` stacks variables in one column), `label`, `width`, `collapse_repeats` |
+| `listings` (one row a listing) | `output_id`, `type` (`multiline`), `dataset`, `where` (R), `sort` (`-` for descending), `max_rows`, `blank_row` (`TRUE` / `FALSE`), `wrap` (the name of an R function) |
+| `listing_cols` (one row a column) | `output_id`, `vars` (`|` stacks variables in one column), `label`, `width` (characters), `sep` (quoted to keep spaces: `" / "`), `align`, `collapse_repeats` |
 
 Layout on the page is rtfreporter's `listing_spec()` / `as_rtftables()`.
+`tfl_as_listing_spec(x, output_id, dataset = )` writes a `listing_spec()`
+or a `plan_listing()` plan back as a listing spec, listing what the sheets
+cannot carry (`attr(, "not_converted")`); from a plan it compares the RTF.
 `tfl_read_data_code(datasets, dataset)` writes the line that reads a
 dataset of the data catalog (`.rds`, `.xpt`, `.sas7bdat`, `.csv`,
 `.parquet`).
@@ -429,6 +434,7 @@ anything written here can be opened there.
 | `table_plan(stats =, value =, na =, notes =, sort_stat =, sep =)` | `plan_cells()`, `plan_sort(stat =)`, `plan_columns(sep =)` |
 | `plan_stub(into =)`, `show = FALSE`, `plan_col_header(n =)`, `plan_paginate_cols(carry =)` | `name =`, `keep = FALSE`, `values = list(n = )`, `keep =` |
 | layout `stub_into`, `group_show`, `colpages_carry`, `pages_by` | `stub_name`, `group_keep`, `colpages_keep`, `group_page = TRUE` + `group_col` |
+| an ARD back to an ARD spec (`tfl_as_ard_spec()`) | none: an ARD has no data paths, populations, `where` or `derive`, so a spec made from it could not make it again. An existing analysis comes in through CDISC ARS: `tfl_ars_to_specs()` |
 
 A workbook with a former column is refused with the column to write instead.
 With `sep = "_"`, a key value may not contain `_` (it could not be split
@@ -471,7 +477,7 @@ back): rename the value or choose another separator.
 **Table spec:** `tfl_table_spec` `tfl_read_table_spec` `tfl_write_table_spec`
 `tfl_write_report_spec` `tfl_write_specs` `tfl_spec_columns`
 `tfl_table_spec_template` `tfl_table_plan` `tfl_table_code`
-`tfl_as_table_spec`
+`tfl_as_table_spec` `tfl_as_listing_spec`
 
 **Report spec:** `tfl_read_report_spec` `tfl_report` `tfl_report_code`
 `tfl_report_path`
