@@ -38,9 +38,11 @@
 #' What each column of a spec workbook means
 #'
 #' The help the spec workbooks carry as comments on their header cells, as
-#' one table: the column help of the table and report sheets (in Japanese,
-#' with an example) and of the ARD definition sheets.  Rows whose `sheet` is
-#' in parentheses are about the whole workbook.
+#' one table: every column of every sheet -- ARD, table, report and listing
+#' -- with the form of its value, its unit and what a blank cell means, and
+#' an example.  A row with no `column` describes the sheet; rows whose
+#' `sheet` is in parentheses are about the whole workbook (`output_id`,
+#' `note`, the tokens).
 #'
 #' @param sheet Sheet names to keep the rows of, or `NULL` for every row.
 #'   A row naming several sheets (`"titles / footnotes"`) is kept for each.
@@ -50,13 +52,10 @@
 #' tfl_spec_columns("analyses")
 #' @export
 tfl_spec_columns <- function(sheet = NULL) {
-  f <- system.file("spec", "columns-table.csv", package = "tflspec")
-  tb <- utils::read.csv(f, stringsAsFactors = FALSE, fileEncoding = "UTF-8",
-                        colClasses = "character", na.strings = "")
-  ard <- .ard_readme()
-  ard$example <- NA_character_
-  d <- rbind(tb[c("sheet", "column", "description", "example")],
-             ard[c("sheet", "column", "description", "example")])
+  f <- system.file("spec", "columns.csv", package = "tflspec")
+  d <- utils::read.csv(f, stringsAsFactors = FALSE, fileEncoding = "UTF-8",
+                       colClasses = "character", na.strings = "")
+  d <- d[c("sheet", "column", "description", "example")]
   rownames(d) <- NULL
   if (is.null(sheet)) return(d)
   keep <- vapply(strsplit(d$sheet, " / ", fixed = TRUE),
@@ -69,13 +68,14 @@ tfl_spec_columns <- function(sheet = NULL) {
 # A sheet's header comments: column -> text (the description, then the
 # example).  A row naming several columns ("key / value") comments each.
 .spec_column_help <- function(sheet) {
-  d <- tfl_spec_columns(sheet)
+  # the sheet's own rows, then the workbook's (output_id, note)
+  d <- tfl_spec_columns(c(sheet, "(workbook)"))
   d <- d[!is.na(d$column) & nzchar(d$column), , drop = FALSE]
   out <- character()
   for (i in seq_len(nrow(d))) {
     txt <- d$description[i]
     if (!is.na(d$example[i]) && nzchar(d$example[i])) {
-      txt <- paste0(txt, "\n\u4f8b: ", d$example[i])
+      txt <- paste0(txt, "\nExample: ", d$example[i])
     }
     for (cn in trimws(strsplit(d$column[i], " / ", fixed = TRUE)[[1L]])) {
       if (!cn %in% names(out)) out[[cn]] <- txt

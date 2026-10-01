@@ -353,7 +353,7 @@ test_that("an unnamed report falls back to the defaults, and says so", {
 test_that("the workbook's sheets: reserved ones are reported, unknown refused", {
   mk <- function(...) tflspec:::.ard_spec_from_sheets(list(...), "x.xlsx")
   t <- data.frame(cols = "TRT")
-  expect_message(mk(tables = t, listing = data.frame(col = "USUBJID")),
+  expect_message(mk(tables = t, figures = data.frame(fig = "F1")),
                  "reserved for a later version")
   expect_error(mk(tables = t, Sheet2 = data.frame(a = 1)), "nobody reads")
   expect_silent(mk(tables = t, `_notes` = data.frame(a = 1),

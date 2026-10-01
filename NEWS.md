@@ -1,5 +1,29 @@
 # tflspec (development version)
 
+* **Column names and their help** (#64, brush-up before CRAN).
+  - Renamed, as the names said no unit: the table spec's `columns$width`
+    is `rel_width` (a relative width), and the report's
+    `table_font_size`, `title_font_size`, `footnote_font_size` are
+    `*_font_size_half_points`.  A workbook with a former name is told the
+    new one; no alias is kept.  The listing's `width` stays (it is
+    `listing_col(width = )`, characters a line).
+  - The rule the names follow is written down (README, AI manual 4.1):
+    table / listing / report columns are rtfreporter's argument names, ARD
+    columns cards' (`statistics` and `formats` excepted).
+  - One argument, one place: a column (`by`, `variables`, `strata`,
+    `denominator`, or `statistics` where it is the call's `statistic`) and
+    `args` may not both give it -- the column was dropped unseen.
+  - `tfl_spec_columns()` describes every column of every sheet (ARD,
+    table, report, listing), one row a column, in English: the form of
+    the value, its unit and what a blank means.  Header-cell comments
+    follow it.  A test keeps it complete.
+  - `listings` / `listing_cols` are no longer listed as reserved sheets.
+  - `tfl_ard_spec_hash()` (and the fingerprints `tfl_ard_code()` saves)
+    take the content of the study's own function files (key `source`;
+    a missing one counts) and leave out columns blank in every row, so
+    a column added later changes no fingerprint.  New `dir` argument.
+  - The bundled example workbooks are written again with the new names.
+
 * **The ARD spec says more, exactly** (#64, brush-up before CRAN).
   - `args` is read as the arguments of a call: a keyword's own argument
     given after another (`over_variables = TRUE, denominator = population`)

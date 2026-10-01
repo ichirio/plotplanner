@@ -10,7 +10,8 @@ tfl_ard_code(
   save = TRUE,
   part = c("all", "setup", "body"),
   statistics = NULL,
-  methods = NULL
+  methods = NULL,
+  dir = "."
 )
 }
 \arguments{
@@ -24,6 +25,9 @@ tfl_ard_code(
 
 \item{statistics, methods}{The catalogs (\code{\link[=tfl_ard_statistics]{tfl_ard_statistics()}},
 \code{\link[=tfl_ard_methods]{tfl_ard_methods()}}) to use instead of the current ones.}
+
+\item{dir}{The study folder: the fingerprints saved with the ARD
+(\code{\link[=tfl_ard_spec_hash]{tfl_ard_spec_hash()}}) read the study's own function files from it.}
 }
 \value{
 The code, one element per line.

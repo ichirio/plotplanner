@@ -81,7 +81,7 @@ test_that("a spanning header, widths by name and a hidden column go over too", {
     variables = data.frame(variable = "GRP", levels = "Young | Old"),
     layout = data.frame(stub_name = "row_label", stub_before = "TRUE"),
     columns = data.frame(column = c("row_label", ".values"),
-                         width = c("4", "2")),
+                         rel_width = c("4", "2")),
     col_header = data.frame(
       line = c(1, 1, 2, 2, 2),
       cols = c("row_label", ".values", "row_label", "GRP = Young", "GRP = Old"),
@@ -112,7 +112,7 @@ test_that("the example workbooks write code that runs to the same plan", {
 sc_rep_spec <- function() tfl_table_spec(
   study = c(output_path = "out", program_dir = "C:\\tfl"),
   report = data.frame(output_id = c(NA, "T2"), page_footer = c(NA, "FALSE"),
-                      title_font_size = c(NA, "20")),
+                      title_font_size_half_points = c(NA, "20")),
   page = data.frame(output_id = "T2", orientation = "portrait",
                     margin_left_in = "0.5", font_size_half_points = "18"),
   header = data.frame(output_id = c(NA, NA, "T1", "T1"), line = c(1, 2, 3, 4),

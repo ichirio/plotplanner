@@ -263,7 +263,7 @@ test_that("layout / columns / style give the pages the verbs give", {
                          blank_where = "between_groups", blank_first = "TRUE",
                          pages_max_rows = "6", pages_split = "group_safe"),
     columns = data.frame(column = c("row_label", ".values"),
-                         width = c("4", "2")),
+                         rel_width = c("4", "2")),
     style   = data.frame(align_count_pct = "TRUE", row_height_twips = "220"))
   by_spec <- plan_apply(tfl_table_plan(d, sp) |>
                           plan_cells(notes = FALSE), "pages")
@@ -309,14 +309,14 @@ test_that("`.values` widths follow the data; a column left out is named", {
     layout = data.frame(stub_name = "row_label", stub_before = "TRUE"),
     columns = columns)
   pg <- plan_apply(tfl_table_plan(d, base(data.frame(
-    column = c("row_label", ".values"), width = c("5", "2")))) |>
+    column = c("row_label", ".values"), rel_width = c("5", "2")))) |>
       plan_cells(notes = FALSE),
     "pages")
   first <- if (inherits(pg, "rtftable")) pg else pg[[1L]]
   expect_identical(first$col_rel_width,
                    c(5, rep(2, ncol(first$data) - 1L)))
   expect_error(plan_apply(tfl_table_plan(d, base(data.frame(
-    column = "row_label", width = "5"))) |>
+    column = "row_label", rel_width = "5"))) |>
       plan_cells(notes = FALSE), "pages"),
     "not for")
 })
@@ -362,7 +362,7 @@ test_that("display values are checked where they are written", {
                "`layout\\$pages_max_rows` must be a whole number")
   expect_error(tfl_table_spec(style = data.frame(align_count_pct = "maybe")),
                "TRUE or FALSE")
-  expect_error(tfl_table_spec(columns = data.frame(width = "2")),
+  expect_error(tfl_table_spec(columns = data.frame(rel_width = "2")),
                "needs a `column`")
   expect_error(tfl_table_spec(columns = data.frame(column = c("a", "a"))),
                "two rows")

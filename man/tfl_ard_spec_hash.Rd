@@ -4,18 +4,24 @@
 \alias{tfl_ard_spec_hash}
 \title{A fingerprint of one output's ARD definition}
 \usage{
-tfl_ard_spec_hash(spec, output_id)
+tfl_ard_spec_hash(spec, output_id, dir = ".")
 }
 \arguments{
 \item{spec}{An \code{\link[=tfl_ard_spec]{tfl_ard_spec()}}.}
 
 \item{output_id}{The output.}
+
+\item{dir}{The study folder, which \code{source} files are relative to.}
 }
 \value{
 A single string.
 }
 \description{
 The md5 of what makes an output's ARD: its analysis rows and the data,
-populations and study keys they use.  An ARD built from a definition
-whose fingerprint differs from the one now is outdated.
+populations and study keys they use, and the content of the study's own
+function files (the study key \code{source}; a file not there counts as
+\code{"missing"}).  An ARD built from a definition whose fingerprint differs
+from the one now is outdated.  A column blank in every analysis row of
+the output does not count, so a column added to the definition later
+leaves the fingerprints as they were.
 }

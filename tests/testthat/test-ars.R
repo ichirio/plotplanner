@@ -210,7 +210,7 @@ test_that("purpose and reason are columns of the ARD spec workbook", {
   back <- tfl_read_ard_spec(f)
   expect_identical(back$analyses$purpose, sp$analyses$purpose)
   expect_identical(back$analyses$reason, sp$analyses$reason)
-  expect_true(all(c("purpose / reason") %in% tfl_spec_columns("analyses")$column))
+  expect_true(all(c("purpose", "reason") %in% tfl_spec_columns("analyses")$column))
 })
 
 test_that("an added subject count never takes an id the output has", {

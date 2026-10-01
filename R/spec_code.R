@@ -295,7 +295,7 @@
         values = if (!is.null(hn))
           if (is.null(names(hn))) list(n = hn) else as.list(hn))
   }
-  w <- vapply(ct, function(r) r[["width"]] %||% NA_real_, NA_real_)
+  w <- vapply(ct, function(r) r[["rel_width"]] %||% NA_real_, NA_real_)
   if (any(!is.na(w)) || any(flag("decimal_split")) || any(flag("row_title")) ||
       !is.null(auto_width) || !is.null(sa[["sep"]])) {
     add("plan_columns",
@@ -450,17 +450,17 @@ tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
       section_label_align = r$section_align,
       auto_title = r$auto_title,
       title_label_align = r$title_align,
-      font_size_half_points = r$table_font_size)
+      font_size_half_points = r$table_font_size_half_points)
   }
   tt <- .ard_spec_band(sp, "titles")
   if (length(tt)) {
     st[[length(st) + 1L]] <- .spec_call("rtf_titles", doc, list(tt),
-      font_size_half_points = r$title_font_size)
+      font_size_half_points = r$title_font_size_half_points)
   }
   fn <- .ard_spec_band(sp, "footnotes")
   if (length(fn)) {
     st[[length(st) + 1L]] <- .spec_call("rtf_footnotes", doc, list(fn),
-      font_size_half_points = r$footnote_font_size)
+      font_size_half_points = r$footnote_font_size_half_points)
   }
   st
 }

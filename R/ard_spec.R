@@ -171,35 +171,6 @@ tfl_write_ard_spec <- function(spec, path, statistics = NULL, methods = NULL,
     .normalize_ard_sheet(spec[[s]], s)), names(.ard_spec_sheets))
 }
 
-.ard_readme <- function() {
-  data.frame(
-    sheet = c("study", "datasets", "datasets", "populations", "populations",
-              "analyses", "analyses", "analyses", "analyses", "analyses",
-              "analyses", "analyses", "analyses", "analyses"),
-    column = c("key / value", "dataset / path", "derive",
-               "population_id / dataset / where", "derive",
-               "output_id / analysis_id", "method",
-               "dataset / population_id / where",
-               "by / variables / statistics", "strata", "denominator",
-               "formats", "args / code", "purpose / reason"),
-    description = c(
-      "id: the subject key (USUBJID); output: where the study ARD goes; source: R files of your own analysis functions, relative to the study folder (| between them)",
-      "a name for the data, and its file relative to the study folder",
-      "new columns, NAME = R expression, | between them",
-      "an analysis set: the subjects of `dataset` for which `where` (R) holds",
-      "columns added to the population (TRTA = TRT01A ...)",
-      "the report the analysis serves, and its id; both are ARD columns",
-      "a keyword (tfl_ard_methods()), any pkg::function (cards::, cardx::), or a function of your own that the study key `source` loads",
-      "the analysis data: `dataset` restricted to the population and `where`",
-      "grouping and analysis variables, statistics (tfl_ard_statistics()); | between several",
-      "variables the analysis is repeated within (cards' strata: subgroups, parameter by visit); | between several",
-      "what percentages are of: population (the analysis set; the default of hierarchical and max), row / column / cell (cards), a population, or a dataset (its records of the analysis set's subjects)",
-      "stat_fmt formats: statistic=format, | between them (mean=xx.x | p=xx.x% | AGE:sd=xx.xx); blank = the default of the statistic",
-      "more arguments as R; `code` for custom (data, population are bound)",
-      "for CDISC ARS (tfl_ars()): PRIMARY / SECONDARY / EXPLORATORY OUTCOME MEASURE; SPECIFIED IN PROTOCOL / SPECIFIED IN SAP (default) / DATA DRIVEN / REQUESTED BY REGULATORY AGENCY"),
-    stringsAsFactors = FALSE)
-}
-
 #' Read and check an ARD definition workbook
 #'
 #' @param path An `ard_spec.xlsx`.
@@ -297,6 +268,24 @@ tfl_ard_spec <- function(x, statistics = NULL, methods = NULL) {
       "%s / %s: `args` does not read as R arguments (%s)", a$output_id[i],
       a$analysis_id[i], gsub("\\s+", " ", p)))
   }
+  # one argument, one place: a column that gives an argument of the call
+  # and `args` may not both give it (else one of them is dropped unseen)
+  km <- tfl_ard_methods()
+  for (i in which(!is.na(a$args))) {
+    if (!is.null(.args_problem(a$args[i]))) next
+    k <- match(a$method[i], km$method)
+    passes_stats <- !is.na(k) && (km$kind[k] %in%
+      c("continuous", "categorical", "missing") ||
+        identical(km$call[k], "(subjects)"))
+    col_arg <- c(by = "by", variables = "variables", strata = "strata",
+                 denominator = "denominator",
+                 statistics = if (passes_stats) "statistic")
+    twice <- names(col_arg)[!is.na(unlist(a[i, names(col_arg)])) &
+                              col_arg %in% .args_given(a$args[i])]
+    for (cn in twice) err <- c(err, sprintf(
+      "%s / %s: `%s` is given twice, by the `%s` column and in `args`; write it in one place",
+      a$output_id[i], a$analysis_id[i], col_arg[[cn]], cn))
+  }
   for (col in c("strata", "denominator")) {
     for (i in which(!is.na(a[[col]] %||% rep(NA, nrow(a))))) {
       tag <- paste(a$output_id[i], a$analysis_id[i], sep = " / ")
@@ -304,11 +293,6 @@ tfl_ard_spec <- function(x, statistics = NULL, methods = NULL) {
         err <- c(err, sprintf("%s: a `custom` analysis takes no `%s` (its code says it)",
                               tag, col))
         next
-      }
-      if (is.null(.args_problem(a$args[i])) &&
-          col %in% .args_given(a$args[i])) {
-        err <- c(err, sprintf("%s: `%s` is given twice, in its column and in `args`",
-                              tag, col))
       }
       f <- .method_fun(a$method[i])
       if (!is.null(f) && !any(c(col, "...") %in% names(formals(f)))) {
@@ -542,12 +526,14 @@ tfl_ard_spec <- function(x, statistics = NULL, methods = NULL) {
 #' @param output_id Only these outputs' analyses; `NULL` for all.
 #' @param save `FALSE` leaves out the final `saveRDS()`.
 #' @param part `"all"` (the whole program), `"setup"` or `"body"`.
+#' @param dir The study folder: the fingerprints saved with the ARD
+#'   ([tfl_ard_spec_hash()]) read the study's own function files from it.
 #' @inheritParams tfl_write_ard_spec
 #' @return The code, one element per line.
 #' @export
 tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
                           part = c("all", "setup", "body"),
-                          statistics = NULL, methods = NULL) {
+                          statistics = NULL, methods = NULL, dir = ".") {
   part <- match.arg(part)
   old <- .set_catalogs(statistics, methods)
   on.exit(options(old), add = TRUE)
@@ -569,7 +555,7 @@ tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
     .ard_body_lines(x, a))
   if (save) {
     ids <- unique(a$output_id)
-    hashes <- vapply(ids, function(id) .ard_output_hash(x, id), "")
+    hashes <- vapply(ids, function(id) .ard_output_hash(x, id, dir), "")
     q <- function(v) paste(encodeString(v, quote = "\""), collapse = ", ")
     code <- c(code,
               sprintf("dir.create(dirname(%s), recursive = TRUE, showWarnings = FALSE)",
@@ -692,17 +678,30 @@ tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
 #' A fingerprint of one output's ARD definition
 #'
 #' The md5 of what makes an output's ARD: its analysis rows and the data,
-#' populations and study keys they use.  An ARD built from a definition
-#' whose fingerprint differs from the one now is outdated.
+#' populations and study keys they use, and the content of the study's own
+#' function files (the study key `source`; a file not there counts as
+#' `"missing"`).  An ARD built from a definition whose fingerprint differs
+#' from the one now is outdated.  A column blank in every analysis row of
+#' the output does not count, so a column added to the definition later
+#' leaves the fingerprints as they were.
 #'
 #' @param spec An [tfl_ard_spec()].
 #' @param output_id The output.
+#' @param dir The study folder, which `source` files are relative to.
 #' @return A single string.
 #' @export
-tfl_ard_spec_hash <- function(spec, output_id) .ard_output_hash(spec, output_id)
+tfl_ard_spec_hash <- function(spec, output_id, dir = ".") {
+  .ard_output_hash(spec, output_id, dir)
+}
 
-.ard_output_hash <- function(spec, output_id) {
+.ard_output_hash <- function(spec, output_id, dir = ".") {
   a <- spec$analyses[spec$analyses$output_id %in% output_id, , drop = FALSE]
+  a <- a[vapply(a, function(v) !all(is.na(v)), NA)]
+  src <- .split_bar(.study_value(spec, "source", NA))
+  src_md5 <- vapply(src, function(f) {
+    p <- file.path(dir, f)
+    if (file.exists(p)) unname(tools::md5sum(p)) else "missing"
+  }, "")
   pops <- spec$populations[spec$populations$population_id %in%
                              a$population_id, , drop = FALSE]
   dss <- spec$datasets[spec$datasets$dataset %in%
@@ -710,7 +709,8 @@ tfl_ard_spec_hash <- function(spec, output_id) .ard_output_hash(spec, output_id)
   txt <- paste(c(utils::capture.output(print(as.list(a[order(a$analysis_id), ]))),
                  utils::capture.output(print(as.list(pops))),
                  utils::capture.output(print(as.list(dss[setdiff(names(dss), "level")]))),
-                 utils::capture.output(print(as.list(spec$study)))),
+                 utils::capture.output(print(as.list(spec$study))),
+                 if (length(src)) paste(src, src_md5)),
                collapse = "\n")
   f <- tempfile()
   on.exit(unlink(f))
@@ -732,7 +732,7 @@ tfl_ard_spec_hash <- function(spec, output_id) .ard_output_hash(spec, output_id)
 tfl_build_ard <- function(spec, dir = ".", output_id = NULL, save = TRUE,
                       statistics = NULL, methods = NULL) {
   code <- tfl_ard_code(spec, output_id = output_id, save = save,
-                        statistics = statistics, methods = methods)
+                        statistics = statistics, methods = methods, dir = dir)
   owd <- setwd(dir)
   on.exit(setwd(owd), add = TRUE)
   e <- new.env(parent = globalenv())

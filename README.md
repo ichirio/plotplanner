@@ -24,6 +24,16 @@ writes and reads the specifications, and rtfreporter (>= 0.8.2) is the
 engine that turns an ARD and a plan into RTF pages.  `rtf_tables(doc, plan)`
 takes a plan directly.
 
+The column names follow two rules. **Table, listing and report columns
+are rtfreporter's argument names** (a `layout` column is the verb's prefix
+and its argument: `pages_max_rows` is `plan_paginate_rows(max_rows = )`).
+**ARD columns are cards' argument names** (`by`, `variables`, `strata`,
+`denominator`), with two exceptions: `statistics` (cards' `statistic`) and
+`formats` (tflspec's own). A column whose value has a unit says it
+(`_twips`, `_in`, `_half_points`; `rel_width` is a relative width). One
+argument is written in one place: a column, or `args`, never both. Every column is
+described on its header cell's comment and by `tfl_spec_columns()`.
+
 Working with an AI assistant? Attach `tflspec_ai_manual()` (the manual of
 the version you have installed) to the chat session.
 

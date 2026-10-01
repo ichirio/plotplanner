@@ -110,6 +110,18 @@ test_that("the strata and denominator columns are checked", {
   expect_error(exact_spec(c(ok, denominator = "nobody")), "denominator\\(s\\) nobody")
   expect_error(exact_spec(c(ok, denominator = "row", args = "denominator = \"cell\"")),
                "given twice")
+  # one argument, one place: statistics and by too
+  expect_error(exact_spec(list(method = "continuous", population_id = "SAF",
+                               variables = "AGE", statistics = "mean | sd",
+                               args = "stat_label = NULL, statistic = ~ list(mean = mean)")),
+               "`statistic` is given twice, by the `statistics` column")
+  expect_error(exact_spec(c(ok, by = "TRT01A", args = "by = SEX")),
+               "`by` is given twice")
+  # a method whose statistics only choose what is kept passes no statistic:
+  # args may give it
+  expect_s3_class(exact_spec(list(method = "proportion_ci", population_id = "SAF",
+                                  variables = "SEX", statistics = "estimate",
+                                  args = "method = \"wilson\"")), "tfl_ard_spec")
   expect_error(exact_spec(list(method = "custom", population_id = "SAF",
                                code = "cards::ard_tabulate(data, variables = SEX)",
                                strata = "SEX")),
@@ -124,4 +136,26 @@ test_that("the strata and denominator columns are checked", {
   sp$analyses$strata <- NULL
   sp$analyses$denominator <- NULL
   expect_s3_class(tfl_ard_spec(unclass(sp)), "tfl_ard_spec")
+})
+
+test_that("the fingerprint follows the study's own function files", {
+  sp <- exact_spec(list(method = "ard_riskdiff_newcombe", population_id = "SAF",
+                        by = "TRT01A", variables = "SEX"),
+                   source = "ard-own.R")
+  dir <- tempfile("fp")
+  dir.create(file.path(dir, "R"), recursive = TRUE)
+  on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+  missing <- tfl_ard_spec_hash(sp, "T", dir = dir)
+  writeLines("f <- function() 1", file.path(dir, "R", "ard-own.R"))
+  one <- tfl_ard_spec_hash(sp, "T", dir = dir)
+  writeLines("f <- function() 2", file.path(dir, "R", "ard-own.R"))
+  two <- tfl_ard_spec_hash(sp, "T", dir = dir)
+  expect_false(identical(missing, one))
+  expect_false(identical(one, two))
+  # a column blank in every row does not count
+  sp2 <- exact_spec(list(method = "categorical", population_id = "SAF",
+                         variables = "SEX"))
+  h <- tfl_ard_spec_hash(sp2, "T")
+  sp2$analyses$strata <- NULL
+  expect_identical(tfl_ard_spec_hash(sp2, "T"), h)
 })

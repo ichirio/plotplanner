@@ -71,7 +71,7 @@
     cols = "list", header = "bool", where = "text", bold = "bool",
     italic = "bool", align = "text", color = "text", background = "text"),
   columns = c(
-    column = "text", width = "num", row_title = "bool",
+    column = "text", rel_width = "num", row_title = "bool",
     decimal_split = "bool", hide = "bool"),
   col_header = c(
     line = "int", cols = "text", span = "text", text = "text",
@@ -81,8 +81,9 @@
   report = c(
     type = "text", file = "text", program = "text", auto_section = "bool",
     section_align = "text", auto_title = "bool", title_align = "text",
-    table_font_size = "int", title_font_size = "int",
-    footnote_font_size = "int", page_header = "bool", page_footer = "bool"),
+    table_font_size_half_points = "int", title_font_size_half_points = "int",
+    footnote_font_size_half_points = "int", page_header = "bool",
+    page_footer = "bool"),
   page = c(
     paper_size = "text", orientation = "text", width_in = "num",
     height_in = "num", margin_top_in = "num", margin_bottom_in = "num",
@@ -224,7 +225,7 @@
 # Sheets a later version will read (the rest of the RTF deliverable).  A
 # workbook that already carries one is told so, not refused: the file can be
 # written ahead of the reader.
-.ard_spec_reserved <- c("listing", "listing_cols", "figures")
+.ard_spec_reserved <- c("figures")
 
 # Columns an older workbook may still carry, and what became of them when
 # the plan verbs were redesigned (rtfreporter#498).  No column is read under
@@ -234,7 +235,13 @@
              colpages_carry = "renamed `colpages_keep`",
              group_show = "renamed `group_keep`",
              pages_by = paste0("removed: one page per value is ",
-                               "`group_page = TRUE` with `group_col`")))
+                               "`group_page = TRUE` with `group_col`")),
+  # names that said no unit (iter02 of the brush-up, #64)
+  columns = c(width = "renamed `rel_width` (a relative width)"),
+  report = c(
+    table_font_size = "renamed `table_font_size_half_points`",
+    title_font_size = "renamed `title_font_size_half_points`",
+    footnote_font_size = "renamed `footnote_font_size_half_points`"))
 
 # A sheet in the shape the schema says: every column present, text trimmed,
 # blank cells NA, wholly blank rows gone.  A column the sheet does not read is
@@ -590,7 +597,7 @@
 #' a folded stub is the name given to `stub_name`.  `.values` stands for
 #' every spread column, however many the data turned out to have.
 #' \describe{
-#'   \item{`width`}{Relative width.  Named columns win over `.values`;
+#'   \item{`rel_width`}{Relative width.  Named columns win over `.values`;
 #'     when widths are given, every printed column needs one.}
 #'   \item{`row_title`}{`TRUE` for a row-heading column.}
 #'   \item{`decimal_split`}{`TRUE` to line up the decimal points
@@ -643,8 +650,8 @@
 #' }
 #'
 #' @section Reserved for the rest of the report:
-#' A later version will read the sheets `listing`, `listing_cols` and
-#' `figures` under the same `output_id` rule,
+#' A later version will read the sheet `figures` under the same
+#' `output_id` rule,
 #' so the whole RTF deliverable can be defined in one workbook.  They are reported, not refused, when present today.  An
 #' `about` sheet (`key` / `value`) may state `spec_version`; sheets whose
 #' name starts with `_` are ignored.
@@ -1357,7 +1364,8 @@ tfl_table_spec_template <- function(ard, path = NULL, cols = NULL,
 #' `{output_id}.rtf`), `program` (default `{output_id}`, joined to
 #' `study$program_dir` for `{PROGRAM}`), `auto_section`, `section_align`,
 #' `auto_title`, `title_align` (as [rtfreporter::rtf_tables()] takes them), and
-#' `table_font_size`, `title_font_size`, `footnote_font_size` (half-points),
+#' `table_font_size_half_points`, `title_font_size_half_points`,
+#' `footnote_font_size_half_points`,
 #' and `page_header` / `page_footer` (`FALSE` drops that running band for
 #' the report, the study's default lines included).
 #'
@@ -1825,7 +1833,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   crows <- list()
   cadd <- function(col, width = NA, title = NA, dsplit = NA, hid = NA)
     crows[[length(crows) + 1L]] <<- data.frame(
-      output_id = id, column = col, width = as.character(width),
+      output_id = id, column = col, rel_width = as.character(width),
       row_title = title, decimal_split = dsplit, hide = hid,
       stringsAsFactors = FALSE)
   for (nm in setdiff(pnames, if (one_w) spread)) {

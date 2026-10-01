@@ -201,7 +201,7 @@ One row per printed column, by \strong{name} --- the finished table's, so
 a folded stub is the name given to \code{stub_name}.  \code{.values} stands for
 every spread column, however many the data turned out to have.
 \describe{
-\item{\code{width}}{Relative width.  Named columns win over \code{.values};
+\item{\code{rel_width}}{Relative width.  Named columns win over \code{.values};
 when widths are given, every printed column needs one.}
 \item{\code{row_title}}{\code{TRUE} for a row-heading column.}
 \item{\code{decimal_split}}{\code{TRUE} to line up the decimal points
@@ -260,8 +260,8 @@ Quote a text to keep leading spaces: \code{"  Category"}.}
 
 \section{Reserved for the rest of the report}{
 
-A later version will read the sheets \code{listing}, \code{listing_cols} and
-\code{figures} under the same \code{output_id} rule,
+A later version will read the sheet \code{figures} under the same
+\code{output_id} rule,
 so the whole RTF deliverable can be defined in one workbook.  They are reported, not refused, when present today.  An
 \code{about} sheet (\code{key} / \code{value}) may state \code{spec_version}; sheets whose
 name starts with \verb{_} are ignored.

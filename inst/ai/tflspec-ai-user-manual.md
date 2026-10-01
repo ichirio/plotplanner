@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9010** (the development version,
+**This manual documents tflspec 0.0.24.9011** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -148,6 +148,17 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 | a figure: start / check / write the script | `tfl_fig_template()` / `tfl_check_fig_design()` / `tfl_fig_design_code()` |
 | attach this manual to a chat session | `tflspec_ai_manual(file = )` |
 
+### 4.1 How the columns are named
+
+The column names follow two rules. **Table, listing and report columns
+are rtfreporter's argument names** (a `layout` column is the verb's prefix
+and its argument: `pages_max_rows` is `plan_paginate_rows(max_rows = )`).
+**ARD columns are cards' argument names** (`by`, `variables`, `strata`,
+`denominator`), with two exceptions: `statistics` (cards' `statistic`) and
+`formats` (tflspec's own). A column whose value has a unit says it
+(`_twips`, `_in`, `_half_points`; `rel_width` is a relative width). One
+argument is written in one place: a column, or `args`, never both.
+
 ---
 
 ## 5. ARD spec — four sheets
@@ -258,15 +269,15 @@ template** in a `stats = rows` table is one statistic's digits →
 
 | Columns | Verb |
 |---|---|
-| `pages_max_rows`, `pages_split`, `pages_min_group_rows`, `pages_cont_label` | `plan_paginate_rows()` |
+| `pages_max_rows`, `pages_split`, `pages_break_before`, `pages_min_group_rows`, `pages_cont_label` | `plan_paginate_rows()` |
 | `group_mode`, `group_collapse` | `plan_row_group()` |
 | `group_page`, `group_col`, `group_keep` | `plan_paginate_group(col, keep)` — one page per value |
 | `blank_where`, `blank_first`, `blank_last`, `blank_counted` | `plan_blanks()` |
 | `stub_vars`, `stub_name`, `stub_indent`, `stub_summary`, `stub_before` | `plan_stub()` |
-| `colpages_every`, `colpages_at`, `colpages_keep`, `colpages_order` | `plan_paginate_cols()` |
+| `colpages_every`, `colpages_at`, `colpages_cut_by`, `colpages_keep`, `colpages_fit`, `colpages_allow_span_break`, `colpages_order` | `plan_paginate_cols()` |
 
 **columns** (one row a printed column, by name; `.values` = every value
-column): `column`, `width`, `row_title`, `decimal_split`, `hide` →
+column): `column`, `rel_width`, `row_title`, `decimal_split`, `hide` →
 `plan_columns(widths, row_title, decimal)`, `plan_hide()`.
 
 **style** (one row a table): `plan_style()`'s arguments — `border`,
@@ -277,6 +288,12 @@ column): `column`, `width`, `row_title`, `decimal_split`, `hide` →
 `border_header` … `border_last_row` written as sides (`top | bottom`) or
 `none`; plus `auto_width` (→ `plan_columns()`).
 
+**cell_styles** (one row a `plan_cell_style()`, in order; a report's own
+rows replace the defaults whole): `cols` (`.values` = every value column),
+`header` (`TRUE`: the column header), `where` (an R condition over the
+table's columns: `label == "Any TEAE"`), `bold`, `italic`, `align`,
+`color`, `background`. Two rows with a `where` may not set the same look.
+
 **col_header** (one row a header cell): `line`, `cols` (a name, `.values`,
 a position or range `3:last`, or `KEY = value`), `span` (blank: one cell;
 `each`: one per column; a key: one per value), `text` (tokens `{col}`,
@@ -284,8 +301,8 @@ a position or range `3:last`, or `KEY = value`), `span` (blank: one cell;
 `border_bottom` → `plan_col_header(header = )`.
 
 `tfl_as_table_spec(plan)` writes a plan back as a workbook and lists what a
-sheet cannot say (`attr(, "not_converted")`) — `plan_cell_style()`,
-`plan_after()` steps, guarded labels stay in code.
+sheet cannot say (`attr(, "not_converted")`) — a look computed row by
+row (`bold = ~ ...`), `plan_after()` steps, guarded labels stay in code.
 
 ---
 
@@ -297,7 +314,7 @@ file.
 
 | Sheet | Columns |
 |---|---|
-| `report` | `type` (`table` / `listing` / `figure`), `file` (`{output_id}.rtf`), `program`, `auto_section`, `section_align`, `auto_title`, `title_align`, `table_font_size`, `title_font_size`, `footnote_font_size`, `page_header`, `page_footer` |
+| `report` | `type` (`table` / `listing` / `figure`), `file` (`{output_id}.rtf`), `program`, `auto_section`, `section_align`, `auto_title`, `title_align`, `table_font_size_half_points`, `title_font_size_half_points`, `footnote_font_size_half_points`, `page_header`, `page_footer` |
 | `page` | `paper_size`, `orientation`, `width_in`, `height_in`, margins `margin_*_in`, `header_dist_in`, `footer_dist_in`, `font_size_half_points`, `title_format`, `footnote_format`, `title_width`, `footnote_width`, `markup` |
 | `header`, `footer`, `titles`, `footnotes` | `line`, `left`, `center`, `right` — a report's line replaces the default line of the same number |
 
