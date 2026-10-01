@@ -76,7 +76,22 @@
     if (!has("statistic")) .stat_arg(kind, stats),
     dflt,
     if (!is.na(r$args)) r$args)
-  sprintf("%s(%s)", fn, paste(c("data", args), collapse = ",\n    "))
+  sprintf("%s(%s)", fn, paste(c(.data_arg(fn, has), args),
+                               collapse = ",\n    "))
+}
+
+# How the analysis data goes into a method's call: `data` first, as cards
+# and cardx functions take it; nothing when the function's first argument
+# is given in `args` and it has no `data` argument (a fitted model:
+# cardx::ard_car_anova(x = lm(..., data = data))).  A function that cannot
+# be looked up (its package not installed) takes `data` first.
+.data_arg <- function(fn, has) {
+  f <- tryCatch(eval(str2lang(fn)), error = function(e) NULL)
+  if (!is.function(f)) return("data")
+  fm <- names(formals(f))
+  if ("data" %in% fm || !length(fm)) return("data")
+  if (fm[1L] != "..." && has(fm[1L])) return(NULL)
+  "data"
 }
 
 .normalize_ard_sheet <- function(d, sheet) {
@@ -367,6 +382,11 @@ tfl_ard_spec <- function(x, statistics = NULL, methods = NULL) {
     paste0("  ", fl, c(rep(",", length(fl) - 1L), "")),
     ")",
     ".fmt <- function(ard, fmt = character()) {",
+    "  # a method that gives several ARDs (cards::ard_pairwise(): one per",
+    "  # pair of groups): one, each row keeping its ARD's name as `pairwise`",
+    "  if (is.list(ard) && !is.data.frame(ard)) {",
+    "    ard <- dplyr::bind_rows(ard, .id = \"pairwise\")",
+    "  }",
     "  if (!inherits(ard, \"card\")) return(ard)",
     "  f <- .fmt_default",
     "  f[names(fmt)] <- fmt",

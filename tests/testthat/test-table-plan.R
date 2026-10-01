@@ -685,3 +685,21 @@ test_that("tfl_as_table_spec() writes the population to tables$header_n", {
   expect_identical(tflspec:::.ard_spec_header_n("n = page | N = table"),
                    list(n = "page", N = "table"))
 })
+
+test_that("a plan's titles and footnotes go to the titles / footnotes sheets", {
+  skip_if_no_cards2()
+  p <- code_plan() |>
+    plan_titles("Table 14.1.1", "Demographics") |>
+    plan_footnotes("N: subjects in the population.")
+  sp <- tfl_as_table_spec(p, output_id = "T1")
+  expect_true(attr(sp, "same_pages"))
+  expect_length(attr(sp, "not_converted"), 0L)
+  expect_identical(sp$titles$center, c("Table 14.1.1", "Demographics"))
+  expect_equal(as.integer(sp$titles$line), c(1L, 2L))
+  expect_identical(sp$footnotes$left, "N: subjects in the population.")
+  # titles that differ by page cannot be one sheet: said, not dropped
+  p2 <- code_plan() |> plan_paginate_rows(max_rows = 100) |>
+    plan_titles(pages = list(c("Table 1", "Part A")))
+  sp2 <- suppressMessages(tfl_as_table_spec(p2, output_id = "T1"))
+  expect_true(any(grepl("differ by page", attr(sp2, "not_converted"))))
+})

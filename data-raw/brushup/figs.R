@@ -1,0 +1,10 @@
+suppressMessages(pkgload::load_all(".", quiet = TRUE))
+cl <- tfl_fig_calls(); cat("tfl_fig_calls:", nrow(cl), "rows; cols:", paste(names(cl), collapse=", "), "\n")
+print(table(cl[[intersect(c("package","pkg"), names(cl))[1]]]))
+pt <- tfl_fig_parts(); cat("tfl_fig_parts:", nrow(pt), "; cols:", paste(names(pt), collapse=", "), "\n")
+tp <- tfl_fig_templates(); cat("templates:", nrow(tp), "\n")
+ty <- tfl_fig_types(); cat("types:", NROW(ty), "\n")
+gx <- grep("^(geom_|stat_|scale_|coord_|facet_|theme|guide|labs|annotate|position_)", getNamespaceExports("ggplot2"), value = TRUE)
+fn <- cl[[intersect(c("fn","call","name"), names(cl))[1]]]
+cat("ggplot2 layer-ish exports:", length(gx), " in tfl_fig_calls:", sum(gx %in% sub("^ggplot2::", "", fn)), "\n")
+cat("missing e.g.:", head(setdiff(gx, sub("^ggplot2::", "", fn)), 15), "\n")

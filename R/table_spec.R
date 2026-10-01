@@ -1722,9 +1722,36 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   }
   tables$header_n <- H$n_text %||% NA_character_
 
+  # -- titles / footnotes -----------------------------------------------------
+  # a plan's titles and footnotes are the report's: they go to the
+  # `titles` / `footnotes` sheets, which tfl_report() reads (a title is
+  # centred, a footnote at the left, as the plan puts them)
+  band <- function(k, side) {
+    b <- ly[[k]]
+    if (is.null(b)) return(NULL)
+    if (!identical(names(b), "block")) {
+      miss("plan_%s(pages = ): %s that differ by page stay in code", k, k)
+      return(NULL)
+    }
+    lines <- b$block
+    ok <- vapply(lines, function(z) is.character(z) && length(z) == 1L, NA)
+    if (!all(ok)) {
+      miss("plan_%s(): a line that is not plain text stays in code", k)
+    }
+    txt <- unlist(lines[ok])
+    if (!length(txt)) return(NULL)
+    data.frame(output_id = id, line = as.character(seq_along(txt)),
+               left = if (side == "left") txt else NA_character_,
+               center = if (side == "center") txt else NA_character_,
+               right = NA_character_, stringsAsFactors = FALSE)
+  }
+  titles <- band("titles", "center")
+  footnotes <- band("footnotes", "left")
+
   study <- if (!is.null(s$rounding)) c(rounding = s$rounding)
   sp <- tfl_table_spec(tables, variables, cells, study = study, layout = layout,
-                   columns = columns, style = style, col_header = col_header)
+                   columns = columns, style = style, col_header = col_header,
+                   titles = titles, footnotes = footnotes)
 
   same <- NA
   if (isTRUE(check)) {
@@ -1732,7 +1759,15 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
       rtfreporter::plan_cells(tfl_table_plan(L$data, sp), notes = FALSE),
       "pages")),
       error = function(e) e)
-    same <- !inherits(back, "error") && isTRUE(all.equal(back, pages))
+    # the titles and footnotes are compared as sheets: the report puts
+    # them on the pages, not the plan the workbook gives
+    bare <- function(pg) lapply(pg, function(t) {
+      attr(t, "rtf_titles") <- NULL
+      attr(t, "rtf_footnotes") <- NULL
+      t
+    })
+    same <- !inherits(back, "error") &&
+      isTRUE(all.equal(bare(back), bare(pages)))
     if (inherits(back, "error")) {
       miss("the workbook does not run: %s", conditionMessage(back))
     }
