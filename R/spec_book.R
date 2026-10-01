@@ -75,7 +75,7 @@ tfl_spec_columns <- function(sheet = NULL) {
   for (i in seq_len(nrow(d))) {
     txt <- d$description[i]
     if (!is.na(d$example[i]) && nzchar(d$example[i])) {
-      txt <- paste0(txt, "\n例: ", d$example[i])
+      txt <- paste0(txt, "\n\u4f8b: ", d$example[i])
     }
     for (cn in trimws(strsplit(d$column[i], " / ", fixed = TRUE)[[1L]])) {
       if (!cn %in% names(out)) out[[cn]] <- txt

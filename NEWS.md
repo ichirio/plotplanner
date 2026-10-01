@@ -18,6 +18,9 @@
   - The bundled workbooks (`inst/extdata/ard-spec/`) are in the new shape:
     `DM`, `AE`, `ORR`, `LB`, `PK`, `study` are table specs, `report` is a
     report spec.
+  - A line break in a cell reads back as `"\n"`: openxlsx on Windows
+    writes it as `"\r\n"`, and the readers now take that back to `"\n"`,
+    so writing a spec again does not add a `"\r"` each time.
 
 * **Each figure template says its category and the data it reads**:
   `tfl_fig_templates()` gains `category` (the clinical category of

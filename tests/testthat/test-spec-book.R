@@ -97,3 +97,15 @@ test_that("several specs share one workbook, and each reader takes its own", {
   expect_identical(tfl_read_listing_spec(f, check = FALSE)$listings$output_id,
                    "L1")
 })
+
+test_that("a line break in a cell reads back the same after any number of writes", {
+  skip_if_not_installed("readxl")
+  sp <- tfl_read_table_spec(ex("DM.xlsx"))
+  sp$col_header$text[1] <- "Treatment\n(N={n})"
+  f <- withr::local_tempfile(fileext = ".xlsx")
+  tfl_write_table_spec(sp, f)
+  once <- tfl_read_table_spec(f)
+  expect_identical(once$col_header$text[1], "Treatment\n(N={n})")
+  tfl_write_table_spec(once, f)
+  expect_identical(tfl_read_table_spec(f)$col_header, once$col_header)
+})

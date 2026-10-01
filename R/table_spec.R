@@ -1047,13 +1047,14 @@ tfl_read_table_spec <- function(path, output_id = NULL) {
       # may be said once
       if (startsWith(sh, "_") || low == "about") {
         if (!low %in% tolower(names(sheets))) {
-          sheets[[sh]] <- as.data.frame(readxl::read_excel(
-            f, sheet = sh, col_types = "text"), stringsAsFactors = FALSE)
+          sheets[[sh]] <- .xlsx_lf(as.data.frame(readxl::read_excel(
+            f, sheet = sh, col_types = "text"), stringsAsFactors = FALSE))
         }
         next
       }
-      d <- as.data.frame(readxl::read_excel(f, sheet = sh, col_types = "text"),
-                         stringsAsFactors = FALSE)
+      d <- .xlsx_lf(as.data.frame(readxl::read_excel(f, sheet = sh,
+                                                     col_types = "text"),
+                                  stringsAsFactors = FALSE))
       hit <- match(low, tolower(names(sheets)))
       if (!is.na(hit)) {
         old <- names(sheets)[hit]

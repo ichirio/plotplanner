@@ -191,7 +191,17 @@ tfl_read_ard_spec <- function(path, check = TRUE, statistics = NULL,
 .xlsx_text <- function(path, sheet) {
   d <- readxl::read_excel(path, sheet, col_types = "text",
                           .name_repair = "minimal")
-  as.data.frame(d, stringsAsFactors = FALSE, check.names = FALSE)
+  .xlsx_lf(as.data.frame(d, stringsAsFactors = FALSE, check.names = FALSE))
+}
+
+# A line break in a cell as "\n".  openxlsx on Windows writes "\n" as
+# "\r\n" (its XML goes out in text mode), so each write would add a "\r".
+.xlsx_lf <- function(d) {
+  for (j in seq_along(d)) {
+    if (is.character(d[[j]])) d[[j]] <- gsub("\r\n", "\n", d[[j]],
+                                             fixed = TRUE)
+  }
+  d
 }
 
 #' @rdname tfl_read_ard_spec
