@@ -235,6 +235,10 @@ tfl_check_ars <- function(ars, schema = TRUE, profile = NULL) {
       if (!isTRUE(ok)) {
         e <- attr(ok, "errors")
         for (j in seq_len(NROW(e))) {
+          # a missing purpose / reason is named above, analysis by analysis
+          if (grepl("required property '(purpose|reason)'", e$message[j])) {
+            next
+          }
           add(paste("schema", e$instancePath[j] %||% e$dataPath[j]),
               e$keyword[j], e$message[j])
         }

@@ -1,5 +1,12 @@
 # tflspec (development version)
 
+* **ARS: an added subject count keeps an id of its own** (#61).  The
+  subject count `tfl_ars()` adds for a percentage's denominator is
+  `An_<output>_BIGN_<by>` (`_ALL` without a grouping) and never takes an
+  id the output already has (an output with a `BIGN` row and no `by`
+  elsewhere wrote the same id twice).  `tfl_check_ars()` names a blank
+  purpose once, not again from the schema.
+
 * **CDISC's Excel template for ARS** (#59, stage 4 of the ARS export).
   `tfl_write_ars_xlsx()` writes a reporting event as the Excel template of
   CDISC's ARS repository: its 25 sheets in their order with their columns
