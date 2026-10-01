@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9012** (the development version,
+**This manual documents tflspec 0.0.24.9014** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -143,6 +143,7 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 | the plan a table spec stands for | `tfl_table_plan(data, spec)` (then any rtfreporter verb: last wins) |
 | the plan as code | `tfl_table_code(spec)` |
 | a plan written in code, back to a workbook | `tfl_as_table_spec(plan)` |
+| a listing written in code (`listing_spec()` / `plan_listing()`), back to a listing spec | `tfl_as_listing_spec(x, output_id, dataset = )` |
 | the document / its code / its file | `tfl_report(spec, output_id, content = plan)` / `tfl_report_code(spec)` / `tfl_report_path(spec)` |
 | a listing's program / its pages | `tfl_listing_code(spec)` / `tfl_listing(spec, data)` |
 | a figure: start / check / write the script | `tfl_fig_template()` / `tfl_check_fig_design()` / `tfl_fig_design_code()` |
@@ -196,6 +197,36 @@ argument is written in one place: a column, or `args`, never both.
 - `formats`: `mean=xx.x | p=xx.x% | AGE:sd=xx.xx` — the `xx` part says the
   decimals only.
 - `custom` takes R in `code`; `args` passes arguments to the method.
+- In `args` and `code`, `data` is the analysis data and `population` the
+  analysis set's subjects.
+- A function that takes a **formula** (`cardx::ard_survival_survdiff`,
+  `cardx::ard_regression`, `cardx::ard_stats_aov`) leaves `by` and
+  `variables` blank and gets `formula = ...` in `args`.
+  `cardx::ard_survival_survfit` takes `y` as **text**
+  (`y = "survival::Surv(AVAL, 1 - CNSR)"`) and the groups in `variables`.
+- For CIs, tests and models, `statistics` chooses which of the results to
+  **keep** (`estimate | conf.low | conf.high`); for `continuous`,
+  `categorical` and `missing` it says what to compute.
+- `tfl_read_ard_spec(check = FALSE)` (and `tfl_read_listing_spec(check =
+  FALSE)`) read a definition still being written; a table or report spec
+  is always checked when read.
+- A keyword has arguments of its own unless `args` gives them:
+  `hierarchical` and `max` get `denominator = population, id = <id>`
+  (`tfl_ard_methods()$defaults`).
+
+Rows of `analyses` for a Kaplan-Meier estimate and a Cox model (the
+columns not given are blank):
+
+```r
+# manual example: analyses rows for survival and a model
+km  <- list(output_id = "T-14-2-2", analysis_id = "KM", population_id = "SAF",
+            dataset = "ADTTE", method = "cardx::ard_survival_survfit",
+            variables = "TRTA",
+            args = 'y = "survival::Surv(AVAL, 1 - CNSR)", times = c(30, 90)')
+cox <- list(output_id = "T-14-2-2", analysis_id = "HR", population_id = "SAF",
+            dataset = "ADTTE", method = "cardx::ard_regression",
+            args = 'formula = survival::Surv(AVAL, 1 - CNSR) ~ TRTA, method = "coxph", package = "survival"')
+```
 
 ### 5.1 CDISC ARS — writing and reading the analyses as the standard
 
@@ -250,7 +281,9 @@ once. The `study` sheet has `key` / `value` (`rounding`: `sas` / `iec` /
 | `cols` | `table_plan(cols = )` | column keys, outermost first: `TR01AG1 \| SEROSTAT` |
 | `rows` | `table_plan(rows = )` | `name = column`; a quoted value is a constant heading |
 | `label` | `table_plan(label = )` | blank keeps `.label`; `NA` builds then drops; `NULL` leaves out |
-| `stats`, `value`, `na` | `plan_cells()` | `stats = rows`: one statistic a row |
+| `stats` | `plan_cells(stats = )` | `cells` (default: a cell from a template) or `rows` (one statistic a row, the raw values) |
+| `value` | `plan_cells(value = )` | which column a cell's values come from: `stat` (the number; default) or `stat_fmt` (cards' formatted text). **Not** a template: templates are `cells$template` |
+| `na` | `plan_cells(na = )` | what a cell no template could fill prints |
 | `sep` | `plan_columns(sep = )` | what joins several column keys into a column name (default `____`) |
 | `sort` | `plan_sort()` | `TRUE`, `FALSE`, or keys in order, `-` for descending |
 | `sort_stat` | `plan_sort(stat = )` | the statistic totalled for a frequency order |
@@ -260,10 +293,20 @@ once. The `study` sheet has `key` / `value` (`rounding`: `sas` / `iec` /
 → `plan_labels()`, `plan_levels()`.
 
 **cells**: `variable`, `context`, `row`, `when`, `template`, `digits`,
-`signif` → `plan_cells()`. Rows with the same variable / context / row are
+`signif` → `plan_cells()`. A row with `variable` blank is the table's
+default template. Rows with the same variable / context / row are
 one chain tried in order; `when` is an R guard (`n == 0`). A row with **no
 template** in a `stats = rows` table is one statistic's digits →
 `plan_digits(.rows = c(Mean = 2, SD = "3s"))` (`"3s"` = 3 significant).
+
+A table of subjects by SOC and PT, `n (%)` in every cell:
+
+```r
+# manual example: a table's tables and cells rows
+tables <- data.frame(output_id = "T-14-3-1", cols = "TRTA",
+                     rows = "group1 = AESOC", label = "label = AEDECOD")
+cells  <- data.frame(output_id = "T-14-3-1", template = "{n} ({p:.1f%})")
+```
 
 **layout** (one row a table; prefix = verb, suffix = argument):
 
@@ -300,7 +343,8 @@ a position or range `3:last`, or `KEY = value`), `span` (blank: one cell;
 `{col1}`, `{n}`, `{n1}`, `{n:sum}`), `align`, `bold`, `border_top`,
 `border_bottom` → `plan_col_header(header = )`.
 
-`tfl_as_table_spec(plan)` writes a plan back as a workbook and lists what a
+`tfl_as_table_spec(plan)` writes a plan back as a workbook (compared by its
+RTF, byte by byte; `compare = FALSE` skips that) and lists what a
 sheet cannot say (`attr(, "not_converted")`) — a look computed row by
 row (`bold = ~ ...`), `plan_after()` steps, guarded labels stay in code.
 
@@ -314,7 +358,7 @@ file.
 
 | Sheet | Columns |
 |---|---|
-| `report` | `type` (`table` / `listing` / `figure`), `file` (`{output_id}.rtf`), `program`, `auto_section`, `section_align`, `auto_title`, `title_align`, `table_font_size_half_points`, `title_font_size_half_points`, `footnote_font_size_half_points`, `page_header`, `page_footer` |
+| `report` | `type` (`table` / `listing` / `figure`), `file` (`{output_id}.rtf`), `program`, `auto_section`, `section_align`, `auto_title`, `title_align`, `table_font_size_half_points`, `title_font_size_half_points`, `footnote_font_size_half_points`, `page_header`, `page_footer`, `watermark` (`DRAFT`), `figure_width_in`, `figure_height_in` |
 | `page` | `paper_size`, `orientation`, `width_in`, `height_in`, margins `margin_*_in`, `header_dist_in`, `footer_dist_in`, `font_size_half_points`, `title_format`, `footnote_format`, `title_width`, `footnote_width`, `markup` |
 | `header`, `footer`, `titles`, `footnotes` | `line`, `left`, `center`, `right` — a report's line replaces the default line of the same number |
 
@@ -330,10 +374,13 @@ Page tokens in the running header / footer: `{PAGE}`, `{TOTAL_PAGES}`,
 
 | Sheet | Columns |
 |---|---|
-| `listings` (one row a listing) | `output_id`, `type` (`multiline`), `dataset`, `where` (R), `sort` (`-` for descending), `max_rows` |
-| `listing_cols` (one row a column) | `output_id`, `vars` (`|` stacks variables in one column), `label`, `width`, `collapse_repeats` |
+| `listings` (one row a listing) | `output_id`, `type` (`multiline`), `dataset`, `where` (R), `sort` (`-` for descending), `max_rows`, `blank_row` (`TRUE` / `FALSE`), `wrap` (the name of an R function) |
+| `listing_cols` (one row a column) | `output_id`, `vars` (`|` stacks variables in one column), `label`, `width` (characters), `sep` (quoted to keep spaces: `" / "`), `align`, `collapse_repeats` |
 
 Layout on the page is rtfreporter's `listing_spec()` / `as_rtftables()`.
+`tfl_as_listing_spec(x, output_id, dataset = )` writes a `listing_spec()`
+or a `plan_listing()` plan back as a listing spec, listing what the sheets
+cannot carry (`attr(, "not_converted")`); from a plan it compares the RTF.
 `tfl_read_data_code(datasets, dataset)` writes the line that reads a
 dataset of the data catalog (`.rds`, `.xpt`, `.sas7bdat`, `.csv`,
 `.parquet`).
@@ -429,6 +476,7 @@ anything written here can be opened there.
 | `table_plan(stats =, value =, na =, notes =, sort_stat =, sep =)` | `plan_cells()`, `plan_sort(stat =)`, `plan_columns(sep =)` |
 | `plan_stub(into =)`, `show = FALSE`, `plan_col_header(n =)`, `plan_paginate_cols(carry =)` | `name =`, `keep = FALSE`, `values = list(n = )`, `keep =` |
 | layout `stub_into`, `group_show`, `colpages_carry`, `pages_by` | `stub_name`, `group_keep`, `colpages_keep`, `group_page = TRUE` + `group_col` |
+| an ARD back to an ARD spec (`tfl_as_ard_spec()`) | none: an ARD has no data paths, populations, `where` or `derive`, so a spec made from it could not make it again. An existing analysis comes in through CDISC ARS: `tfl_ars_to_specs()` |
 
 A workbook with a former column is refused with the column to write instead.
 With `sep = "_"`, a key value may not contain `_` (it could not be split
@@ -478,7 +526,7 @@ back): rename the value or choose another separator.
 
 **Listing spec:** `tfl_listing_spec` `tfl_read_listing_spec`
 `tfl_write_listing_spec` `tfl_listing` `tfl_listing_code`
-`tfl_read_data_code`
+`tfl_as_listing_spec` `tfl_read_data_code`
 
 **Figure design:** `tfl_fig_design` `tfl_read_fig_design`
 `tfl_write_fig_design` `tfl_fig_design_code` `tfl_check_fig_design`

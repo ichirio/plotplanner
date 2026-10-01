@@ -12,6 +12,15 @@ clinical TFL report is made of: ARD-based tables (\verb{ard_*()}, \code{table_pl
 (\code{tfl_fig_spec()} / \code{tfl_fig_code()}).  Rendering to RTF is rtfreporter's job;
 this package decides \emph{what} goes on the page.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/ichirio/tflspec}
+  \item \url{https://ichirio.github.io/tflspec/}
+  \item Report bugs at \url{https://github.com/ichirio/tflspec/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: ichirio \email{ichi.r.pro@gmail.com}
 

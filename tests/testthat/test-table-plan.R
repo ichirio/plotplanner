@@ -774,7 +774,7 @@ test_that("break_before, cut_by, fit and allow_span_break are layout keys", {
   # a separator in the column names
   p2 <- code_plan() |> plan_paginate_cols(cut_by = "____")
   sp2 <- suppressMessages(tfl_as_table_spec(p2, output_id = "T1",
-                                            check = FALSE))
+                                            compare = FALSE))
   expect_identical(sp2$layout$colpages_cut_by, "____")
 })
 

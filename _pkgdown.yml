@@ -1,0 +1,150 @@
+url: https://ichirio.github.io/tflspec/
+
+template:
+  bootstrap: 5
+  bootswatch: cosmo
+  bslib:
+    primary: "#1f4e79"
+    base_font: {google: "Source Sans 3"}
+    heading_font: {google: "Source Sans 3"}
+    code_font: {google: "JetBrains Mono"}
+
+# As rtfreporter and tflplanner: published at the root.
+development:
+  mode: unreleased
+  version_label: warning
+
+navbar:
+  structure:
+    left: [intro, reference, news]
+    right: [search, github]
+
+# The chapters are the AI manual's (tflspec_ai_manual(), section 13).
+reference:
+  - title: Manual
+    contents:
+      - tflspec_ai_manual
+  - title: ARD spec
+    desc: >
+      The analyses of a study as a workbook: its data, its analysis sets and
+      one cards / cardx call per row; the R code it stands for and the one
+      study ARD it makes.
+    contents:
+      - tfl_ard_spec
+      - tfl_read_ard_spec
+      - tfl_write_ard_spec
+      - tfl_ard_spec_template
+      - tfl_ard_code
+      - tfl_build_ard
+      - tfl_ard_for
+      - tfl_ard_spec_hash
+      - tfl_ard_methods
+      - tfl_ard_statistics
+  - title: CDISC ARS
+    desc: The analyses as CDISC's Analysis Results Standard, and back.
+    contents:
+      - tfl_ars
+      - tfl_write_ars_json
+      - tfl_check_ars
+      - tfl_ars_unmapped
+      - tfl_ars_ard
+      - tfl_read_ars_json
+      - tfl_ars_to_specs
+      - tfl_write_ars_xlsx
+  - title: Table spec
+    desc: >
+      A table as a workbook: its roles and the rtfreporter plan verbs it
+      stands for; a plan written in code back to a workbook.
+    contents:
+      - tfl_table_spec
+      - tfl_read_table_spec
+      - tfl_write_table_spec
+      - tfl_write_report_spec
+      - tfl_write_specs
+      - tfl_spec_columns
+      - tfl_table_spec_template
+      - tfl_table_plan
+      - tfl_table_code
+      - tfl_as_table_spec
+  - title: Report spec
+    desc: The page, the running header and footer, the titles and footnotes.
+    contents:
+      - tfl_read_report_spec
+      - tfl_report
+      - tfl_report_code
+      - tfl_report_path
+  - title: Listing spec
+    contents:
+      - tfl_listing_spec
+      - tfl_read_listing_spec
+      - tfl_write_listing_spec
+      - tfl_listing
+      - tfl_listing_code
+      - tfl_as_listing_spec
+      - tfl_read_data_code
+  - title: Figure design
+    desc: A figure as a YAML design, and the ggplot2 script it stands for.
+    contents:
+      - tfl_fig_design
+      - tfl_read_fig_design
+      - tfl_write_fig_design
+      - tfl_fig_design_code
+      - tfl_check_fig_design
+      - tfl_fig_advice
+      - tfl_fig_apply_fix
+      - tfl_fig_template
+      - tfl_fig_templates
+      - tfl_fig_parts
+      - tfl_fig_add_layer
+      - tfl_fig_calls
+      - tfl_fig_compat
+      - tfl_fig_r
+  - title: Figure style
+    contents:
+      - tfl_fig_style
+      - tfl_fig_style_template
+      - tfl_read_fig_style
+      - tfl_fig_setup_code
+      - tfl_fig_palettes
+      - tfl_check_fig
+  - title: Figure spec (sheets) and quick figures
+    contents:
+      - tfl_fig_spec
+      - tfl_fig_spec_template
+      - tfl_read_fig_spec
+      - tfl_check_fig_spec
+      - tfl_example_fig_spec
+      - tfl_fig_code
+      - tfl_write_fig_code
+      - tfl_fig_schema
+      - tfl_fig_types
+      - tfl_fig_catalog
+      - tfl_fig_list_template
+      - tfl_fig_list_code
+      - tfl_fig_km
+      - tfl_fig_waterfall
+      - tfl_fig_swimmer
+      - tfl_fig_forest
+      - tfl_fig_mean
+      - tfl_fig_box
+      - tfl_fig_bar
+      - tfl_fig_scatter
+      - tfl_fig_individual
+      - tfl_fig_pk
+      - tfl_fig_ae_dot
+      - tfl_fig_butterfly
+      - tfl_fig_edish
+      - tfl_fig_sankey
+      - tfl_fig_sunburst
+      - print.tfl_code
+  - title: Sankey and sunburst
+    contents:
+      - tfl_plot_sankey
+      - tfl_plot_sankey_batch
+      - tfl_sankey_data
+      - tfl_plot_sunburst
+      - tfl_sunburst_data
+  - title: Data
+    contents:
+      - tfl_read_adam
+      - tfl_example_adam

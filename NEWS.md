@@ -1,5 +1,35 @@
 # tflspec (development version)
 
+* **Docs** (#64, brush-up).
+  - A pkgdown site (https://ichirio.github.io/tflspec/), its reference in
+    the AI manual's chapters; `URL` and `BugReports` in DESCRIPTION.
+  - The README follows the one workflow: ARD spec, table spec, report,
+    listing, figure design, ARS (the figure sections folded into one).
+  - The AI manual says how to write an analysis that takes a formula
+    (survival, models), what `statistics` means for CIs, tests and models,
+    the keywords' own arguments, and what `tables$value` is (a column, not
+    a template); its two examples are run by the tests as written.
+
+* **Round trips checked by what a reader gets** (#64, brush-up).
+  - `tfl_as_table_spec()` compares the RTF, byte by byte, not the page
+    objects (two page objects may hold the same output differently); its
+    `check` argument is `compare` now.  A test takes 35 plans through the
+    spec, a workbook and the written code back to the same RTF
+    (`tests/testthat/fixtures/table-cases.R`, shared with the coverage
+    script).
+  - Five figure templates (KM with the number at risk, waterfall, forest,
+    mean by visit, box plots) are compared with the same figures written by
+    hand in ggplot2: every layer's data, the labels, the axes.
+  - `tfl_as_listing_spec()`: a `listing_spec()` or a `plan_listing()` plan
+    as a listing spec, saying what the sheets cannot carry; from a plan it
+    compares the RTF.  New columns `listings$blank_row`, `listings$wrap`
+    (the name of a function), `listing_cols$sep` (quoted to keep spaces) and
+    `listing_cols$align`.
+  - The report sheet gains `watermark` and, for a figure,
+    `figure_width_in` / `figure_height_in`.
+  - The AI manual says there is no ARD-to-ARD-spec function: an existing
+    analysis comes in through ARS (`tfl_ars_to_specs()`).
+
 * **Functions say what they want and what they got** (#64, brush-up).
   - A function that takes a spec (`tfl_ard_code()`, `tfl_build_ard()`,
     `tfl_table_code()`, `tfl_table_plan()`, `tfl_report()`,

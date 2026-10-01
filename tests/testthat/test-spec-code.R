@@ -176,3 +176,27 @@ test_that("a table and its report, written out, make the report the objects make
                                   plan_cells(notes = FALSE))
   expect_identical(sc_render(env$doc), sc_render(by_objects))
 })
+
+test_that("a report's watermark and a figure's size are report columns", {
+  sp <- tfl_table_spec(report = data.frame(output_id = "F1", type = "figure",
+                                           watermark = "DRAFT",
+                                           figure_width_in = "9",
+                                           figure_height_in = "5.5"))
+  code <- paste(tfl_report_code(sp, content = "plots"), collapse = "\n")
+  expect_match(code, "watermark = \"DRAFT\"", fixed = TRUE)
+  expect_match(code, "rtf_figures(doc, plots, width_twips = 12960L, height_twips = 7920L)",
+               fixed = TRUE)
+  # the document tfl_report() makes carries them too
+  skip_if_not_installed("ggplot2")
+  png <- tempfile(fileext = ".png")
+  grDevices::png(png, width = 400, height = 300)
+  graphics::par(mar = c(0, 0, 0, 0))
+  graphics::plot.new()
+  grDevices::dev.off()
+  on.exit(unlink(png), add = TRUE)
+  doc <- tfl_report(sp, content = list(rtfplot(png)))
+  expect_false(is.null(doc$document$watermark))
+  expect_error(tfl_table_spec(report = data.frame(output_id = "F1",
+                                                  figure_width_in = "wide")),
+               "a number")
+})

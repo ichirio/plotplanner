@@ -4,7 +4,7 @@
 \alias{tfl_as_table_spec}
 \title{Write a plan as a table definition workbook}
 \usage{
-tfl_as_table_spec(x, output_id = NULL, check = TRUE)
+tfl_as_table_spec(x, output_id = NULL, compare = TRUE)
 }
 \arguments{
 \item{x}{An \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}}, a \strong{named list} of them (the names are the
@@ -14,13 +14,16 @@ takes.}
 \item{output_id}{The report the rows belong to.  \code{NULL} writes them as
 defaults (blank \code{output_id}).}
 
-\item{check}{\code{TRUE} (default) rebuilds the pages from the workbook and
-compares them with the plan's.}
+\item{compare}{\code{TRUE} (default) rebuilds the pages from the workbook and
+compares their RTF, byte by byte, with the plan's (the titles and
+footnotes aside: they are the report's).  The RTF is what a reader
+gets: two page objects that differ in how they hold the same output
+compare as the same.}
 }
 \value{
 A \code{\link[=tfl_table_spec]{tfl_table_spec()}}, with attributes \code{"not_converted"} (what the
-workbook could not carry) and \code{"same_pages"} (\code{TRUE} / \code{FALSE}, or
-\code{NA} when not checked).
+workbook could not carry) and \code{"same_pages"} (\code{TRUE} / \code{FALSE}: the
+same RTF, or \code{NA} when not compared).
 }
 \description{
 \code{tfl_as_table_spec()} turns an \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}} --- typically one a report

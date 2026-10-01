@@ -60,8 +60,8 @@ tfl_read_data_code <- function(datasets, dataset) {
 
 .listing_sheets <- list(
   listings     = c("output_id", "type", "dataset", "where", "sort",
-                   "max_rows"),
-  listing_cols = c("output_id", "vars", "label", "width",
+                   "max_rows", "blank_row", "wrap"),
+  listing_cols = c("output_id", "vars", "label", "width", "sep", "align",
                    "collapse_repeats"))
 
 # a sheet as the definition keeps it: its columns, in order, as text; blank
@@ -90,10 +90,16 @@ tfl_read_data_code <- function(datasets, dataset) {
 #' * `listings`, one row a listing: `output_id`; `type` (an rtfreporter
 #'   listing type, blank for the default); `dataset` (of the data catalog);
 #'   `where` (an R condition on its columns); `sort` (variables, `|` between
-#'   them, `-` in front for descending); `max_rows` (rows a page).
+#'   them, `-` in front for descending); `max_rows` (rows a page);
+#'   `blank_row` (`TRUE` / `FALSE`: a blank row after each record; blank:
+#'   the type's); `wrap` (the name of an R function that breaks a cell into
+#'   lines, `listing_spec(wrap = )`; blank: the type's own rule).
 #' * `listing_cols`, one row a printed column, in order: `output_id`; `vars`
 #'   (`|` between variables stacked in the column); `label` (the header, `\n`
-#'   for a line break); `width` (characters); `collapse_repeats` (`TRUE`
+#'   for a line break); `width` (characters); `sep` (what separates the
+#'   stacked variables -- quote it, `" / "`, to keep its spaces; blank: the
+#'   type's, `/`); `align` (`left` /
+#'   `center` / `right`; blank: the type's); `collapse_repeats` (`TRUE`
 #'   prints a value once until it changes).
 #'
 #' `tfl_listing_spec()` makes the definition from those two data frames (or a
@@ -171,6 +177,15 @@ tfl_listing_spec <- function(listings = NULL, listing_cols = NULL,
       err <- c(err, sprintf("%s: `max_rows` is not a whole number: %s",
                             who(r$output_id), r$max_rows))
     }
+    if (!is.na(r$blank_row) && !toupper(r$blank_row) %in% c("TRUE", "FALSE")) {
+      err <- c(err, sprintf("%s: `blank_row` is TRUE or FALSE, not %s",
+                            who(r$output_id), r$blank_row))
+    }
+    if (!is.na(r$wrap) && !grepl("^([A-Za-z.][A-Za-z0-9.]*::)?[A-Za-z.][A-Za-z0-9._]*$",
+                                 r$wrap)) {
+      err <- c(err, sprintf("%s: `wrap` is the name of an R function, not %s",
+                            who(r$output_id), r$wrap))
+    }
     if (!is.na(r$output_id) && !r$output_id %in% cl$output_id) {
       err <- c(err, sprintf("%s: no columns in `listing_cols`", who(r$output_id)))
     }
@@ -193,6 +208,10 @@ tfl_listing_spec <- function(listings = NULL, listing_cols = NULL,
          as.numeric(r$width) <= 0)) {
       err <- c(err, sprintf("%s: `width` is not a positive number: %s", at,
                             r$width))
+    }
+    if (!is.na(r$align) && !r$align %in% c("left", "center", "right")) {
+      err <- c(err, sprintf("%s: `align` is left, center or right, not %s",
+                            at, r$align))
     }
     if (!is.na(r$collapse_repeats) &&
         !toupper(r$collapse_repeats) %in% c("TRUE", "FALSE")) {
@@ -326,6 +345,8 @@ tfl_listing_code <- function(spec, output_id = NULL, datasets,
     a <- c(vv,
            if (!is.na(c$width)) paste("width =", c$width),
            if (!is.na(c$label)) paste("label =", .r_label(c$label)),
+           if (!is.na(c$sep)) paste("sep =", .r_label(.ard_spec_unquote(c$sep))),
+           if (!is.na(c$align)) paste("align =", encodeString(c$align, quote = "\"")),
            if (identical(toupper(c$collapse_repeats), "TRUE"))
              "collapse_repeats = TRUE")
     sprintf("  listing_col(%s)", paste(a, collapse = ", "))
@@ -340,9 +361,11 @@ tfl_listing_code <- function(spec, output_id = NULL, datasets,
     "# dates as they print",
     "data[] <- lapply(data, function(v) if (inherits(v, c(\"Date\", \"POSIXt\"))) format(v) else v)",
     "",
-    sprintf("lst <- listing_spec(list(\n%s),\n  type = %s)",
+    sprintf("lst <- listing_spec(list(\n%s),\n  type = %s%s%s)",
             paste(col_code, collapse = ",\n"),
-            encodeString(type, quote = "\"")),
+            encodeString(type, quote = "\""),
+            if (!is.na(l$blank_row)) paste0(", blank_row = ", toupper(l$blank_row)) else "",
+            if (!is.na(l$wrap)) paste0(", wrap = ", l$wrap) else ""),
     sprintf("content <- as_rtftables(data, listing = lst%s)",
             if (!is.na(l$max_rows)) paste0(", max_rows = ", l$max_rows) else
               ""))
@@ -403,11 +426,17 @@ tfl_listing <- function(spec, data, output_id = NULL, type = "multiline") {
     a <- list(.split_bar(c$vars))
     if (!is.na(c$width)) a$width <- as.numeric(c$width)
     if (!is.na(c$label)) a$label <- .listing_label(c$label)
+    if (!is.na(c$sep)) a$sep <- .listing_label(.ard_spec_unquote(c$sep))
+    if (!is.na(c$align)) a$align <- c$align
     if (identical(toupper(c$collapse_repeats), "TRUE")) a$collapse_repeats <- TRUE
     do.call(rtfreporter::listing_col, a)
   })
-  lst <- rtfreporter::listing_spec(lcols,
-                                   type = if (is.na(l$type)) type else l$type)
+  la <- list(lcols, type = if (is.na(l$type)) type else l$type)
+  if (!is.na(l$blank_row)) la$blank_row <- toupper(l$blank_row) == "TRUE"
+  if (!is.na(l$wrap)) {
+    la$wrap <- eval(str2lang(l$wrap), parent.frame())
+  }
+  lst <- do.call(rtfreporter::listing_spec, la)
   args <- list(data, listing = lst)
   if (!is.na(l$max_rows)) args$max_rows <- as.numeric(l$max_rows)
   do.call(rtfreporter::as_rtftables, args)

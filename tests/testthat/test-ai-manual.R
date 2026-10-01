@@ -154,3 +154,57 @@ test_that("the named arguments of tflspec calls in its code are real", {
   for (e in exprs) walk(e)
   expect_identical(bad, character(0))
 })
+
+# a fenced block of the manual, found by its first line
+.ai_example <- function(marker) {
+  lines <- .ai_lines()
+  start <- grep(marker, lines, fixed = TRUE)
+  expect_length(start, 1L)
+  end <- start + which(startsWith(lines[-seq_len(start)], "```"))[1L] - 1L
+  lines[start:end]
+}
+
+test_that("the manual's survival and model rows run as written, to the hand-written ARD", {
+  skip_on_cran()
+  skip_if_not_installed("cardx")
+  skip_if_not_installed("survival")
+  skip_if_not_installed("broom.helpers")
+  e <- new.env()
+  eval(parse(text = .ai_example("# manual example: analyses rows for survival")), e)
+  adam <- exact_data()
+  dir <- exact_dir(adam)
+  on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+  data <- subset(adam$ADTTE, USUBJID %in% subset(adam$ADSL, SAFFL == "Y")$USUBJID)
+  hand <- list(
+    KM = cardx::ard_survival_survfit(data, y = "survival::Surv(AVAL, 1 - CNSR)",
+                                     variables = TRTA, times = c(30, 90)),
+    HR = cardx::ard_regression(data, formula = survival::Surv(AVAL, 1 - CNSR) ~ TRTA,
+                               method = "coxph", package = "survival"))
+  for (r in list(e$km, e$cox)) {
+    r$output_id <- "T"
+    got <- suppressMessages(suppressWarnings(
+      tfl_build_ard(exact_spec(r), dir = dir, save = FALSE)))
+    expect_identical(exact_numbers(got), exact_numbers(hand[[r$analysis_id]]),
+                     label = r$analysis_id)
+  }
+})
+
+test_that("the manual's table rows run as written, to the table written in code", {
+  skip_if_not_installed("cards")
+  e <- new.env()
+  eval(parse(text = .ai_example("# manual example: a table's tables and cells rows")), e)
+  adsl <- cards::ADSL
+  adae <- cards::ADAE
+  ard <- cards::ard_stack_hierarchical(adae, by = TRTA, variables = c(AESOC, AEDECOD),
+                                       denominator = adsl, id = USUBJID)
+  d <- suppressMessages(normalize_ard(ard, hierarchy = c("AESOC", "AEDECOD")))
+  sp <- tfl_table_spec(tables = e$tables, cells = e$cells)
+  by_spec <- suppressMessages(plan_apply(
+    plan_cells(tfl_table_plan(d, sp), notes = FALSE), "pages"))
+  by_code <- suppressMessages(plan_apply(
+    table_plan(d, cols = "TRTA", rows = c(group1 = "AESOC"),
+               label = c(label = "AEDECOD")) |>
+      plan_cells(notes = FALSE) |>
+      plan_cells("{n} ({p:.1f%})"), "pages"))
+  expect_identical(tflspec:::.spec_rtf(by_spec), tflspec:::.spec_rtf(by_code))
+})

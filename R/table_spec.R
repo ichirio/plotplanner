@@ -83,7 +83,8 @@
     section_align = "text", auto_title = "bool", title_align = "text",
     table_font_size_half_points = "int", title_font_size_half_points = "int",
     footnote_font_size_half_points = "int", page_header = "bool",
-    page_footer = "bool"),
+    page_footer = "bool", watermark = "text", figure_width_in = "num",
+    figure_height_in = "num"),
   page = c(
     paper_size = "text", orientation = "text", width_in = "num",
     height_in = "num", margin_top_in = "num", margin_bottom_in = "num",
@@ -1367,7 +1368,10 @@ tfl_table_spec_template <- function(ard, path = NULL, cols = NULL,
 #' `table_font_size_half_points`, `title_font_size_half_points`,
 #' `footnote_font_size_half_points`,
 #' and `page_header` / `page_footer` (`FALSE` drops that running band for
-#' the report, the study's default lines included).
+#' the report, the study's default lines included), `watermark` (a word
+#' drawn behind every page, `rtf_document(watermark = )`: `DRAFT`), and
+#' `figure_width_in` / `figure_height_in` (a figure report's figure size in
+#' inches, [rtfreporter::rtf_figures()]).
 #'
 #' @section `page`:
 #' `paper_size`, `orientation`, `width_in`, `height_in`, `margin_top_in`,
@@ -1493,12 +1497,15 @@ tfl_report_path <- function(spec, output_id = NULL) {
 #'   takes.
 #' @param output_id The report the rows belong to.  `NULL` writes them as
 #'   defaults (blank `output_id`).
-#' @param check `TRUE` (default) rebuilds the pages from the workbook and
-#'   compares them with the plan's.
+#' @param compare `TRUE` (default) rebuilds the pages from the workbook and
+#'   compares their RTF, byte by byte, with the plan's (the titles and
+#'   footnotes aside: they are the report's).  The RTF is what a reader
+#'   gets: two page objects that differ in how they hold the same output
+#'   compare as the same.
 #'
 #' @return A [tfl_table_spec()], with attributes `"not_converted"` (what the
-#'   workbook could not carry) and `"same_pages"` (`TRUE` / `FALSE`, or
-#'   `NA` when not checked).
+#'   workbook could not carry) and `"same_pages"` (`TRUE` / `FALSE`: the
+#'   same RTF, or `NA` when not compared).
 #'
 #' @section Lifecycle:
 #' **Spike.**  See [rtfreporter::table_plan()].
@@ -1513,7 +1520,7 @@ tfl_report_path <- function(spec, output_id = NULL) {
 #' }
 #' @seealso [tfl_table_spec()], [tfl_write_table_spec()], [rtfreporter::table_plan()]
 #' @export
-tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
+tfl_as_table_spec <- function(x, output_id = NULL, compare = TRUE) {
   .spec_need_rtfreporter()
   if (inherits(x, "tfl_table_spec")) return(x)
   if (is.list(x) && !inherits(x, "table_plan") && length(x) &&
@@ -1523,7 +1530,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
       .ard_stop(paste0("A list of plans needs unique names: they are the ",
                        "output ids of the workbook."))
     }
-    parts <- lapply(ids, function(id) tfl_as_table_spec(x[[id]], id, check))
+    parts <- lapply(ids, function(id) tfl_as_table_spec(x[[id]], id, compare))
     rnd <- unique(stats::na.omit(vapply(parts, function(s)
       .ard_spec_study_value(s, "rounding"), "")))
     if (length(rnd) > 1L) {
@@ -1544,7 +1551,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
     return(sp)
   }
   if (!inherits(x, "table_plan")) return(tfl_table_spec(x))
-  .plan_to_spec(x, output_id, check)
+  .plan_to_spec(x, output_id, compare)
 }
 
 # One kind of row's rules as the `style` sheet writes them: the sides drawn
@@ -1573,7 +1580,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
 #  the plan's own data to say whether it gives the same pages.  All of it
 #  is read through plan_layers() and plan_apply(): nothing here
 #  looks inside a plan.
-.plan_to_spec <- function(p, output_id, check) {
+.plan_to_spec <- function(p, output_id, compare) {
   id <- if (is.null(output_id)) NA_character_ else output_id
   lost <- character()
   miss <- function(...) lost <<- c(lost, sprintf(...))
@@ -1903,7 +1910,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
                    cell_styles = cell_styles)
 
   same <- NA
-  if (isTRUE(check)) {
+  if (isTRUE(compare)) {
     back <- tryCatch(suppressMessages(rtfreporter::plan_apply(
       rtfreporter::plan_cells(tfl_table_plan(L$data, sp), notes = FALSE),
       "pages")),
@@ -1916,7 +1923,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
       t
     })
     same <- !inherits(back, "error") &&
-      isTRUE(all.equal(bare(back), bare(pages)))
+      identical(.spec_rtf(bare(back)), .spec_rtf(bare(pages)))
     if (inherits(back, "error")) {
       miss("the workbook does not run: %s", conditionMessage(back))
     }
@@ -1925,9 +1932,9 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
     message(sprintf(
       "tfl_as_table_spec()%s: %s\n%s",
       if (is.na(id)) "" else paste0(" [", id, "]"),
-      if (isTRUE(same)) "the workbook gives the same pages as the plan"
-      else if (isFALSE(same)) "the workbook does NOT give the same pages"
-      else "not checked",
+      if (isTRUE(same)) "the workbook gives the same RTF as the plan"
+      else if (isFALSE(same)) "the workbook does NOT give the same RTF"
+      else "not compared",
       if (length(lost)) paste0("  not converted:\n",
                                paste0("    - ", unique(lost), collapse = "\n"))
       else ""))
