@@ -210,7 +210,7 @@ test_that("purpose and reason are columns of the ARD spec workbook", {
   back <- tfl_read_ard_spec(f)
   expect_identical(back$analyses$purpose, sp$analyses$purpose)
   expect_identical(back$analyses$reason, sp$analyses$reason)
-  expect_true(all(c("purpose / reason") %in% tfl_spec_columns("analyses")$column))
+  expect_true(all(c("purpose", "reason") %in% tfl_spec_columns("analyses")$column))
 })
 
 test_that("an added subject count never takes an id the output has", {
@@ -239,4 +239,22 @@ test_that("a blank purpose is named once, not again by the schema", {
   ck <- tfl_check_ars(tfl_ars(dm_ae(purpose = NULL)))
   expect_true(all(ck$field == "purpose"))
   expect_false(any(startsWith(ck$part, "schema")))
+})
+
+test_that("strata are groupings in ARS; a denominator other than the analysis set is said", {
+  sp <- exact_spec(list(method = "continuous", population_id = "SAF",
+                        by = "TRT01A", strata = "SEX", variables = "AGE",
+                        purpose = "PRIMARY OUTCOME MEASURE"))
+  ars <- suppressWarnings(tfl_ars(sp))
+  an <- ars$analyses[[length(ars$analyses)]]
+  expect_identical(vapply(an$orderedGroupings, `[[`, "", "groupingId"),
+                   c("AG_ADSL_TRT01A", "AG_ADSL_SEX"))
+  sp <- exact_spec(list(method = "categorical", population_id = "SAF",
+                        by = "TRT01A", variables = "SEX", denominator = "row",
+                        args = "fmt_fun = NULL",
+                        purpose = "PRIMARY OUTCOME MEASURE"))
+  un <- tfl_ars_unmapped(suppressWarnings(tfl_ars(sp)))
+  expect_true(any(un$item == "denominator" & grepl("`row`", un$reason)))
+  expect_true(any(un$item == "args" & grepl("fmt_fun = NULL", un$reason,
+                                            fixed = TRUE)))
 })

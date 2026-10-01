@@ -103,7 +103,7 @@ test_that("the code: from the definition or its workbook, one listing at a time"
   expect_true("content <- as_rtftables(data, listing = lst, max_rows = 4)" %in% code)
   expect_error(tfl_listing_code(sp, datasets = cat), "2 listings")
   expect_error(tfl_listing_code(sp, "L-9", cat), "No listing L-9")
-  expect_error(tfl_listing_code(ls_rows()$listings, "L-1", cat), "must be a tfl_listing_spec")
+  expect_error(tfl_listing_code(ls_rows()$listings, "L-1", cat), "`spec` must be a listing spec")
   draft <- tfl_listing_spec(list(listings = data.frame(output_id = "L-3", sort = "X")),
                             check = FALSE)
   expect_null(tfl_listing_code(draft, "L-3", cat))

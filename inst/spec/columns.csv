@@ -1,0 +1,196 @@
+sheet,column,description,example
+(workbook),,"A tflspec workbook: one sheet per grain. Sheets whose name starts with _ are not read (notes). Each column is described on its header cell's comment and by tfl_spec_columns().",
+(workbook),output_id,"The report a row belongs to. Blank: a study-wide default; a row naming a report replaces the default row with the same key (ARD analyses: the report the analysis serves).",T-14-1-1
+(workbook),note,"A column for people, on any sheet; never read. Any other column a sheet does not read is an error (a mistyped header).",
+(workbook),(list),"Several values in one cell: | between them.",TRT01A | SEX
+(workbook),(tokens),"In titles, footnotes, header and footer cells: {PAGE} {TOTAL_PAGES} {AUTO_PAGE} {AUTO_TOTAL_PAGES} (page numbers), {PROGRAM} {PROGRAM_NAME} {PROGRAM_DIR} (the program), {DATETIME} {DATETIME:%Y-%m-%d} (the run).",
+study,,"What is one for the whole study: one row a key. Table / report keys: rounding, output_path, program_dir. ARD keys: id, output, source. No output_id.",
+study,key,"The fact: rounding (r: round half to even; sas: round half away from zero; blank: options(rtfreporter.rounding)); output_path (the folder of the RTF files); program_dir (the folder of the programs, for {PROGRAM}); ARD: id (the subject key; default USUBJID), output (the study ARD's file; default output/ard/ard.rds), source (R files of the study's own analysis functions, relative to the study folder, | between them).",rounding
+study,value,"Its value, as text.",sas
+about,,"key / value: spec_version (a workbook of a newer version is refused by an older tflspec).",spec_version = 1
+about,key,"spec_version.",spec_version
+about,value,"A whole number.",1
+datasets,,"ARD: the study's data, one row a dataset.",
+datasets,dataset,"A name for the data, used by populations and analyses (and the object's name in the program, in lower case).",ADSL
+datasets,level,"SDTM or ADaM (for people and ARS; not read by the program).",ADaM
+datasets,path,"Its file, relative to the study folder; the reader follows the extension: .rds, .xpt, .sas7bdat, .csv, .parquet.",data/adam/adsl.xpt
+datasets,derive,"New columns, NAME = R expression, | between them (transform()); blank: none.",AGE65 = AGE >= 65
+populations,,"ARD: the analysis sets, one row a population.",
+populations,population_id,"The population's name, used by analyses.",SAF
+populations,dataset,"The dataset its subjects come from.",ADSL
+populations,where,"An R condition on that dataset choosing the subjects; blank: every row.","SAFFL == ""Y"""
+populations,derive,"Columns added to the population, NAME = R expression, | between them; blank: none.",TRTA = TRT01A
+analyses,,"ARD: one analysis a row; each becomes one cards / cardx call in the ARD program, its result tagged with output_id, analysis_id and population_id.",
+analyses,analysis_id,"The analysis's id within its report; an ARD column.",AGE
+analyses,label,"A name a person reads (for ARS and the GUI); blank: none.",Age (years)
+analyses,method,"What is computed: a keyword of tfl_ard_methods() (continuous, categorical, hierarchical ...), any pkg::function (cards::, cardx::), or a function of the study's own that the study key source loads.",continuous
+analyses,dataset,"The data analysed; blank: the population's own dataset.",ADAE
+analyses,population_id,"The analysis set: the data is restricted to its subjects; blank: no restriction (population is NULL).",SAF
+analyses,where,"An R condition on the data, applied after the population; blank: every row.","TRTEMFL == ""Y"""
+analyses,by,"Grouping variables (cards' by), | between them; blank: none.",TRT01A
+analyses,strata,"Variables the analysis is repeated within (cards' strata: a subgroup, a parameter by visit), | between them; blank: none.",PARAMCD | AVISIT
+analyses,variables,"The variables analysed (cards' variables), | between them.",AGE | BMIBL
+analyses,statistics,"For continuous / categorical / missing: the statistics computed, in order (tfl_ard_statistics()); for other methods: the statistics kept of what the method gives; | between them; blank: the method's default.",N | mean | sd
+analyses,denominator,"What percentages are of: population (the analysis set; hierarchical and max take it anyway), row / column / cell (cards), another population, or a dataset (its records of the analysis set's subjects); blank: the method's default.",row
+analyses,formats,"Display formats, statistic=format, | between them; VAR:statistic=format for one variable. xx.x = one decimal (the x's count only after the point), xx.x% = a proportion as a percent, a number = decimals, pvalue = <0.001 or 3 decimals; blank: the statistic's default.",mean=xx.x | p=xx.x%
+analyses,args,"More arguments of the call, as R (data and population are bound), in any order; refused if not R. An argument a column gives (by, variables, strata, denominator, statistic) may not be given here too; blank: none.",over_variables = TRUE
+analyses,code,"method = custom only: the R code that gives the ARD (data and population are bound).","cards::ard_tabulate(data, variables = SEX)"
+analyses,purpose,"For CDISC ARS (tfl_ars()): PRIMARY / SECONDARY / EXPLORATORY OUTCOME MEASURE; blank: tfl_ars(purpose = ).",PRIMARY OUTCOME MEASURE
+analyses,reason,"For CDISC ARS: SPECIFIED IN PROTOCOL / SPECIFIED IN SAP / DATA DRIVEN / REQUESTED BY REGULATORY AGENCY; blank: SPECIFIED IN SAP.",SPECIFIED IN SAP
+tables,,"Table: one row a report. Its roles (table_plan()) and the table-wide options; a verb written in code afterwards wins.",
+tables,cols,"The key spread across the columns, outermost first, | between them (table_plan(cols = )).",TRT01A | SEROSTAT
+tables,rows,"The keys down the rows (table_plan(rows = )); name = column renames, a quoted value is a constant heading; | between them.","group1 = AEBODSYS | grp = ""Worst Post-Baseline Values"""
+tables,label,"Where the row label comes from (table_plan(label = )); blank: .label; NA: used to tell rows apart, not printed; NULL: not used.",label = AEDECOD
+tables,stats,"cells (cells built from templates) or rows (one statistic a row, the raw values) (plan_cells(stats = )); blank: cells.",rows
+tables,value,"With stats = rows: stat (the number) or stat_fmt (cards' formatted text) (plan_cells(value = )); blank: stat.",stat
+tables,sep,"What joins several column keys into a column name (plan_columns(sep = )); the columns sheet names value columns with it; blank: ____.",_
+tables,sort,"TRUE, FALSE, or the sort keys in order, - in front for descending (plan_sort()); blank: the data's order.",.overall | group1 | -n | label
+tables,sort_stat,"The statistic totalled across columns for a frequency order (plan_sort(stat = )).",n
+tables,na,"What a cell no template could fill prints (plan_cells(na = )); blank: empty.",-
+tables,header_n,"Which population {n} in the column header is, for a table split by page (a lab parameter): page (those with that page's data), table (the analysis set), or both as n = page | N = table for {n} and {N}; blank: page (warns when both exist and differ). Both must be in the ARD.",n = page | N = table
+variables,,"Table: one row a variable (an analysis variable, a column key or the label column).",
+variables,variable,"The variable's name.",AGEGR1
+variables,label,"What prints for its name (plan_labels()); blank: the name.",Age (years)
+variables,order,"Its place among the variables (a number); blank: the data's order.",1
+variables,levels,"Its values in print order, | between them (plan_levels()); blank: the data's order.",Grade 0 | Grade 1 | Total
+cells,,"Table: one row a line of a cell (plan_cells()). Rows with the same variable / context / row are one chain, tried top down. With stats = rows, a row with no template is one statistic's digits (plan_digits(.rows = )): row = the statistic as the label column prints it.",
+cells,variable,"What the template is for: a variable, continuous / categorical (every variable of that kind); blank: every variable.",continuous
+cells,context,"Only the ARD rows of this context (one variable summarised two ways); blank: any.",summary
+cells,row,"The row's label; blank: one row a level, labelled by the level.",Mean (SD)
+cells,when,"An R condition on the statistics; the row is used only when it holds; blank: always.",n == 0
+cells,template,"The cell's text with {statistic:format} tokens.",{mean} ({sd})
+cells,digits,"Decimals of a token with no format, a comma between tokens; blank: plan_digits().","2,3"
+cells,signif,"Significant digits (wins over digits); blank: none.",4
+layout,,"Table: one row a report. Pages, groups, blank rows, stub; the prefix names the plan verb, the rest its argument.",
+layout,pages_max_rows,"Rows a page (plan_paginate_rows(max_rows = )), a whole number; blank: as_rtftables()' default.",26
+layout,pages_split,"How a page break may cut: group_safe / group_force / rows / ... (plan_paginate_rows(split = )); blank: as_rtftables()' default.",group_force
+layout,pages_break_before,"Row positions to cut before, | between them, with pages_split = rows (plan_paginate_rows(break_before = )); blank: none.",20 | 40
+layout,pages_min_group_rows,"Rows of a group kept together at the foot of a page, a whole number (plan_paginate_rows(min_group_rows = )); blank: the default.",2
+layout,pages_cont_label,"Appended to a group label continued on the next page (plan_paginate_rows(cont_label = )); quote it to keep leading spaces; blank: none.",""" (Cont.)"""
+layout,group_col,"With group_page = TRUE: the column whose values each start a page (plan_paginate_group(col = )); blank: the outermost row key.",PARAM
+layout,group_mode,"How groups print (plan_row_group(mode = )): value / indent / ...; blank: the default.",indent
+layout,group_collapse,"TRUE, or the columns (names or positions, | between them) whose repeated values print once (plan_row_group(collapse = )); blank: none.",1 | 2
+layout,group_page,"TRUE / FALSE: one page per value of group_col (plan_paginate_group()); blank: FALSE.",TRUE
+layout,group_keep,"TRUE / FALSE: with group_page, FALSE leaves the group column unprinted (plan_paginate_group(keep = )); blank: TRUE.",FALSE
+layout,blank_where,"Where blank rows go: a named rule such as between_groups (plan_blanks(where = )); blank: none.",between_groups
+layout,blank_first,"TRUE / FALSE: a blank row before the first row (plan_blanks(first = )); blank: the default.",TRUE
+layout,blank_last,"TRUE / FALSE: a blank row after the last row (plan_blanks(last = )); blank: the default.",TRUE
+layout,blank_counted,"TRUE / FALSE: blank rows count towards pages_max_rows (plan_blanks(counted = )); blank: the default.",TRUE
+layout,stub_vars,"The row-key columns folded into one stub column, | between them (plan_stub(vars = )); blank: the row keys.",group1 | label
+layout,stub_name,"The stub column's name (plan_stub(name = )); blank: the default.",row_label
+layout,stub_indent,"Spaces a level is indented in the stub, a whole number (plan_stub(indent = )); blank: the default.",2
+layout,stub_summary,"How a group's summary row shows in the stub (plan_stub(group_summary = )); blank: the default.",header
+layout,stub_before,"TRUE / FALSE: fold the stub before cell styles and sorting see the rows (plan_stub(before = )); blank: FALSE.",TRUE
+layout,colpages_every,"Value columns a column page, a whole number (plan_paginate_cols(every = )); blank: no column pages.",4
+layout,colpages_at,"The columns to cut before (names or positions), | between them (plan_paginate_cols(at = )).",16 | 29
+layout,colpages_cut_by,"A separator in the column names: one column page per key before it (plan_paginate_cols(cut_by = )).",____
+layout,colpages_keep,"Columns printed on every column page (names or positions), | between them (plan_paginate_cols(keep = )); blank: the stub.",1 | 2
+layout,colpages_fit,"TRUE / FALSE: TRUE puts every column page on page 1's width scale, FALSE keeps each column's width (plan_paginate_cols(fit = )); blank: TRUE.",FALSE
+layout,colpages_allow_span_break,"TRUE / FALSE: FALSE never cuts inside a spanning header cell (plan_paginate_cols(allow_span_break = )); blank: TRUE.",FALSE
+layout,colpages_order,"The order the axes nest in, outermost first: group / rows / cols, or across / down (plan_paginate_cols(order = )); | between them; blank: the default.",across
+columns,,"Table: one row a printed column, by name (the stub by stub_name, a value column by its keys joined with tables$sep); .values = every value column. Named columns win over .values.",
+columns,column,"A column name, or .values.",row_label
+columns,rel_width,"Relative width (a number; plan_columns(widths = )). Give one to every printed column (.values covers the value columns); blank: rtfreporter's widths.",5
+columns,row_title,"TRUE / FALSE: a row-title column (plan_columns(row_title = )); blank: FALSE.",TRUE
+columns,decimal_split,"TRUE / FALSE: align the decimal points (plan_columns(decimal = )); blank: FALSE.",TRUE
+columns,hide,"TRUE / FALSE: used, not printed (plan_hide()); blank: FALSE.",TRUE
+style,,"Table: one row a report; plan_style()'s arguments (auto_width goes to plan_columns()). Blank: the document's or rtfreporter's default.",
+style,border,"The table's rules: tfl (header top and bottom, a bottom rule on the last row) or none; blank: tfl.",tfl
+style,align_count_pct,"TRUE / FALSE: realign n (xx.x) count / percent cells to one width; blank: FALSE.",TRUE
+style,auto_width,"TRUE / FALSE: size each column to its widest content (plan_columns(auto_width = )); an explicit rel_width wins; blank: FALSE.",TRUE
+style,row_height_twips,"Data row height in twips (1/1440 inch); blank: from the font size.",240
+style,row_height_exact,"TRUE / FALSE: TRUE exact (clipped), FALSE at least; blank: FALSE.",TRUE
+style,header_row_height_twips,"Column-header row height in twips; blank: row_height_twips.",300
+style,blank_row_height_twips,"Blank separator row height in twips; blank: row_height_twips.",120
+style,cell_padding_left_twips,"Left cell padding in twips; blank: 0.",60
+style,cell_padding_right_twips,"Right cell padding in twips; blank: 0.",60
+style,font,"Font family of the table; blank: the document's (Courier).",Arial
+style,font_size_half_points,"Font size in half-points (18 = 9 pt); blank: the document's.",16
+style,table_align,"Placement of the table: left / center / right; blank: left.",center
+style,cell_valign,"Vertical alignment in a cell: bottom / top / center; blank: bottom.",top
+style,markup,"Cell-text markup, one of script (^{} _{} as super / subscript), relational (>= <= as symbols), all, none; blank: the document's (script).",all
+style,blank_row_normalize,"One of detect (an all-empty data row prints as one blank row), collapse (a run of blank rows prints as one), none; blank: both detect and collapse.",none
+style,border_header,"The column header's rules: sides from top | bottom | left | right, or none; blank: border's.",top | bottom
+style,border_spanning,"The spanning header cells' rules: sides, or none; blank: border's.",bottom
+style,border_body,"The body rows' rules: sides, or none; blank: border's.",none
+style,border_first_row,"The first body row's rules: sides, or none; blank: border's.",top
+style,border_last_row,"The last body row's rules: sides, or none; blank: border's.",bottom
+cell_styles,,"Table: one row a plan_cell_style(), applied in order; a report's own rows replace the default rows whole.",
+cell_styles,cols,"The columns styled, | between them (.values = every value column); blank: every column.",Placebo | .values
+cell_styles,header,"TRUE / FALSE: TRUE styles the column header instead of the body; blank: FALSE.",TRUE
+cell_styles,where,"An R condition over the table's columns choosing the rows; blank: every row. Two rows with a where may not set the same look: join their conditions with |.","label == ""Any TEAE"""
+cell_styles,bold,"TRUE / FALSE; blank: unchanged.",TRUE
+cell_styles,italic,"TRUE / FALSE; blank: unchanged.",TRUE
+cell_styles,align,"left / center / right; blank: unchanged.",center
+cell_styles,color,"Text colour, #RRGGBB; blank: unchanged.",#CC0000
+cell_styles,background,"Cell shading, #RRGGBB; blank: unchanged.",#EEEEEE
+col_header,,"Table: one row a header cell (plan_col_header(header = )). A report's own cells replace the default header whole.",
+col_header,line,"The header row, a whole number (1 = the top).",1
+col_header,cols,"The columns the cell sits on: a name, .values (every value column), a position or range (3, 3:31, 3:last), or KEY = value (the columns whose key has that value); | between them.",.values
+col_header,span,"Blank: one cell over cols; each: one cell a column; a key's name: one cell per value of that key (a spanner).",TR01AG1
+col_header,text,"What prints; a line break is Alt+Enter or \n. Tokens: {col} {col1} {col2} (the column's keys), {n} {n1} {n2} (the population at that depth, read from the ARD), {n:sum} (the total over the cell's columns). Quote it to keep leading spaces.",{col1}\n(N={n:sum})
+col_header,align,"left / center / right (col_cell()); blank: the default.",center
+col_header,bold,"TRUE / FALSE; blank: FALSE.",TRUE
+col_header,border_top,"The cell's top rule: single / double / none ... (rtf_border()); blank: the header's.",single
+col_header,border_bottom,"The cell's bottom rule, as border_top.",single
+report,,"Report: one row a report; blank output_id: the study's default.",
+report,type,"table / listing / figure; blank: table.",listing
+report,file,"The RTF file, relative to the study key output_path; {output_id} is the report's id; blank: {output_id}.rtf.",{output_id}.rtf
+report,program,"The program's name, joined to program_dir for {PROGRAM}; blank: {output_id}.",{output_id}
+report,auto_section,"TRUE / FALSE: each named table a section with its name in the page header (rtf_tables(auto_section = )); blank: FALSE.",TRUE
+report,section_align,"left / center / right: the section label (rtf_tables(section_label_align = )); blank: left.",left
+report,auto_title,"TRUE / FALSE: each named table's name as its last title line (rtf_tables(auto_title = )); blank: FALSE.",TRUE
+report,title_align,"left / center / right: that title line (rtf_tables(title_label_align = )); blank: left.",center
+report,table_font_size_half_points,"The table's font size in half-points (18 = 9 pt) (rtf_tables(font_size_half_points = )); blank: the document's.",14
+report,title_font_size_half_points,"The titles' font size in half-points; blank: the document's.",20
+report,footnote_font_size_half_points,"The footnotes' font size in half-points; blank: the document's.",14
+report,page_header,"TRUE / FALSE: FALSE drops the running page header for this report, the study's default lines included; blank: TRUE.",FALSE
+report,page_footer,"TRUE / FALSE: FALSE drops the running page footer, likewise; blank: TRUE.",FALSE
+page,,"Report: one row a report; the page (rtf_page()) and the document's text defaults (rtf_default_format()). Blank: rtfreporter's options (landscape Letter, 0.75 in margins).",
+page,paper_size,"letter / legal / A4 / A3 / A5; blank: letter.",A4
+page,orientation,"landscape / portrait; blank: landscape.",portrait
+page,width_in,"Page width in inches (wins over paper_size); blank: the paper's.",11
+page,height_in,"Page height in inches; blank: the paper's.",8.5
+page,margin_top_in,"Top margin in inches; blank: 0.75.",1
+page,margin_bottom_in,"Bottom margin in inches; blank: 0.75.",1
+page,margin_left_in,"Left margin in inches; blank: 0.75.",0.5
+page,margin_right_in,"Right margin in inches; blank: 0.75.",0.5
+page,header_dist_in,"From the page's top edge to the running header, in inches; blank: the top margin.",0.5
+page,footer_dist_in,"From the page's bottom edge to the running footer, in inches; blank: the bottom margin.",0.5
+page,font_size_half_points,"The body font size in half-points (18 = 9 pt); blank: rtfreporter's option.",18
+page,title_format,"text (centred paragraphs) / table (a content-width one-column table); blank: text.",table
+page,footnote_format,"table (content-width, with the separator rule) / text (paragraphs); blank: table.",text
+page,title_width,"The title block's width: content / page / a fraction of the writable width / twips; blank: content.",page
+page,footnote_width,"The footnote block's width, as title_width; blank: content.",page
+page,markup,"Cell-text markup for the whole document: script / relational / all / none; blank: script.",all
+header,,"Report: the running page header, one row a line; the line is the key (the study's lines on blank output_id, a report's own on its rows). A line with no text is a blank line.",
+header,line,"The line number, a whole number (1 = the top).",1
+header,left,"The text at the left; tokens work.",Protocol XYZ-001
+header,center,"The text in the centre.",CONFIDENTIAL
+header,right,"The text at the right.",Page {PAGE} of {TOTAL_PAGES}
+footer,,"Report: the running page footer, one row a line, as header. A line 99 on blank output_id closes every report.",
+footer,line,"The line number.",99
+footer,left,"The text at the left.",{PROGRAM}
+footer,center,"The text in the centre.",
+footer,right,"The text at the right.",Generated on: {DATETIME}
+titles,,"Report: the titles above the table, one row a line, as header.",
+titles,line,"The line number.",1
+titles,left,"The text at the left.",
+titles,center,"The text in the centre.",Table 14.1.1
+titles,right,"The text at the right.",
+footnotes,,"Report: the footnotes below the table, one row a line, as header.",
+footnotes,line,"The line number.",1
+footnotes,left,"The text at the left.",CV = Coefficient of variation
+footnotes,center,"The text in the centre.",
+footnotes,right,"The text at the right.",
+listings,,"Listing: one row a listing (listing_spec()).",
+listings,type,"An rtfreporter listing type (listing_spec(type = )); blank: multiline.",multiline
+listings,dataset,"The dataset listed (of the ARD spec's datasets catalog).",ADAE
+listings,where,"An R condition on its columns choosing the rows; blank: every row.","AESEV == ""SEVERE"""
+listings,sort,"The sort variables, | between them, - in front for descending; blank: the data's order.",USUBJID | -ASTDY
+listings,max_rows,"Rows a page, a whole number; blank: rtfreporter's default.",20
+listing_cols,,"Listing: one row a printed column, in order (listing_col()).",
+listing_cols,vars,"The variables stacked in the column, | between them.",USUBJID | AGE
+listing_cols,label,"The column header; \n is a line break; blank: the variables' names.",Subject\nAge
+listing_cols,width,"Characters a line before the cell wraps (listing_col(width = )), a whole number; blank: never wraps.",12
+listing_cols,collapse_repeats,"TRUE / FALSE: TRUE prints a value once until it changes; blank: FALSE.",TRUE

@@ -24,6 +24,12 @@
 # a name in the program (`doc`, `plan`): its value comes from `env` when run
 .spec_sym <- function(name) structure(list(name = name), class = "tfl_spec_sym")
 
+# a one-sided formula written in a workbook (`where` of a cell style):
+# `~ <text>` in the program, a formula when run
+.spec_formula <- function(text) {
+  structure(list(text = text), class = "tfl_spec_formula")
+}
+
 # A function a step names: tflspec's own, else rtfreporter's (the plan
 # verbs, rtf_document() and friends).
 .spec_fun <- function(name) {
@@ -44,6 +50,11 @@
 
 .spec_eval <- function(x, env) {
   if (inherits(x, "tfl_spec_sym")) return(get(x$name, envir = env))
+  if (inherits(x, "tfl_spec_formula")) {
+    # over the table's columns, with base R (the program's own objects
+    # are its code's, tfl_table_code())
+    return(stats::as.formula(paste("~", x$text), env = globalenv()))
+  }
   if (inherits(x, "tfl_spec_call")) {
     f <- .spec_fun(x$fun)
     return(do.call(f, lapply(x$args, .spec_eval, env = env)))
@@ -107,6 +118,7 @@
 
 .spec_code_line <- function(x) {
   if (inherits(x, "tfl_spec_sym")) return(x$name)
+  if (inherits(x, "tfl_spec_formula")) return(paste("~", x$text))
   p <- .spec_parts(x)
   if (!is.null(p) && !(is.atomic(x) && !is.list(x))) {
     el <- vapply(seq_along(p$items), function(i)
@@ -234,10 +246,13 @@
                         counted = "counted"))
   if (length(a)) do.call(add, c(list("plan_blanks"), a))
   a <- pick("pages_", c(max_rows = "max_rows", split = "split",
+                        break_before = "break_before",
                         min_group_rows = "min_group_rows",
                         cont_label = "cont_label"))
   if (length(a)) do.call(add, c(list("plan_paginate_rows"), a))
-  a <- pick("colpages_", c(every = "every", at = "at", keep = "keep",
+  a <- pick("colpages_", c(at = "at", cut_by = "cut_by", every = "every",
+                           keep = "keep", fit = "fit",
+                           allow_span_break = "allow_span_break",
                            order = "order"))
   if (length(a)) do.call(add, c(list("plan_paginate_cols"), a))
 
@@ -257,6 +272,17 @@
       stats::setNames(rep(TRUE, length(sty[[z]])), sty[[z]]))))
   }
   if (length(sty)) do.call(add, c(list("plan_style"), sty))
+  # each cell style row, one plan_cell_style()
+  for (i in seq_len(nrow(sp$cell_styles))) {
+    cs <- .ard_spec_typed(sp$cell_styles[i, , drop = FALSE], "cell_styles")
+    w <- cs[["where"]]
+    cs[["where"]] <- if (!is.null(w)) .spec_formula(w)
+    if (isTRUE(cs[["header"]])) cs[["header"]] <- TRUE else cs[["header"]] <- NULL
+    cs <- cs[c("cols", "header", "where", "bold", "italic", "align", "color",
+               "background")]
+    cs <- cs[!vapply(cs, is.null, NA)]
+    do.call(add, c(list("plan_cell_style"), cs))
+  }
   if (any(flag("hide"))) add("plan_hide", cl$column[flag("hide")])
   hd <- sp$col_header
   if (nrow(hd)) {
@@ -269,7 +295,7 @@
         values = if (!is.null(hn))
           if (is.null(names(hn))) list(n = hn) else as.list(hn))
   }
-  w <- vapply(ct, function(r) r[["width"]] %||% NA_real_, NA_real_)
+  w <- vapply(ct, function(r) r[["rel_width"]] %||% NA_real_, NA_real_)
   if (any(!is.na(w)) || any(flag("decimal_split")) || any(flag("row_title")) ||
       !is.null(auto_width) || !is.null(sa[["sep"]])) {
     add("plan_columns",
@@ -308,9 +334,8 @@
 #' @export
 tfl_table_code <- function(spec, output_id = NULL, data = "data",
                            plan = "plan", pipe = NULL) {
-  sp <- .ard_spec_scope(if (is.character(spec))
-                          tfl_read_table_spec(spec, output_id)
-                        else tfl_table_spec(spec), output_id)
+  sp <- .ard_spec_scope(.as_spec(spec, "table", "tfl_table_code",
+                                 output_id = output_id), output_id)
   roles <- .plan_spec_roles(sp)
   op <- .ard_pipe_op(pipe)
   head <- do.call(.spec_call, c(list("table_plan", .spec_sym(data)), roles))
@@ -350,9 +375,8 @@ tfl_table_code <- function(spec, output_id = NULL, data = "data",
 #' @export
 tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
   .spec_need_rtfreporter()
-  sp <- .ard_spec_scope(if (is.character(spec))
-                          tfl_read_table_spec(spec, output_id)
-                        else tfl_table_spec(spec), output_id)
+  sp <- .ard_spec_scope(.as_spec(spec, "table", "tfl_table_plan",
+                                 output_id = output_id), output_id)
   roles <- .plan_spec_roles(sp)
   dots <- list(...)
   other <- setdiff(names(dots) %||% rep("", length(dots)), .plan_role_names)
@@ -424,17 +448,17 @@ tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
       section_label_align = r$section_align,
       auto_title = r$auto_title,
       title_label_align = r$title_align,
-      font_size_half_points = r$table_font_size)
+      font_size_half_points = r$table_font_size_half_points)
   }
   tt <- .ard_spec_band(sp, "titles")
   if (length(tt)) {
     st[[length(st) + 1L]] <- .spec_call("rtf_titles", doc, list(tt),
-      font_size_half_points = r$title_font_size)
+      font_size_half_points = r$title_font_size_half_points)
   }
   fn <- .ard_spec_band(sp, "footnotes")
   if (length(fn)) {
     st[[length(st) + 1L]] <- .spec_call("rtf_footnotes", doc, list(fn),
-      font_size_half_points = r$footnote_font_size)
+      font_size_half_points = r$footnote_font_size_half_points)
   }
   st
 }
@@ -462,9 +486,8 @@ tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
 #' @export
 tfl_report_code <- function(spec, output_id = NULL, content = "content",
                             doc = "doc") {
-  sp <- .ard_spec_scope(if (is.character(spec))
-                          tfl_read_report_spec(spec, output_id)
-                        else tfl_table_spec(spec), output_id)
+  sp <- .ard_spec_scope(.as_spec(spec, "table", "tfl_report_code",
+                                 output_id = output_id), output_id)
   steps <- .report_spec_steps(sp, content)
   out <- vapply(steps, function(s) {
     if (length(s$args) && inherits(s$args[[1L]], "tfl_spec_sym") &&

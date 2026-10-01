@@ -327,8 +327,8 @@ specs$DM <- with_pages(specs$DM,
                     stub_before = "TRUE", blank_where = "between_groups",
                     blank_first = "TRUE", blank_last = "TRUE",
                     pages_max_rows = "21", pages_split = "group_safe")),
-  columns = tbl(list(output_id = "DM", column = "row_label", width = "5"),
-                list(output_id = "DM", column = ".values",   width = "2")),
+  columns = tbl(list(output_id = "DM", column = "row_label", rel_width = "5"),
+                list(output_id = "DM", column = ".values",   rel_width = "2")),
   style = tbl(list(output_id = "DM", align_count_pct = "TRUE")),
   col_header = tbl(
     hc("DM", 1, "row_label"),
@@ -374,8 +374,8 @@ specs$AE <- with_pages(specs$AE,
                     blank_first = "TRUE", blank_last = "TRUE",
                     blank_counted = "TRUE", pages_max_rows = "25",
                     pages_split = "group_force")),
-  columns = tbl(list(output_id = "AE", column = "row_label", width = "40"),
-                list(output_id = "AE", column = ".values",   width = "10")),
+  columns = tbl(list(output_id = "AE", column = "row_label", rel_width = "40"),
+                list(output_id = "AE", column = ".values",   rel_width = "10")),
   style = tbl(list(output_id = "AE", align_count_pct = "TRUE",
                    row_height_twips = "210")),
   col_header = tbl(
@@ -424,13 +424,13 @@ orr_header <- function(p) plan_col_header(p, function(n, tbl) {
 })
 orr_arms <- c("Placebo", "Xanomeline High Dose", "Xanomeline Low Dose")
 orr_cols <- list(
-  list(output_id = "ORR", column = "grp1", width = "42", row_title = "TRUE"),
-  list(output_id = "ORR", column = "grp2", width = "28", row_title = "TRUE"))
+  list(output_id = "ORR", column = "grp1", rel_width = "42", row_title = "TRUE"),
+  list(output_id = "ORR", column = "grp2", rel_width = "28", row_title = "TRUE"))
 for (a in orr_arms) {
   orr_cols <- c(orr_cols, list(
-    list(output_id = "ORR", column = paste0(a, "_n"),      width = "10",
+    list(output_id = "ORR", column = paste0(a, "_n"),      rel_width = "10",
          row_title = ""),
-    list(output_id = "ORR", column = paste0(a, "_orr"), width = "14",
+    list(output_id = "ORR", column = paste0(a, "_orr"), rel_width = "14",
          row_title = "")))
 }
 specs$ORR <- with_pages(specs$ORR,
@@ -478,8 +478,8 @@ specs$LB <- with_pages(specs$LB,
   layout = tbl(list(output_id = "LB", stub_name = "row_label",
                     group_page = "TRUE", group_keep = "FALSE",
                     blank_first = "TRUE", blank_last = "TRUE")),
-  columns = tbl(list(output_id = "LB", column = "row_label", width = "5"),
-                list(output_id = "LB", column = ".values",   width = "1")),
+  columns = tbl(list(output_id = "LB", column = "row_label", rel_width = "5"),
+                list(output_id = "LB", column = ".values",   rel_width = "1")),
   style = tbl(list(output_id = "LB", align_count_pct = "TRUE")),
   col_header = tbl(
     hc("LB", 1, "row_label", "Timepoint"),
@@ -531,11 +531,11 @@ specs$PK <- with_pages(specs$PK,
                     blank_last = "TRUE", pages_max_rows = "21",
                     colpages_every = "13", colpages_keep = "1 | 2")),
   columns = tbl(
-    list(output_id = "PK", column = "Analyte",    width = "3",
+    list(output_id = "PK", column = "Analyte",    rel_width = "3",
          row_title = "TRUE", decimal_split = ""),
-    list(output_id = "PK", column = "Statistics", width = "3",
+    list(output_id = "PK", column = "Statistics", rel_width = "3",
          row_title = "TRUE", decimal_split = ""),
-    list(output_id = "PK", column = ".values",    width = "2",
+    list(output_id = "PK", column = ".values",    rel_width = "2",
          row_title = "",     decimal_split = "TRUE")),
   col_header = tbl(
     hc("PK", 1, "Analyte"),
@@ -691,14 +691,14 @@ report_spec <- tfl_table_spec(
   study = c(output_path = "output", program_dir = prog_dir),
   report = tbl(
     list(output_id = "",   type = "table", file = "{output_id}.rtf",
-         program = "{output_id}", auto_section = "", table_font_size = "",
-         footnote_font_size = "", page_footer = "",
+         program = "{output_id}", auto_section = "", table_font_size_half_points = "",
+         footnote_font_size_half_points = "", page_footer = "",
          note = "the study's defaults"),
     list(output_id = "LB", type = "", file = "", program = "",
-         auto_section = "TRUE", table_font_size = "", footnote_font_size = "",
+         auto_section = "TRUE", table_font_size_half_points = "", footnote_font_size_half_points = "",
          page_footer = "", note = "one section per parameter"),
     list(output_id = "PK", type = "", file = "", program = "",
-         auto_section = "", table_font_size = "14", footnote_font_size = "14",
+         auto_section = "", table_font_size_half_points = "14", footnote_font_size_half_points = "14",
          page_footer = "FALSE", note = "the run line goes under the table")),
   page = tbl(list(output_id = "PK", orientation = "landscape",
                   paper_size = "A4", margin_top_in = "0.5",
@@ -721,7 +721,7 @@ for (id in names(code_plans)) {
   p <- plan_cells(tfl_table_plan(pages_n[[id]], sp), notes = FALSE)
   a <- file.path(tmp, "code.rtf"); b <- file.path(tmp, "spec.rtf")
   generate_rtfreport(code_doc(id, code_plans[[id]]), a, overwrite = TRUE)
-  generate_rtfreport(tfl_report(sp, p), b, overwrite = TRUE)
+  generate_rtfreport(tfl_report(sp, content = p), b, overwrite = TRUE)
   same <- identical(readLines(a, warn = FALSE), readLines(b, warn = FALSE))
   # and the program the definition writes: tfl_table_code() +
   # tfl_report_code(), run, gives the same RTF again

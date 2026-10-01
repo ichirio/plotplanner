@@ -443,7 +443,8 @@ tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
       miss(tag, "dataset", "no dataset (and no population to take it from)")
       next
     }
-    by <- .split_bar(r$by)
+    # strata are groupings too: the analysis is repeated within them
+    by <- c(.split_bar(r$by), .split_bar(r$strata))
     vars <- .split_bar(r$variables)
     stats <- .split_bar(r$statistics)
     pur <- if (!is.na(r$purpose)) toupper(trimws(r$purpose)) else
@@ -470,20 +471,29 @@ tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
     code <- NULL
     over <- FALSE
     if (!is.na(r$args)) {
-      if (m == "proportion_ci" &&
-          grepl("^\\s*method\\s*=\\s*\"[^\"]+\"\\s*$", r$args)) {
-        opt <- sub("^\\s*method\\s*=\\s*\"([^\"]+)\"\\s*$", "\\1", r$args)
-      } else if (m == "hierarchical" &&
-                 grepl("over_variables\\s*=\\s*TRUE", r$args)) {
-        over <- TRUE
-        rest <- trimws(gsub(",?\\s*over_variables\\s*=\\s*TRUE\\s*,?", "",
-                            r$args))
-        if (nzchar(rest)) miss(tag, "args", sprintf(
-          "`%s`: an ARS method states no arguments", rest))
-      } else {
-        miss(tag, "args",
-             sprintf("`%s`: an ARS method states no arguments", r$args))
+      # args read as R: the CI method of a proportion and the any-event row
+      # of a hierarchy are the method's; the rest ARS has no place for
+      al <- .args_list(r$args)
+      if (m == "proportion_ci" && is.character(al$method) &&
+          length(al$method) == 1L) {
+        opt <- al$method
+        al$method <- NULL
       }
+      if (m == "hierarchical" && isTRUE(al$over_variables)) {
+        over <- TRUE
+        al$over_variables <- NULL
+      }
+      if (length(al)) miss(tag, "args", sprintf(
+        "`%s`: an ARS method states no arguments",
+        paste(ifelse(nzchar(names(al) %||% rep("", length(al))),
+                     paste(names(al), "= "), ""),
+              vapply(al, function(e) paste(deparse(e), collapse = " "), ""),
+              collapse = ", ", sep = "")))
+    }
+    if (!is.na(r$denominator %||% NA) && r$denominator != "population") {
+      miss(tag, "denominator", sprintf(paste(
+        "`%s`: a percentage's denominator in ARS is the analysis set's",
+        "subject count; this one is the ARD program's"), r$denominator))
     }
     if (m == "custom") {
       code <- r$code

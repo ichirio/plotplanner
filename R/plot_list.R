@@ -16,15 +16,21 @@ pp_quick_fun_list <- function() {
 #' further arguments in R syntax, e.g. `x_max = 24, x_by = 3` or
 #' `events = c(Death = "DTHADY", Discontinued = "EOSDY")`.
 #'
-#' @param path Output `.xlsx` path.
 #' @param adam Optional ADaM data; offers PARAMCD values, grouping variables
 #'   and population flags from the data in drop-downs.
+#' @param path Output `.xlsx` path.
 #' @param rows Optional data frame of rows to pre-fill (default: one example
 #'   per type).
 #' @param n_rows Rows prepared with drop-downs.
 #' @return `path`, invisibly.
 #' @export
-tfl_fig_list_template <- function(path, adam = NULL, rows = NULL, n_rows = 300) {
+tfl_fig_list_template <- function(adam = NULL, path, rows = NULL, n_rows = 300) {
+  if (is.character(adam) && length(adam) == 1L && !is.data.frame(adam)) {
+    .ard_stop(paste0(
+      "tfl_fig_list_template(): `adam` is text (", encodeString(adam, quote = "'"),
+      "); the arguments are tfl_fig_list_template(adam, path) -- the data ",
+      "first, then the workbook's path."))
+  }
   adam <- pp_prep_adam(adam)
   rows <- rows %or% data.frame(
     plot_id = c("F-14.2.1", "F-14.2.2", "F-14.2.3"),

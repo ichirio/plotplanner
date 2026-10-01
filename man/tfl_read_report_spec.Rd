@@ -51,7 +51,8 @@ together.  A sheet found in two of them is an error.
 \verb{\{output_id\}.rtf}), \code{program} (default \code{{output_id}}, joined to
 \code{study$program_dir} for \code{{PROGRAM}}), \code{auto_section}, \code{section_align},
 \code{auto_title}, \code{title_align} (as \code{\link[rtfreporter:rtf_tables]{rtfreporter::rtf_tables()}} takes them), and
-\code{table_font_size}, \code{title_font_size}, \code{footnote_font_size} (half-points),
+\code{table_font_size_half_points}, \code{title_font_size_half_points},
+\code{footnote_font_size_half_points},
 and \code{page_header} / \code{page_footer} (\code{FALSE} drops that running band for
 the report, the study's default lines included).
 }

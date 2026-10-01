@@ -91,7 +91,7 @@ tfl_check_ars <- function(ars, schema = TRUE, profile = NULL) {
                     problem = character(), stringsAsFactors = FALSE)
   add <- function(p, f, x) out[nrow(out) + 1L, ] <<- list(p, f, x)
   if (is.character(ars) && length(ars) == 1L) {
-    if (!file.exists(ars)) .ard_stop(sprintf("No such file: %s", ars))
+    if (!file.exists(ars)) .stop_no_file(ars, "tfl_check_ars")
     txt <- paste(readLines(ars, warn = FALSE, encoding = "UTF-8"),
                  collapse = "\n")
     re <- jsonlite::fromJSON(txt, simplifyVector = FALSE)

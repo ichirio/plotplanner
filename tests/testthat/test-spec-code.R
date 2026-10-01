@@ -81,7 +81,7 @@ test_that("a spanning header, widths by name and a hidden column go over too", {
     variables = data.frame(variable = "GRP", levels = "Young | Old"),
     layout = data.frame(stub_name = "row_label", stub_before = "TRUE"),
     columns = data.frame(column = c("row_label", ".values"),
-                         width = c("4", "2")),
+                         rel_width = c("4", "2")),
     col_header = data.frame(
       line = c(1, 1, 2, 2, 2),
       cols = c("row_label", ".values", "row_label", "GRP = Young", "GRP = Old"),
@@ -112,7 +112,7 @@ test_that("the example workbooks write code that runs to the same plan", {
 sc_rep_spec <- function() tfl_table_spec(
   study = c(output_path = "out", program_dir = "C:\\tfl"),
   report = data.frame(output_id = c(NA, "T2"), page_footer = c(NA, "FALSE"),
-                      title_font_size = c(NA, "20")),
+                      title_font_size_half_points = c(NA, "20")),
   page = data.frame(output_id = "T2", orientation = "portrait",
                     margin_left_in = "0.5", font_size_half_points = "18"),
   header = data.frame(output_id = c(NA, NA, "T1", "T1"), line = c(1, 2, 3, 4),
@@ -141,7 +141,7 @@ test_that("tfl_report_code() writes the document tfl_report() makes", {
     env <- new.env(parent = asNamespace("tflspec"))
     env$pages <- pages
     eval(parse(text = code), env)
-    expect_identical(sc_render(env$doc), sc_render(tfl_report(sp, pages)),
+    expect_identical(sc_render(env$doc), sc_render(tfl_report(sp, content = pages)),
                      label = id)
   }
   sp <- suppressMessages(tflspec:::.ard_spec_scope(sc_rep_spec(), "T2"))
@@ -172,7 +172,7 @@ test_that("a table and its report, written out, make the report the objects make
   env <- new.env(parent = asNamespace("tflspec"))
   env$data <- d
   suppressMessages(eval(parse(text = code), env))
-  by_objects <- tfl_report(rsp, tfl_table_plan(d, tsp) |>
+  by_objects <- tfl_report(rsp, content = tfl_table_plan(d, tsp) |>
                                   plan_cells(notes = FALSE))
   expect_identical(sc_render(env$doc), sc_render(by_objects))
 })

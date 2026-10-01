@@ -1,0 +1,11 @@
+suppressMessages(pkgload::load_all(".", quiet = TRUE))
+s <- .ard_spec_schema()
+cat("== table/report spec sheets\n")
+for (n in names(s)) cat(n, ":", paste(s[[n]], collapse = ", "), "\n")
+cat("== ARD spec sheets\n")
+for (n in names(.ard_spec_sheets)) cat(n, ":", paste(.ard_spec_sheets[[n]], collapse = ", "), "\n")
+cat("== listing spec sheets\n")
+for (n in names(.listing_sheets)) cat(n, ":", paste(.listing_sheets[[n]], collapse = ", "), "\n")
+cat("== exports\n")
+ex <- sort(getNamespaceExports("tflspec"))
+for (f in ex) { o <- get(f, asNamespace("tflspec")); if (is.function(o)) cat(f, "(", paste(names(formals(o)), collapse = ", "), ")\n") else cat(f, "[object]\n") }

@@ -15,9 +15,11 @@ A data frame: \code{sheet}, \code{column}, \code{description}, \code{example}.
 }
 \description{
 The help the spec workbooks carry as comments on their header cells, as
-one table: the column help of the table and report sheets (in Japanese,
-with an example) and of the ARD definition sheets.  Rows whose \code{sheet} is
-in parentheses are about the whole workbook.
+one table: every column of every sheet -- ARD, table, report and listing
+-- with the form of its value, its unit and what a blank cell means, and
+an example.  A row with no \code{column} describes the sheet; rows whose
+\code{sheet} is in parentheses are about the whole workbook (\code{output_id},
+\code{note}, the tokens).
 }
 \examples{
 head(tfl_spec_columns("tables"))

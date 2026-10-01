@@ -1,5 +1,78 @@
 # tflspec (development version)
 
+* **Functions say what they want and what they got** (#64, brush-up).
+  - A function that takes a spec (`tfl_ard_code()`, `tfl_build_ard()`,
+    `tfl_table_code()`, `tfl_table_plan()`, `tfl_report()`,
+    `tfl_report_code()`, `tfl_report_path()`, `tfl_listing_code()`,
+    `tfl_listing()`) refuses anything else with "`spec` must be ...; got a
+    data.frame (2 x 1)" -- a list or a data frame gave R's own warnings.
+  - `tfl_ard_for()` refuses an output the ARD has not, naming those it has
+    (it gave 0 rows).
+  - A file that is not there is said one way: `<function>(): no file
+    '<path>'`.
+  - Argument order: `tfl_report(spec, output_id, content)` (output_id
+    second, as in every other function; a content given second is told
+    to be named) and `tfl_fig_list_template(adam, path)` (the material
+    first, as the other templates).  No alias.
+  - The AI manual says how the functions are named (12.1).
+
+* **Column names and their help** (#64, brush-up before CRAN).
+  - Renamed, as the names said no unit: the table spec's `columns$width`
+    is `rel_width` (a relative width), and the report's
+    `table_font_size`, `title_font_size`, `footnote_font_size` are
+    `*_font_size_half_points`.  A workbook with a former name is told the
+    new one; no alias is kept.  The listing's `width` stays (it is
+    `listing_col(width = )`, characters a line).
+  - The rule the names follow is written down (README, AI manual 4.1):
+    table / listing / report columns are rtfreporter's argument names, ARD
+    columns cards' (`statistics` and `formats` excepted).
+  - One argument, one place: a column (`by`, `variables`, `strata`,
+    `denominator`, or `statistics` where it is the call's `statistic`) and
+    `args` may not both give it -- the column was dropped unseen.
+  - `tfl_spec_columns()` describes every column of every sheet (ARD,
+    table, report, listing), one row a column, in English: the form of
+    the value, its unit and what a blank means.  Header-cell comments
+    follow it.  A test keeps it complete.
+  - `listings` / `listing_cols` are no longer listed as reserved sheets.
+  - `tfl_ard_spec_hash()` (and the fingerprints `tfl_ard_code()` saves)
+    take the content of the study's own function files (key `source`;
+    a missing one counts) and leave out columns blank in every row, so
+    a column added later changes no fingerprint.  New `dir` argument.
+  - The bundled example workbooks are written again with the new names.
+
+* **The ARD spec says more, exactly** (#64, brush-up before CRAN).
+  - `args` is read as the arguments of a call: a keyword's own argument
+    given after another (`over_variables = TRUE, denominator = population`)
+    is no longer missed, which named it twice in the generated call; `args`
+    that are not R are refused by `tfl_ard_spec()`.
+  - A study's own analysis function is a `method`: its plain name, loaded by
+    the new study key `source` (R files the ARD program sources).  For what
+    cards / cardx have no function for -- risk differences (Newcombe,
+    Miettinen-Nurminen), competing risks, multiple imputation.
+  - New `analyses` columns `strata` (the analysis repeated within them) and
+    `denominator` (`population`, `row` / `column` / `cell`, a population or
+    a dataset).  A definition without them reads as before.  `tfl_ars()`
+    writes strata as groupings and says a denominator ARS has no place for.
+  - A method that gives several ARDs (`cards::ard_pairwise()`) keeps which
+    is which; a fitted model given first in `args` takes no data.
+  - Checked against cards / cardx written by hand: 64 cases, every value
+    the same (`tests/testthat/test-ard-exact.R`).
+
+* **The table spec says more of a plan** (#64).
+  - A `cell_styles` sheet: one `plan_cell_style()` a row -- the cells
+    chosen by `cols`, `header` and `where` (an R condition over the
+    table's columns), and `bold`, `italic`, `align`, `color`,
+    `background`.  Two `where` rows may not set the same look (a plan
+    keeps one conditional rule per look).
+  - `layout` keys `pages_break_before`, `colpages_cut_by`, `colpages_fit`
+    and `colpages_allow_span_break`.
+  - `tfl_as_table_spec()` writes all of these (they were "stays in code"),
+    and a `plan_style()` value that is not one value is said instead of
+    written as two rows.  A plan with cell styles and no `plan_style()`
+    no longer reads its styles as plan_style() arguments.
+  - A plan's titles and footnotes go to the `titles` / `footnotes` sheets
+    (they were dropped without a word).
+
 * **ARS: an added subject count keeps an id of its own** (#61).  The
   subject count `tfl_ars()` adds for a percentage's denominator is
   `An_<output>_BIGN_<by>` (`_ALL` without a grouping) and never takes an

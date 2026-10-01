@@ -24,6 +24,16 @@ writes and reads the specifications, and rtfreporter (>= 0.8.2) is the
 engine that turns an ARD and a plan into RTF pages.  `rtf_tables(doc, plan)`
 takes a plan directly.
 
+The column names follow two rules. **Table, listing and report columns
+are rtfreporter's argument names** (a `layout` column is the verb's prefix
+and its argument: `pages_max_rows` is `plan_paginate_rows(max_rows = )`).
+**ARD columns are cards' argument names** (`by`, `variables`, `strata`,
+`denominator`), with two exceptions: `statistics` (cards' `statistic`) and
+`formats` (tflspec's own). A column whose value has a unit says it
+(`_twips`, `_in`, `_half_points`; `rel_width` is a relative width). One
+argument is written in one place: a column, or `args`, never both. Every column is
+described on its header cell's comment and by `tfl_spec_columns()`.
+
 Working with an AI assistant? Attach `tflspec_ai_manual()` (the manual of
 the version you have installed) to the chat session.
 
@@ -53,7 +63,7 @@ The same table from an Excel definition, as an object or as code:
 spec <- tfl_read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = "DM")
 
 plan <- tfl_table_plan(data, spec)        # the plan, read from the workbook
-doc  <- tfl_report(spec, plan)             # the document around it
+doc  <- tfl_report(spec, content = plan)   # the document around it
 
 tfl_table_code(spec)                       # or the program: table_plan() + plan_*()
 tfl_report_code(spec, content = "plan")    #   and rtf_document() + rtf_*()
@@ -271,7 +281,7 @@ options(
 One row per figure, columns = the arguments above.
 
 ```r
-tfl_fig_list_template("plot_list.xlsx", adam)   # drop-downs for type, style, legend, PARAMCD, group, pop
+tfl_fig_list_template(adam, "plot_list.xlsx")   # drop-downs for type, style, legend, PARAMCD, group, pop
 tfl_fig_list_code("plot_list.xlsx", adam, dir = "programs/figures")
 ```
 

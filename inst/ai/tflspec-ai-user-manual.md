@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9009** (the development version,
+**This manual documents tflspec 0.0.24.9012** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -94,7 +94,7 @@ cat(tfl_report_code(sp, content = "plan"), sep = "\n")
 
 # or run it: `data` is a normalized ARD (rtfreporter::normalize_ard())
 # plan <- tfl_table_plan(data, sp)
-# generate_rtfreport(tfl_report(sp, plan), tfl_report_path(sp), overwrite = TRUE)
+# generate_rtfreport(tfl_report(sp, content = plan), tfl_report_path(sp), overwrite = TRUE)
 ```
 
 `tfl_table_code()` writes `plan <- table_plan(data, ...) |> plan_*(...)`;
@@ -143,10 +143,21 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 | the plan a table spec stands for | `tfl_table_plan(data, spec)` (then any rtfreporter verb: last wins) |
 | the plan as code | `tfl_table_code(spec)` |
 | a plan written in code, back to a workbook | `tfl_as_table_spec(plan)` |
-| the document / its code / its file | `tfl_report(spec, plan)` / `tfl_report_code(spec)` / `tfl_report_path(spec)` |
+| the document / its code / its file | `tfl_report(spec, output_id, content = plan)` / `tfl_report_code(spec)` / `tfl_report_path(spec)` |
 | a listing's program / its pages | `tfl_listing_code(spec)` / `tfl_listing(spec, data)` |
 | a figure: start / check / write the script | `tfl_fig_template()` / `tfl_check_fig_design()` / `tfl_fig_design_code()` |
 | attach this manual to a chat session | `tflspec_ai_manual(file = )` |
+
+### 4.1 How the columns are named
+
+The column names follow two rules. **Table, listing and report columns
+are rtfreporter's argument names** (a `layout` column is the verb's prefix
+and its argument: `pages_max_rows` is `plan_paginate_rows(max_rows = )`).
+**ARD columns are cards' argument names** (`by`, `variables`, `strata`,
+`denominator`), with two exceptions: `statistics` (cards' `statistic`) and
+`formats` (tflspec's own). A column whose value has a unit says it
+(`_twips`, `_in`, `_half_points`; `rel_width` is a relative width). One
+argument is written in one place: a column, or `args`, never both.
 
 ---
 
@@ -157,20 +168,31 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 
 | Sheet | Columns | Meaning |
 |---|---|---|
-| `study` | `key`, `value` | `id`: the subject key (`USUBJID`); `output`: where the study ARD goes (`output/ard/ard.rds`) |
+| `study` | `key`, `value` | `id`: the subject key (`USUBJID`); `output`: where the study ARD goes (`output/ard/ard.rds`); `source`: R files of the study's own analysis functions, relative to the study folder (`|` between them) |
 | `datasets` | `dataset`, `level`, `path`, `derive` | a name for the data, its level (`SDTM` / `ADaM`), its file relative to the study folder, new columns (`NAME = R expression`, `|` between them) |
 | `populations` | `population_id`, `dataset`, `where`, `derive` | an analysis set: the subjects of `dataset` for which `where` (R) holds; `derive` adds columns (`TRTA = TRT01A`) |
-| `analyses` | `output_id`, `analysis_id`, `label`, `method`, `dataset`, `population_id`, `where`, `by`, `variables`, `statistics`, `formats`, `args`, `code`, `purpose`, `reason` | one analysis a row; both ids become ARD columns; `purpose` / `reason` (CDISC terms) only for `tfl_ars()` |
+| `analyses` | `output_id`, `analysis_id`, `label`, `method`, `dataset`, `population_id`, `where`, `by`, `strata`, `variables`, `statistics`, `denominator`, `formats`, `args`, `code`, `purpose`, `reason` | one analysis a row; both ids become ARD columns; `purpose` / `reason` (CDISC terms) only for `tfl_ars()` |
 
 - `method`: a keyword — `continuous`, `categorical`, `dichotomous`,
   `missing`, `hierarchical`, `max`, `subjects`, `total_n`, `proportion_ci`,
   `mean_ci`, `ttest`, `wilcox`, `chisq`, `fisher`, `custom` — or any
-  `pkg::function` (`cards::`, `cardx::`). `tfl_ard_methods()` lists the
+  `pkg::function` (`cards::`, `cardx::`), or a function of the study's own
+  that the study key `source` loads (`ard_riskdiff_mn`): it takes the
+  analysis data first, `by` and `variables` as bare column names, and gives
+  a cards ARD. `tfl_ard_methods()` lists the
   keywords, each with a `label` (the name a person reads: "Summary
   statistics", "Counts and percents", "Nested counts (e.g. SOC / PT)" …)
   and a one-line `note`; `tfl_ard_statistics()` the statistics and their
   formats.
-- `by`, `variables`, `statistics`: `|` between several.
+- `by`, `strata`, `variables`, `statistics`: `|` between several. `strata`:
+  the analysis repeated within them (cards' `strata`: a subgroup, a
+  parameter by visit).
+- `denominator`: what percentages are of — `population` (the analysis
+  set; `hierarchical` and `max` take it anyway), `row` / `column` / `cell`
+  (cards), another population, or a dataset (its records of the analysis
+  set's subjects). Not in `args` as well.
+- `args`: more arguments as R (`over_variables = TRUE, overall = TRUE`),
+  read as the arguments of a call — any order; refused if not R.
 - `formats`: `mean=xx.x | p=xx.x% | AGE:sd=xx.xx` — the `xx` part says the
   decimals only.
 - `custom` takes R in `code`; `args` passes arguments to the method.
@@ -247,15 +269,15 @@ template** in a `stats = rows` table is one statistic's digits →
 
 | Columns | Verb |
 |---|---|
-| `pages_max_rows`, `pages_split`, `pages_min_group_rows`, `pages_cont_label` | `plan_paginate_rows()` |
+| `pages_max_rows`, `pages_split`, `pages_break_before`, `pages_min_group_rows`, `pages_cont_label` | `plan_paginate_rows()` |
 | `group_mode`, `group_collapse` | `plan_row_group()` |
 | `group_page`, `group_col`, `group_keep` | `plan_paginate_group(col, keep)` — one page per value |
 | `blank_where`, `blank_first`, `blank_last`, `blank_counted` | `plan_blanks()` |
 | `stub_vars`, `stub_name`, `stub_indent`, `stub_summary`, `stub_before` | `plan_stub()` |
-| `colpages_every`, `colpages_at`, `colpages_keep`, `colpages_order` | `plan_paginate_cols()` |
+| `colpages_every`, `colpages_at`, `colpages_cut_by`, `colpages_keep`, `colpages_fit`, `colpages_allow_span_break`, `colpages_order` | `plan_paginate_cols()` |
 
 **columns** (one row a printed column, by name; `.values` = every value
-column): `column`, `width`, `row_title`, `decimal_split`, `hide` →
+column): `column`, `rel_width`, `row_title`, `decimal_split`, `hide` →
 `plan_columns(widths, row_title, decimal)`, `plan_hide()`.
 
 **style** (one row a table): `plan_style()`'s arguments — `border`,
@@ -266,6 +288,12 @@ column): `column`, `width`, `row_title`, `decimal_split`, `hide` →
 `border_header` … `border_last_row` written as sides (`top | bottom`) or
 `none`; plus `auto_width` (→ `plan_columns()`).
 
+**cell_styles** (one row a `plan_cell_style()`, in order; a report's own
+rows replace the defaults whole): `cols` (`.values` = every value column),
+`header` (`TRUE`: the column header), `where` (an R condition over the
+table's columns: `label == "Any TEAE"`), `bold`, `italic`, `align`,
+`color`, `background`. Two rows with a `where` may not set the same look.
+
 **col_header** (one row a header cell): `line`, `cols` (a name, `.values`,
 a position or range `3:last`, or `KEY = value`), `span` (blank: one cell;
 `each`: one per column; a key: one per value), `text` (tokens `{col}`,
@@ -273,8 +301,8 @@ a position or range `3:last`, or `KEY = value`), `span` (blank: one cell;
 `border_bottom` → `plan_col_header(header = )`.
 
 `tfl_as_table_spec(plan)` writes a plan back as a workbook and lists what a
-sheet cannot say (`attr(, "not_converted")`) — `plan_cell_style()`,
-`plan_after()` steps, guarded labels stay in code.
+sheet cannot say (`attr(, "not_converted")`) — a look computed row by
+row (`bold = ~ ...`), `plan_after()` steps, guarded labels stay in code.
 
 ---
 
@@ -286,7 +314,7 @@ file.
 
 | Sheet | Columns |
 |---|---|
-| `report` | `type` (`table` / `listing` / `figure`), `file` (`{output_id}.rtf`), `program`, `auto_section`, `section_align`, `auto_title`, `title_align`, `table_font_size`, `title_font_size`, `footnote_font_size`, `page_header`, `page_footer` |
+| `report` | `type` (`table` / `listing` / `figure`), `file` (`{output_id}.rtf`), `program`, `auto_section`, `section_align`, `auto_title`, `title_align`, `table_font_size_half_points`, `title_font_size_half_points`, `footnote_font_size_half_points`, `page_header`, `page_footer` |
 | `page` | `paper_size`, `orientation`, `width_in`, `height_in`, margins `margin_*_in`, `header_dist_in`, `footer_dist_in`, `font_size_half_points`, `title_format`, `footnote_format`, `title_width`, `footnote_width`, `markup` |
 | `header`, `footer`, `titles`, `footnotes` | `line`, `left`, `center`, `right` — a report's line replaces the default line of the same number |
 
@@ -407,6 +435,26 @@ With `sep = "_"`, a key value may not contain `_` (it could not be split
 back): rename the value or choose another separator.
 
 ---
+
+### 12.1 How the functions are named and take their arguments
+
+- Every function starts with `tfl_`, except `tflspec_ai_manual()` (the
+  same form as rtfreporter's `rtfreporter_ai_manual()`).
+- A spec is read with `tfl_read_<kind>_spec(path)` and written with
+  `tfl_write_<kind>_spec(spec, path)`; what a spec makes is named after
+  what it makes: `tfl_build_ard()` (builds and saves the ARD),
+  `tfl_table_plan()`, `tfl_listing()`, `tfl_report()`; its program is
+  `tfl_<kind>_code()`.
+- The spec (or the data, for a plan) comes first, then `output_id`, then
+  the rest: `tfl_ard_code(spec, output_id)`, `tfl_table_code(spec,
+  output_id)`, `tfl_report(spec, output_id, content)`. A template takes
+  its material first and the path second: `tfl_table_spec_template(ard,
+  path)`, `tfl_fig_list_template(adam, path)`.
+- `tfl_plot_*()` draw one part (`tfl_plot_sankey()`); `tfl_fig_*()` make a
+  figure from ADaM (`tfl_fig_km()`).
+- A function given something other than what it takes says what it
+  wants and what it got; a file that is not there is
+  `<function>(): no file '<path>'`.
 
 ## 13. Complete public API (nothing outside this list exists)
 

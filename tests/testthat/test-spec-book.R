@@ -9,9 +9,9 @@ test_that("a table spec is written with its sheets only, a report spec with its"
   tfl_write_report_spec(sp, rf)
   # both halves hold rows here: each writer still writes its own half (and
   # the other's sheets only when they hold rows -- so nothing is dropped)
-  expect_identical(readxl::excel_sheets(tf)[1:8],
+  expect_identical(readxl::excel_sheets(tf)[1:9],
                    c("study", "tables", "variables", "cells", "layout",
-                     "columns", "style", "col_header"))
+                     "columns", "style", "cell_styles", "col_header"))
   expect_identical(readxl::excel_sheets(rf)[1:7],
                    c("study", "report", "page", "header", "footer",
                      "titles", "footnotes"))
@@ -20,7 +20,8 @@ test_that("a table spec is written with its sheets only, a report spec with its"
   tfl_write_table_spec(t_only, tf)
   expect_identical(readxl::excel_sheets(tf),
                    c("study", "tables", "variables", "cells", "layout",
-                     "columns", "style", "col_header", "about"))
+                     "columns", "style", "cell_styles", "col_header",
+                     "about"))
   expect_false(any(startsWith(readxl::excel_sheets(tf), "_")))
   # its study sheet shows the table's key, not the report's
   st <- as.data.frame(readxl::read_excel(tf, "study", col_types = "text"))
@@ -108,4 +109,25 @@ test_that("a line break in a cell reads back the same after any number of writes
   expect_identical(once$col_header$text[1], "Treatment\n(N={n})")
   tfl_write_table_spec(once, f)
   expect_identical(tfl_read_table_spec(f)$col_header, once$col_header)
+})
+
+test_that("every column of every sheet is described, in one language", {
+  d <- tfl_spec_columns()
+  have <- paste(d$sheet, d$column)
+  sheets <- c(.ard_spec_schema(), .ard_spec_sheets, .listing_sheets,
+              list(about = c("key", "value")))
+  for (sh in names(sheets)) {
+    for (cn in setdiff(sheets[[sh]], "output_id")) {
+      expect_true(paste(sh, cn) %in% have, label = paste(sh, cn))
+    }
+    expect_true(paste(sh, NA) %in% have, label = paste(sh, "(the sheet)"))
+  }
+  expect_true(any(d$sheet == "(workbook)" & d$column %in% "output_id"))
+  # English: no CJK text
+  expect_false(any(grepl("[\u3040-\u30ff\u4e00-\u9fff]",
+                         c(d$description, d$example), perl = TRUE)))
+  # a header cell's comment: its sheet's own text, or the workbook's
+  h <- .spec_column_help("layout")
+  expect_match(h[["pages_break_before"]], "break_before")
+  expect_match(h[["output_id"]], "report a row belongs to")
 })
