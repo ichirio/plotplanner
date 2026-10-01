@@ -1,5 +1,27 @@
 # tflspec (development version)
 
+* **Each spec is written with only the sheets it needs** (#51).
+  `tfl_write_table_spec()` writes `study` (its key: `rounding`), the table
+  sheets and `about`; the new `tfl_write_report_spec()` writes `study`
+  (`output_path`, `program_dir`), the report sheets and `about`.  A sheet
+  of the other half is written only when the spec has rows in it, so
+  nothing is dropped.  `tfl_write_ard_spec()` writes its four sheets; the
+  catalogs `_methods` / `_statistics` only with `catalogs = TRUE`.
+  `tfl_write_listing_spec()` is unchanged in its sheets.
+  - No `_README` sheet: what each column means is a comment on its header
+    cell, from one table, `tfl_spec_columns()` (also what a GUI shows as
+    column help).
+  - `tfl_write_specs()` writes several specs into one workbook (one `study`
+    sheet with every kind's keys).  The table / report reader now passes
+    over an ARD or listing spec's sheets and the ARD spec's `study` keys,
+    so each reader takes its own sheets from such a workbook.
+  - The bundled workbooks (`inst/extdata/ard-spec/`) are in the new shape:
+    `DM`, `AE`, `ORR`, `LB`, `PK`, `study` are table specs, `report` is a
+    report spec.
+  - A line break in a cell reads back as `"\n"`: openxlsx on Windows
+    writes it as `"\r\n"`, and the readers now take that back to `"\n"`,
+    so writing a spec again does not add a `"\r"` each time.
+
 * **Each figure template says its category and the data it reads**:
   `tfl_fig_templates()` gains `category` (the clinical category of
   `tfl_fig_catalog()`: Efficacy: time to event, Efficacy: tumour response,

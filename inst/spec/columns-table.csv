@@ -1,5 +1,5 @@
-sheet,column,説明,例
-(全体),,rtfreporter の表の定義ファイル（table spec）（spec_version 1）。tfl_table_plan(data; tfl_read_table_spec(path; output_id = )) で読む。名前が _ で始まるシートは読まれない（このシート）。,
+sheet,column,description,example
+(全体),,rtfreporter の表の定義ファイル（table spec）（spec_version 1）。tfl_table_plan(data; tfl_read_table_spec(path; output_id = )) で読む。名前が _ で始まるシートは読まれない（メモ用）。列の説明は各シートの見出しセルのコメント（tfl_spec_columns()）。,
 (全体),output_id,tables / variables / cells の先頭列。空欄 = 試験全体のデフォルト。帳票名を書いた行は、同じキーのデフォルト行を置き換える。,DM
 (全体),note,どのシートにも置けるメモ列。読まれない。上記以外の未知の列はエラー（見出しの打ち間違い防止）。,
 (全体),（リスト）,1 セルに複数書くときは | で区切る。,TR01AG1 | SEROSTAT

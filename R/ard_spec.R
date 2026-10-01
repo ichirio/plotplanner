@@ -97,25 +97,34 @@
 
 #' Write an ARD definition to a workbook
 #'
-#' Writes the four sheets, a `_README`, and the catalogs the spec is checked
-#' against (`_methods`, `_statistics`) for reference; [tfl_read_ard_spec()]
-#' takes one back.
+#' Writes the four sheets (`study`, `datasets`, `populations`, `analyses`)
+#' and no more; what each column means is a comment on its header cell
+#' ([tfl_spec_columns()]).  [tfl_read_ard_spec()] takes one back.  With
+#' other specs in one workbook: [tfl_write_specs()].
 #'
 #' @param spec An ARD definition: an [tfl_ard_spec()], or a list of the sheets.
 #' @param path The workbook to write.
 #' @param statistics,methods The catalogs ([tfl_ard_statistics()],
 #'   [tfl_ard_methods()]) to use instead of the current ones.
+#' @param catalogs `TRUE` also writes the catalogs the spec is checked
+#'   against, as the sheets `_methods` and `_statistics` (for reference: the
+#'   reader passes over sheets whose name starts with `_`).
 #' @return `path`, invisibly.
 #' @export
-tfl_write_ard_spec <- function(spec, path, statistics = NULL, methods = NULL) {
+tfl_write_ard_spec <- function(spec, path, statistics = NULL, methods = NULL,
+                               catalogs = FALSE) {
   old <- .set_catalogs(statistics, methods)
   on.exit(options(old), add = TRUE)
-  a <- stats::setNames(lapply(names(.ard_spec_sheets), function(s)
+  a <- .ard_spec_normalized(spec)
+  .write_spec_book(c(a, if (isTRUE(catalogs))
+    list(`_methods` = tfl_ard_methods(),
+         `_statistics` = tfl_ard_statistics())), path)
+}
+
+# the four sheets of an ARD definition, in shape
+.ard_spec_normalized <- function(spec) {
+  stats::setNames(lapply(names(.ard_spec_sheets), function(s)
     .normalize_ard_sheet(spec[[s]], s)), names(.ard_spec_sheets))
-  writexl::write_xlsx(c(list(`_README` = .ard_readme()), a,
-                        list(`_methods` = tfl_ard_methods(),
-                             `_statistics` = tfl_ard_statistics())), path)
-  invisible(path)
 }
 
 .ard_readme <- function() {
@@ -135,9 +144,9 @@ tfl_write_ard_spec <- function(spec, path, statistics = NULL, methods = NULL) {
       "an analysis set: the subjects of `dataset` for which `where` (R) holds",
       "columns added to the population (TRTA = TRT01A ...)",
       "the report the analysis serves, and its id; both are ARD columns",
-      "a keyword (sheet _methods) or any pkg::function (cards::, cardx::)",
+      "a keyword (tfl_ard_methods()) or any pkg::function (cards::, cardx::)",
       "the analysis data: `dataset` restricted to the population and `where`",
-      "grouping and analysis variables, statistics (sheet _statistics); | between several",
+      "grouping and analysis variables, statistics (tfl_ard_statistics()); | between several",
       "stat_fmt formats: statistic=format, | between them (mean=xx.x | p=xx.x% | AGE:sd=xx.xx); blank = the default of the statistic",
       "more arguments as R; `code` for custom (data, population are bound)"),
     stringsAsFactors = FALSE)
@@ -182,7 +191,17 @@ tfl_read_ard_spec <- function(path, check = TRUE, statistics = NULL,
 .xlsx_text <- function(path, sheet) {
   d <- readxl::read_excel(path, sheet, col_types = "text",
                           .name_repair = "minimal")
-  as.data.frame(d, stringsAsFactors = FALSE, check.names = FALSE)
+  .xlsx_lf(as.data.frame(d, stringsAsFactors = FALSE, check.names = FALSE))
+}
+
+# A line break in a cell as "\n".  openxlsx on Windows writes "\n" as
+# "\r\n" (its XML goes out in text mode), so each write would add a "\r".
+.xlsx_lf <- function(d) {
+  for (j in seq_along(d)) {
+    if (is.character(d[[j]])) d[[j]] <- gsub("\r\n", "\n", d[[j]],
+                                             fixed = TRUE)
+  }
+  d
 }
 
 #' @rdname tfl_read_ard_spec
