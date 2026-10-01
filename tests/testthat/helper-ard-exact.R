@@ -26,12 +26,17 @@ exact_sheet <- function(rows, cols) {
     stringsAsFactors = FALSE)
 }
 
-exact_spec <- function(r, pop_derive = NULL, ds_derive = NULL) {
+exact_spec <- function(r, pop_derive = NULL, ds_derive = NULL,
+                       source = NULL) {
   S <- .ard_spec_sheets
   r$output_id <- r$output_id %||% "T"
   r$analysis_id <- r$analysis_id %||% "A"
   tfl_ard_spec(list(
-    study = exact_sheet(list(list(key = "id", value = "USUBJID")), S$study),
+    study = exact_sheet(c(list(list(key = "id", value = "USUBJID")),
+                          if (!is.null(source))
+                            list(list(key = "source",
+                                      value = paste0("R/", source)))),
+                        S$study),
     datasets = exact_sheet(lapply(c("ADSL", "ADAE", "ADTTE", "ADLB"),
                                   function(d) list(dataset = d,
                                                    path = paste0("adam/", d, ".rds"),
@@ -85,21 +90,32 @@ exact_numbers <- function(a) {
   stats::setNames(val, key)
 }
 
-# one case: list(same, n, error)
-exact_run <- function(cs, adam, dir) {
+# one case: list(same, n, error).  A case's own functions (`source`, a
+# file of `fixtures`) go to the study folder's R/, where its spec loads
+# them, and are what the hand-written call runs too.
+exact_run <- function(cs, adam, dir,
+                      fixtures = testthat::test_path("fixtures")) {
   out <- list(same = NA, n = NA_integer_, error = "")
   r <- cs$row
   step <- function(what, expr) tryCatch(expr, error = function(e) {
     out$error <<- paste0(what, ": ", conditionMessage(e))
     NULL
   })
-  sp <- step("spec", exact_spec(r, cs$pop_derive, cs$ds_derive))
+  hand_env <- globalenv()
+  if (!is.null(cs$source)) {
+    dir.create(file.path(dir, "R"), showWarnings = FALSE)
+    file.copy(file.path(fixtures, cs$source), file.path(dir, "R"),
+              overwrite = TRUE)
+    hand_env <- new.env(parent = globalenv())
+    sys.source(file.path(fixtures, cs$source), hand_env)
+  }
+  sp <- step("spec", exact_spec(r, cs$pop_derive, cs$ds_derive, cs$source))
   if (is.null(sp)) return(out)
   got <- step("build", suppressMessages(suppressWarnings(
     tfl_build_ard(sp, dir = dir, save = FALSE))))
   if (is.null(got)) return(out)
   env <- list2env(exact_inputs(r, adam, cs$pop_derive, cs$ds_derive),
-                  parent = globalenv())
+                  parent = hand_env)
   want <- step("hand", suppressMessages(suppressWarnings(
     eval(str2lang(cs$hand), env))))
   if (is.null(want)) return(out)
@@ -119,7 +135,8 @@ exact_run <- function(cs, adam, dir) {
 
 # the packages a case needs (its function's and the hand call's)
 exact_needs <- function(cs) {
-  p <- unique(c(sub("::.*$", "", cs$fun),
+  p <- unique(c(if (grepl("::", cs$fun, fixed = TRUE))
+                  sub("::.*$", "", cs$fun),
                 regmatches(cs$hand, gregexpr("[A-Za-z][A-Za-z0-9.]*(?=::)",
                                              cs$hand, perl = TRUE))[[1L]]))
   p[grepl("^[A-Za-z]", p)]

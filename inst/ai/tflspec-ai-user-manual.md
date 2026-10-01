@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9009** (the development version,
+**This manual documents tflspec 0.0.24.9010** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -157,20 +157,31 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 
 | Sheet | Columns | Meaning |
 |---|---|---|
-| `study` | `key`, `value` | `id`: the subject key (`USUBJID`); `output`: where the study ARD goes (`output/ard/ard.rds`) |
+| `study` | `key`, `value` | `id`: the subject key (`USUBJID`); `output`: where the study ARD goes (`output/ard/ard.rds`); `source`: R files of the study's own analysis functions, relative to the study folder (`|` between them) |
 | `datasets` | `dataset`, `level`, `path`, `derive` | a name for the data, its level (`SDTM` / `ADaM`), its file relative to the study folder, new columns (`NAME = R expression`, `|` between them) |
 | `populations` | `population_id`, `dataset`, `where`, `derive` | an analysis set: the subjects of `dataset` for which `where` (R) holds; `derive` adds columns (`TRTA = TRT01A`) |
-| `analyses` | `output_id`, `analysis_id`, `label`, `method`, `dataset`, `population_id`, `where`, `by`, `variables`, `statistics`, `formats`, `args`, `code`, `purpose`, `reason` | one analysis a row; both ids become ARD columns; `purpose` / `reason` (CDISC terms) only for `tfl_ars()` |
+| `analyses` | `output_id`, `analysis_id`, `label`, `method`, `dataset`, `population_id`, `where`, `by`, `strata`, `variables`, `statistics`, `denominator`, `formats`, `args`, `code`, `purpose`, `reason` | one analysis a row; both ids become ARD columns; `purpose` / `reason` (CDISC terms) only for `tfl_ars()` |
 
 - `method`: a keyword — `continuous`, `categorical`, `dichotomous`,
   `missing`, `hierarchical`, `max`, `subjects`, `total_n`, `proportion_ci`,
   `mean_ci`, `ttest`, `wilcox`, `chisq`, `fisher`, `custom` — or any
-  `pkg::function` (`cards::`, `cardx::`). `tfl_ard_methods()` lists the
+  `pkg::function` (`cards::`, `cardx::`), or a function of the study's own
+  that the study key `source` loads (`ard_riskdiff_mn`): it takes the
+  analysis data first, `by` and `variables` as bare column names, and gives
+  a cards ARD. `tfl_ard_methods()` lists the
   keywords, each with a `label` (the name a person reads: "Summary
   statistics", "Counts and percents", "Nested counts (e.g. SOC / PT)" …)
   and a one-line `note`; `tfl_ard_statistics()` the statistics and their
   formats.
-- `by`, `variables`, `statistics`: `|` between several.
+- `by`, `strata`, `variables`, `statistics`: `|` between several. `strata`:
+  the analysis repeated within them (cards' `strata`: a subgroup, a
+  parameter by visit).
+- `denominator`: what percentages are of — `population` (the analysis
+  set; `hierarchical` and `max` take it anyway), `row` / `column` / `cell`
+  (cards), another population, or a dataset (its records of the analysis
+  set's subjects). Not in `args` as well.
+- `args`: more arguments as R (`over_variables = TRUE, overall = TRUE`),
+  read as the arguments of a call — any order; refused if not R.
 - `formats`: `mean=xx.x | p=xx.x% | AGE:sd=xx.xx` — the `xx` part says the
   decimals only.
 - `custom` takes R in `code`; `args` passes arguments to the method.

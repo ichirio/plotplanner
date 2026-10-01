@@ -1,5 +1,38 @@
 # tflspec (development version)
 
+* **The ARD spec says more, exactly** (#64, brush-up before CRAN).
+  - `args` is read as the arguments of a call: a keyword's own argument
+    given after another (`over_variables = TRUE, denominator = population`)
+    is no longer missed, which named it twice in the generated call; `args`
+    that are not R are refused by `tfl_ard_spec()`.
+  - A study's own analysis function is a `method`: its plain name, loaded by
+    the new study key `source` (R files the ARD program sources).  For what
+    cards / cardx have no function for -- risk differences (Newcombe,
+    Miettinen-Nurminen), competing risks, multiple imputation.
+  - New `analyses` columns `strata` (the analysis repeated within them) and
+    `denominator` (`population`, `row` / `column` / `cell`, a population or
+    a dataset).  A definition without them reads as before.  `tfl_ars()`
+    writes strata as groupings and says a denominator ARS has no place for.
+  - A method that gives several ARDs (`cards::ard_pairwise()`) keeps which
+    is which; a fitted model given first in `args` takes no data.
+  - Checked against cards / cardx written by hand: 64 cases, every value
+    the same (`tests/testthat/test-ard-exact.R`).
+
+* **The table spec says more of a plan** (#64).
+  - A `cell_styles` sheet: one `plan_cell_style()` a row -- the cells
+    chosen by `cols`, `header` and `where` (an R condition over the
+    table's columns), and `bold`, `italic`, `align`, `color`,
+    `background`.  Two `where` rows may not set the same look (a plan
+    keeps one conditional rule per look).
+  - `layout` keys `pages_break_before`, `colpages_cut_by`, `colpages_fit`
+    and `colpages_allow_span_break`.
+  - `tfl_as_table_spec()` writes all of these (they were "stays in code"),
+    and a `plan_style()` value that is not one value is said instead of
+    written as two rows.  A plan with cell styles and no `plan_style()`
+    no longer reads its styles as plan_style() arguments.
+  - A plan's titles and footnotes go to the `titles` / `footnotes` sheets
+    (they were dropped without a word).
+
 * **ARS: an added subject count keeps an id of its own** (#61).  The
   subject count `tfl_ars()` adds for a percentage's denominator is
   `An_<output>_BIGN_<by>` (`_ALL` without a grouping) and never takes an

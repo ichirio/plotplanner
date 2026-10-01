@@ -17,11 +17,20 @@ them), which is called as \code{pkg::fun(data, by = , variables = , ...)} with
 the analysis data first, \code{by} and \code{variables} when the row gives them,
 and the row's \code{args} after them.  A function whose first argument is not
 the data (\code{cardx::ard_survival_survdiff(formula, data)}) takes it the same
-way once \code{args} names the first one (\code{formula = ...}).
+way once \code{args} names the first one (\code{formula = ...}).  The row's
+\code{strata} and \code{denominator} columns are passed as those arguments.
 }
 \details{
+A function of the study's own is a method too, by its plain name
+(\code{ard_riskdiff_mn}), when the study key \code{source} names the R file that
+defines it (the ARD program sources it first).  It is called the same
+way: it takes the analysis data first, \code{by} and \code{variables} as bare
+column names, and gives a cards ARD (class \code{card}); \code{population} is
+there to pass in \code{args} (\code{denominator = population}).
+
 In \code{args} and \code{code}, \code{data} is the analysis data and \code{population} the
-population's subjects.
+population's subjects.  \code{args} is read as the arguments of a call, in
+any order.
 
 Each keyword has a \code{label} -- the name a person reads, for a GUI's choice
 or a heading -- and a one-line \code{note}, and names its function (\code{(subjects)} and \code{(code)} are the two

@@ -151,8 +151,8 @@ test_that("a three-sheet spec supplies the roles as well as the cells", {
   sp <- dm_spec()
   expect_s3_class(sp, "tfl_table_spec")
   expect_identical(names(sp), c("study", "tables", "variables", "cells",
-                                "layout", "columns", "style", "col_header",
-                                "report", "page", "header", "footer",
+                                "layout", "columns", "style", "cell_styles",
+                                "col_header", "report", "page", "header", "footer",
                                 "titles", "footnotes"))
 
   # no cols / rows in the call: the `tables` sheet says them
@@ -353,7 +353,7 @@ test_that("an unnamed report falls back to the defaults, and says so", {
 test_that("the workbook's sheets: reserved ones are reported, unknown refused", {
   mk <- function(...) tflspec:::.ard_spec_from_sheets(list(...), "x.xlsx")
   t <- data.frame(cols = "TRT")
-  expect_message(mk(tables = t, cell_styles = data.frame(when = "n == 0")),
+  expect_message(mk(tables = t, listing = data.frame(col = "USUBJID")),
                  "reserved for a later version")
   expect_error(mk(tables = t, Sheet2 = data.frame(a = 1)), "nobody reads")
   expect_silent(mk(tables = t, `_notes` = data.frame(a = 1),

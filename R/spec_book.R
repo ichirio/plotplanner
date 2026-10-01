@@ -23,7 +23,7 @@
 }
 
 # The `study` keys each kind reads.
-.spec_kind_keys <- list(ard = c("id", "output"),
+.spec_kind_keys <- list(ard = c("id", "output", "source"),
                         table = "rounding",
                         report = c("output_path", "program_dir"),
                         listing = character())

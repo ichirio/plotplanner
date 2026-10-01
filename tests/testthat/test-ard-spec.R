@@ -26,7 +26,7 @@ toy_spec <- function(analyses) {
 
 test_that("a definition is checked", {
   expect_error(toy_spec(spec_df(list(output_id = "T1", analysis_id = "A",
-                                     method = "nope"))), "unknown method")
+                                     method = "no pe"))), "unknown method")
   expect_error(toy_spec(spec_df(
     list(output_id = "T1", analysis_id = "A", method = "categorical"),
     list(output_id = "T1", analysis_id = "A", method = "categorical"))),

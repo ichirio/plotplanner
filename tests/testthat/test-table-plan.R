@@ -97,11 +97,12 @@ test_that("plan_cell_style() by place is style_header() / style_cols(), declared
       plan_cell_style(cols = cols, align = "center"))
     expect_identical(by_decl, by_hand)
   }
-  # a workbook has no sheet for a cell's own look: it is listed as code
+  # the workbook's cell_styles sheet says it
   sp <- suppressMessages(tfl_as_table_spec(
     plan_cell_style(p, header = TRUE, bold = TRUE)))
-  expect_true(any(grepl("plan_cell_style() stays in code",
-                        attr(sp, "not_converted"), fixed = TRUE)))
+  expect_identical(sp$cell_styles$header, "TRUE")
+  expect_identical(sp$cell_styles$bold, "TRUE")
+  expect_true(attr(sp, "same_pages"))
 })
 
 test_that("the style sheet's border_* columns are plan_style()'s rules of a row", {
@@ -702,4 +703,96 @@ test_that("a plan's titles and footnotes go to the titles / footnotes sheets", {
     plan_titles(pages = list(c("Table 1", "Part A")))
   sp2 <- suppressMessages(tfl_as_table_spec(p2, output_id = "T1"))
   expect_true(any(grepl("differ by page", attr(sp2, "not_converted"))))
+})
+
+test_that("cell styles are a sheet, both ways, and give the same pages", {
+  skip_if_no_cards2()
+  p <- code_plan() |>
+    plan_cell_style(cols = "row_label", bold = TRUE) |>
+    plan_cell_style(header = TRUE, italic = TRUE) |>
+    plan_cell_style(where = ~ row_label == "Sex", background = "#EEEEEE",
+                    bold = TRUE)
+  sp <- tfl_as_table_spec(p, output_id = "T1")
+  expect_true(attr(sp, "same_pages"))
+  expect_length(attr(sp, "not_converted"), 0L)
+  cs <- sp$cell_styles
+  expect_identical(nrow(cs), 4L)
+  expect_identical(cs$where[!is.na(cs$where)], rep("row_label == \"Sex\"", 2L))
+  expect_identical(cs$header[!is.na(cs$header)], "TRUE")
+  # the code writes one plan_cell_style() a row, `where` as a formula
+  code <- paste(tfl_table_code(sp), collapse = "\n")
+  expect_match(code, "plan_cell_style(where = ~ row_label == \"Sex\", bold = TRUE)",
+               fixed = TRUE)
+  # through the workbook
+  skip_if_not_installed("writexl"); skip_if_not_installed("readxl")
+  f <- tempfile(fileext = ".xlsx"); on.exit(unlink(f), add = TRUE)
+  tfl_write_table_spec(sp, f)
+  back <- plan_apply(
+    tfl_table_plan(p$data, tfl_read_table_spec(f, output_id = "T1")) |>
+      plan_cells(notes = FALSE), "pages")
+  expect_equal(back, plan_apply(p, "pages"))
+})
+
+test_that("a look computed row by row is said, not dropped", {
+  skip_if_no_cards2()
+  p <- code_plan() |> plan_cell_style(bold = ~ row_label == "Sex")
+  sp <- suppressMessages(tfl_as_table_spec(p, output_id = "T1"))
+  expect_true(any(grepl("computed row by row", attr(sp, "not_converted"))))
+})
+
+test_that("the cell_styles sheet is checked", {
+  row <- function(...) data.frame(output_id = NA, ..., stringsAsFactors = FALSE)
+  expect_error(tfl_table_spec(cell_styles = row(cols = "a")), "styles nothing")
+  expect_error(tfl_table_spec(cell_styles = row(where = "a ==", bold = "TRUE")),
+               "not an R condition")
+  expect_error(tfl_table_spec(cell_styles = row(header = "TRUE",
+                                                where = "a == 1",
+                                                bold = "TRUE")),
+               "no rows for `where`")
+  expect_error(tfl_table_spec(cell_styles = rbind(
+    row(where = "a == 1", bold = "TRUE"), row(where = "b == 1", bold = "TRUE"))),
+    "one conditional rule per look")
+})
+
+test_that("break_before, cut_by, fit and allow_span_break are layout keys", {
+  skip_if_no_cards2()
+  p <- table_plan(spec_pages_ard(), cols = "TRT",
+                  rows = c(group = "variable")) |>
+    plan_cells(notes = FALSE) |>
+    plan_cells(continuous  = c("n" = "{N:d}", "Mean (SD)" = "{mean} ({sd})"),
+               categorical = "{n:d} ({p:.1f%})") |>
+    plan_paginate_rows(split = "rows", break_before = 4L) |>
+    plan_paginate_cols(every = 2, fit = FALSE, allow_span_break = FALSE)
+  sp <- tfl_as_table_spec(p, output_id = "T1")
+  expect_true(attr(sp, "same_pages"))
+  expect_length(attr(sp, "not_converted"), 0L)
+  expect_identical(sp$layout$pages_break_before, "4")
+  expect_identical(sp$layout$colpages_fit, "FALSE")
+  expect_identical(sp$layout$colpages_allow_span_break, "FALSE")
+  code <- paste(tfl_table_code(sp), collapse = "\n")
+  expect_match(code, "break_before = 4L", fixed = TRUE)
+  # a separator in the column names
+  p2 <- code_plan() |> plan_paginate_cols(cut_by = "____")
+  sp2 <- suppressMessages(tfl_as_table_spec(p2, output_id = "T1",
+                                            check = FALSE))
+  expect_identical(sp2$layout$colpages_cut_by, "____")
+})
+
+test_that("a style that is not one value is said, not written twice", {
+  skip_if_no_cards2()
+  p <- code_plan() |> plan_style(border = rtfreporter::rtf_border(top = TRUE))
+  sp <- suppressMessages(tfl_as_table_spec(p, output_id = "T1"))
+  expect_lte(nrow(sp$style), 1L)
+  expect_true(any(grepl("plan_style(border", attr(sp, "not_converted"),
+                        fixed = TRUE)))
+})
+
+test_that("cell styles convert in a plan with no plan_style()", {
+  skip_if_no_cards2()
+  p <- base_plan() |> plan_stub(name = "row_label", before = TRUE) |>
+    plan_cell_style(where = ~ row_label == "Sex", bold = TRUE)
+  sp <- tfl_as_table_spec(p, output_id = "T1")
+  expect_length(attr(sp, "not_converted"), 0L)
+  expect_true(attr(sp, "same_pages"))
+  expect_identical(nrow(sp$style), 0L)
 })

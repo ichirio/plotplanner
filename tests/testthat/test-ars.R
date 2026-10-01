@@ -240,3 +240,21 @@ test_that("a blank purpose is named once, not again by the schema", {
   expect_true(all(ck$field == "purpose"))
   expect_false(any(startsWith(ck$part, "schema")))
 })
+
+test_that("strata are groupings in ARS; a denominator other than the analysis set is said", {
+  sp <- exact_spec(list(method = "continuous", population_id = "SAF",
+                        by = "TRT01A", strata = "SEX", variables = "AGE",
+                        purpose = "PRIMARY OUTCOME MEASURE"))
+  ars <- suppressWarnings(tfl_ars(sp))
+  an <- ars$analyses[[length(ars$analyses)]]
+  expect_identical(vapply(an$orderedGroupings, `[[`, "", "groupingId"),
+                   c("AG_ADSL_TRT01A", "AG_ADSL_SEX"))
+  sp <- exact_spec(list(method = "categorical", population_id = "SAF",
+                        by = "TRT01A", variables = "SEX", denominator = "row",
+                        args = "fmt_fun = NULL",
+                        purpose = "PRIMARY OUTCOME MEASURE"))
+  un <- tfl_ars_unmapped(suppressWarnings(tfl_ars(sp)))
+  expect_true(any(un$item == "denominator" & grepl("`row`", un$reason)))
+  expect_true(any(un$item == "args" & grepl("fmt_fun = NULL", un$reason,
+                                            fixed = TRUE)))
+})

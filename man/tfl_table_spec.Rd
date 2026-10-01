@@ -18,12 +18,12 @@ tfl_table_spec(
   header = NULL,
   footer = NULL,
   titles = NULL,
-  footnotes = NULL
+  footnotes = NULL,
+  cell_styles = NULL
 )
 }
 \arguments{
-\item{tables, variables, cells, layout, columns, style, col_header}{Data
-frames with the columns above; missing columns are added as \code{NA}.}
+\item{tables, variables, cells, layout, columns, style, col_header, cell_styles}{Data frames with the columns above; missing columns are added as \code{NA}.}
 
 \item{study}{The \code{study} sheet: a \code{key} / \code{value} frame, or a named
 vector such as \code{c(rounding = "sas")}.}
@@ -51,6 +51,7 @@ that each fact is written once:\tabular{lll}{
    \code{layout} \tab report \tab pages, groups, blank rows, stub \cr
    \code{columns} \tab printed column \tab width, row title, decimal split, hidden \cr
    \code{style} \tab report \tab border, row heights, font \cr
+   \code{cell_styles} \tab styling \tab the cells chosen, bold, italic, colour \cr
    \code{col_header} \tab header cell \tab line, columns, span, text, borders \cr
 }
 
@@ -159,7 +160,8 @@ One row per report, each column one argument of the plan verb its
 prefix names:
 \describe{
 \item{\verb{pages_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_rows()}}: \code{max_rows}, \code{split},
-\code{min_group_rows}, \code{cont_label}.}
+\code{break_before} (row positions to cut before, \code{20 | 40}, with
+\code{split = rows}), \code{min_group_rows}, \code{cont_label}.}
 \item{\verb{group_*}}{\code{mode} and \code{collapse} of \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_row_group()}}.
 \code{group_page = TRUE} is \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_group()}}: one page per
 value of \code{group_col} (blank: the outermost row key), and
@@ -168,8 +170,28 @@ value of \code{group_col} (blank: the outermost row key), and
 \code{counted}.}
 \item{\verb{stub_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_stub()}}: \code{vars}, \code{name}, \code{indent}, \code{summary},
 \code{before}.}
-\item{\verb{colpages_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_cols()}}: \code{every}, \code{at}, \code{keep},
-\code{order}.}
+\item{\verb{colpages_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_cols()}}: \code{every}, \code{at},
+\code{cut_by} (a separator in the column names, \verb{____}: one block per
+key), \code{keep}, \code{fit} (\code{TRUE}: every block on page 1's scale; \code{FALSE}:
+each column keeps its width), \code{allow_span_break}, \code{order}.}
+}
+}
+
+\section{\code{cell_styles}}{
+
+One row per \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_cell_style()}}, in order; a report's own
+rows replace the default rows whole.
+\describe{
+\item{\code{cols}}{The columns styled, \code{|} between them (\code{.values} for every
+value column); blank, every column.}
+\item{\code{header}}{\code{TRUE} styles the column header instead of the body.}
+\item{\code{where}}{An R condition over the table's columns choosing the
+rows (\code{label == "Any TEAE"}, \code{is.na(label)}); blank, every row.  A
+plan keeps one conditional rule per look, so two rows with a \code{where}
+may not set the same look -- join their conditions with \code{|}.}
+\item{\code{bold}, \code{italic}, \code{align}, \code{color}, \code{background}}{The look:
+\code{TRUE} / \code{FALSE}, \code{left} / \code{center} / \code{right}, a colour
+(\verb{#CC0000}).}
 }
 }
 
@@ -238,8 +260,8 @@ Quote a text to keep leading spaces: \code{"  Category"}.}
 
 \section{Reserved for the rest of the report}{
 
-A later version will read the sheets \code{titles}, \code{footnotes}, \code{page},
-\code{header}, \code{footer} and \code{cell_styles} under the same \code{output_id} rule,
+A later version will read the sheets \code{listing}, \code{listing_cols} and
+\code{figures} under the same \code{output_id} rule,
 so the whole RTF deliverable can be defined in one workbook.  They are reported, not refused, when present today.  An
 \code{about} sheet (\code{key} / \code{value}) may state \code{spec_version}; sheets whose
 name starts with \verb{_} are ignored.

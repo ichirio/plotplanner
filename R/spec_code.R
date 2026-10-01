@@ -24,6 +24,12 @@
 # a name in the program (`doc`, `plan`): its value comes from `env` when run
 .spec_sym <- function(name) structure(list(name = name), class = "tfl_spec_sym")
 
+# a one-sided formula written in a workbook (`where` of a cell style):
+# `~ <text>` in the program, a formula when run
+.spec_formula <- function(text) {
+  structure(list(text = text), class = "tfl_spec_formula")
+}
+
 # A function a step names: tflspec's own, else rtfreporter's (the plan
 # verbs, rtf_document() and friends).
 .spec_fun <- function(name) {
@@ -44,6 +50,11 @@
 
 .spec_eval <- function(x, env) {
   if (inherits(x, "tfl_spec_sym")) return(get(x$name, envir = env))
+  if (inherits(x, "tfl_spec_formula")) {
+    # over the table's columns, with base R (the program's own objects
+    # are its code's, tfl_table_code())
+    return(stats::as.formula(paste("~", x$text), env = globalenv()))
+  }
   if (inherits(x, "tfl_spec_call")) {
     f <- .spec_fun(x$fun)
     return(do.call(f, lapply(x$args, .spec_eval, env = env)))
@@ -107,6 +118,7 @@
 
 .spec_code_line <- function(x) {
   if (inherits(x, "tfl_spec_sym")) return(x$name)
+  if (inherits(x, "tfl_spec_formula")) return(paste("~", x$text))
   p <- .spec_parts(x)
   if (!is.null(p) && !(is.atomic(x) && !is.list(x))) {
     el <- vapply(seq_along(p$items), function(i)
@@ -234,10 +246,13 @@
                         counted = "counted"))
   if (length(a)) do.call(add, c(list("plan_blanks"), a))
   a <- pick("pages_", c(max_rows = "max_rows", split = "split",
+                        break_before = "break_before",
                         min_group_rows = "min_group_rows",
                         cont_label = "cont_label"))
   if (length(a)) do.call(add, c(list("plan_paginate_rows"), a))
-  a <- pick("colpages_", c(every = "every", at = "at", keep = "keep",
+  a <- pick("colpages_", c(at = "at", cut_by = "cut_by", every = "every",
+                           keep = "keep", fit = "fit",
+                           allow_span_break = "allow_span_break",
                            order = "order"))
   if (length(a)) do.call(add, c(list("plan_paginate_cols"), a))
 
@@ -257,6 +272,17 @@
       stats::setNames(rep(TRUE, length(sty[[z]])), sty[[z]]))))
   }
   if (length(sty)) do.call(add, c(list("plan_style"), sty))
+  # each cell style row, one plan_cell_style()
+  for (i in seq_len(nrow(sp$cell_styles))) {
+    cs <- .ard_spec_typed(sp$cell_styles[i, , drop = FALSE], "cell_styles")
+    w <- cs[["where"]]
+    cs[["where"]] <- if (!is.null(w)) .spec_formula(w)
+    if (isTRUE(cs[["header"]])) cs[["header"]] <- TRUE else cs[["header"]] <- NULL
+    cs <- cs[c("cols", "header", "where", "bold", "italic", "align", "color",
+               "background")]
+    cs <- cs[!vapply(cs, is.null, NA)]
+    do.call(add, c(list("plan_cell_style"), cs))
+  }
   if (any(flag("hide"))) add("plan_hide", cl$column[flag("hide")])
   hd <- sp$col_header
   if (nrow(hd)) {

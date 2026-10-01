@@ -53,3 +53,75 @@ test_that("a fitted model given as the first argument takes no data", {
   code <- paste(tfl_ard_code(sp, save = FALSE), collapse = "\n")
   expect_match(code, "cardx::ard_stats_aov(data,", fixed = TRUE)
 })
+
+test_that("args are read as R arguments: their order and spacing do not matter", {
+  sp <- exact_spec(list(method = "hierarchical", population_id = "SAF",
+                        dataset = "ADAE", by = "TRTA",
+                        variables = "AESOC | AEDECOD",
+                        args = "over_variables = TRUE,denominator=population"))
+  code <- paste(tfl_ard_code(sp, save = FALSE), collapse = "\n")
+  expect_equal(lengths(regmatches(code, gregexpr("denominator =", code))), 0L)
+  expect_equal(lengths(regmatches(code, gregexpr("denominator=", code))), 1L)
+  # an argument of a call inside args is not the method's own
+  sp <- exact_spec(list(method = "cards::ard_strata", population_id = "SAF",
+                        args = ".strata = SEX, .f = function(df) cards::ard_summary(df, by = TRT01A, variables = AGE)"))
+  code <- paste(tfl_ard_code(sp, save = FALSE), collapse = "\n")
+  expect_match(code, "cards::ard_strata(data,", fixed = TRUE)
+  # args that are not R are refused before any code is made
+  expect_error(exact_spec(list(method = "categorical", population_id = "SAF",
+                               variables = "SEX", args = "denominator = population)")),
+               "does not read as R arguments")
+})
+
+test_that("a study's own function is a method, loaded by the study key `source`", {
+  sp <- exact_spec(list(method = "ard_riskdiff_newcombe", population_id = "SAF",
+                        by = "TRT01A", variables = "SEX"),
+                   source = "ard-own.R")
+  code <- tfl_ard_code(sp, save = FALSE)
+  expect_true("source(\"R/ard-own.R\")" %in% code)
+  expect_true("source(\"R/ard-own.R\")" %in%
+                tfl_ard_code(sp, part = "setup"))
+  expect_match(paste(code, collapse = "\n"),
+               "ard_riskdiff_newcombe(data,", fixed = TRUE)
+  # without `source` it still reads, with a warning
+  expect_warning(exact_spec(list(method = "ard_riskdiff_newcombe",
+                                 population_id = "SAF")),
+                 "study key `source`")
+  expect_error(suppressWarnings(exact_spec(list(method = "not a function",
+                                                population_id = "SAF"))),
+               "unknown method")
+})
+
+test_that("the own function of the fixtures gives Newcombe's published interval", {
+  skip_if_not_installed("cards")
+  skip_if_not_installed("dplyr")
+  e <- new.env()
+  sys.source(test_path("fixtures", "ard-own.R"), e)
+  # Newcombe (1998), Stat Med 17:873, example (a): 56/70 vs 48/80,
+  # method 10: 0.2000 (0.0524, 0.3339)
+  d <- data.frame(g = rep(c("a", "b"), c(70, 80)),
+                  y = c(rep("Y", 56), rep("N", 14), rep("Y", 48), rep("N", 32)))
+  a <- e$ard_riskdiff_newcombe(d, by = g, variables = y)
+  expect_equal(round(unlist(a$stat), 4), c(0.2, 0.0524, 0.3339))
+})
+
+test_that("the strata and denominator columns are checked", {
+  ok <- list(method = "categorical", population_id = "SAF", variables = "SEX")
+  expect_error(exact_spec(c(ok, denominator = "nobody")), "denominator\\(s\\) nobody")
+  expect_error(exact_spec(c(ok, denominator = "row", args = "denominator = \"cell\"")),
+               "given twice")
+  expect_error(exact_spec(list(method = "custom", population_id = "SAF",
+                               code = "cards::ard_tabulate(data, variables = SEX)",
+                               strata = "SEX")),
+               "takes no `strata`")
+  skip_if_not_installed("cards")
+  expect_error(exact_spec(list(method = "hierarchical", population_id = "SAF",
+                               dataset = "ADAE", variables = "AESOC",
+                               strata = "SEX")),
+               "takes no `strata`")
+  # a definition written before the columns reads as before
+  sp <- exact_spec(ok)
+  sp$analyses$strata <- NULL
+  sp$analyses$denominator <- NULL
+  expect_s3_class(tfl_ard_spec(unclass(sp)), "tfl_ard_spec")
+})

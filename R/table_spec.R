@@ -20,6 +20,7 @@
 #      layout     one row per report          pages, groups, blanks, stub
 #      columns    one row per printed column  width, row title, decimals
 #      style      one row per report          border, heights, font
+#      cell_styles one row per styling        cells chosen, bold, colour
 #      col_header one row per header cell     line, columns, span, text
 #
 #  `study` holds what is ONE for the whole study by definition -- the
@@ -43,6 +44,7 @@
 .ard_spec_types <- list(
   layout = c(
     pages_max_rows = "int", pages_split = "text",
+    pages_break_before = "ids",
     pages_min_group_rows = "int", pages_cont_label = "text",
     group_col = "text", group_mode = "text", group_collapse = "flex",
     group_page = "bool", group_keep = "bool",
@@ -51,7 +53,8 @@
     stub_vars = "list", stub_name = "text", stub_indent = "int",
     stub_summary = "text", stub_before = "bool",
     colpages_every = "int", colpages_at = "ids", colpages_keep = "ids",
-    colpages_order = "list"),
+    colpages_order = "list", colpages_cut_by = "text",
+    colpages_fit = "bool", colpages_allow_span_break = "bool"),
   style = c(
     border = "text", align_count_pct = "bool", auto_width = "bool",
     row_height_twips = "int", row_height_exact = "bool",
@@ -62,6 +65,11 @@
     border_header = "sides", border_spanning = "sides",
     border_body = "sides", border_first_row = "sides",
     border_last_row = "sides"),
+  # one row per plan_cell_style(): the cells chosen by `cols`, `header`
+  # and `where` (an R condition over the table's columns), and their look
+  cell_styles = c(
+    cols = "list", header = "bool", where = "text", bold = "bool",
+    italic = "bool", align = "text", color = "text", background = "text"),
   columns = c(
     column = "text", width = "num", row_title = "bool",
     decimal_split = "bool", hide = "bool"),
@@ -173,6 +181,7 @@
     layout    = c("output_id", names(.ard_spec_types$layout)),
     columns   = c("output_id", names(.ard_spec_types$columns)),
     style     = c("output_id", names(.ard_spec_types$style)),
+    cell_styles = c("output_id", names(.ard_spec_types$cell_styles)),
     col_header = c("output_id", names(.ard_spec_types$col_header)),
     # the report half: tfl_read_report_spec() / tfl_report()
     report    = c("output_id", names(.ard_spec_types$report)),
@@ -198,6 +207,9 @@
                        layout    = character(),
                        columns   = "column",
                        style     = character(),
+                       # the cell styles are one list of rules: a report's
+                       # own rows replace the defaults whole
+                       cell_styles = NA_character_,
                        # a header is one thing: a report's own cells replace
                        # the default header whole (see .ard_spec_scope)
                        col_header = NA_character_,
@@ -212,7 +224,7 @@
 # Sheets a later version will read (the rest of the RTF deliverable).  A
 # workbook that already carries one is told so, not refused: the file can be
 # written ahead of the reader.
-.ard_spec_reserved <- c("cell_styles", "listing", "listing_cols", "figures")
+.ard_spec_reserved <- c("listing", "listing_cols", "figures")
 
 # Columns an older workbook may still carry, and what became of them when
 # the plan verbs were redesigned (rtfreporter#498).  No column is read under
@@ -303,6 +315,46 @@
         if (!is.na(v$output_id[i])) paste0(" in ", sQuote(v$output_id[i]))
         else " among the defaults",
         ".\n  One row per ", key, "; merge them."))
+    }
+  }
+  invisible(NULL)
+}
+
+# The `cell_styles` rows as plan_cell_style() takes them: something to
+# style, a `where` that is an R condition, no `where` on the header, and
+# -- as rtfreporter keeps one conditional rule per look -- one `where` row
+# per look and report.
+.ard_spec_check_cell_styles <- function(d) {
+  looks <- c("bold", "italic", "align", "color", "background")
+  for (i in seq_len(nrow(d))) {
+    r <- d[i, , drop = FALSE]
+    at <- sprintf("`cell_styles` row %d", i)
+    if (all(is.na(unlist(r[looks])))) {
+      .ard_stop(paste0(at, " styles nothing: give bold, italic, align, ",
+                       "color or background."))
+    }
+    if (!is.na(r$where)) {
+      ok <- tryCatch(is.call(str2lang(r$where)) || is.name(str2lang(r$where)),
+                     error = function(e) FALSE)
+      if (!ok) .ard_stop(sprintf("%s: `where` is not an R condition: %s", at,
+                                 sQuote(r$where)))
+      if (isTRUE(.ard_spec_value(r$header, "bool", at))) {
+        .ard_stop(paste0(at, ": the header has no rows for `where` to ",
+                         "choose; leave one of them blank."))
+      }
+    }
+  }
+  w <- d[!is.na(d$where), , drop = FALSE]
+  for (k in looks) {
+    v <- w[!is.na(w[[k]]), , drop = FALSE]
+    dup <- duplicated(ifelse(is.na(v$output_id), "", v$output_id))
+    if (any(dup)) {
+      .ard_stop(sprintf(paste0(
+        "`cell_styles`: two rows with a `where` set `%s` for %s; a plan keeps ",
+        "one conditional rule per look.
+  Join the conditions with | in ",
+        "one row."), k, if (is.na(v$output_id[dup][1L])) "the defaults"
+        else sQuote(v$output_id[dup][1L])))
     }
   }
   invisible(NULL)
@@ -405,6 +457,7 @@
 #' | `layout` | report | pages, groups, blank rows, stub |
 #' | `columns` | printed column | width, row title, decimal split, hidden |
 #' | `style` | report | border, row heights, font |
+#' | `cell_styles` | styling | the cells chosen, bold, italic, colour |
 #' | `col_header` | header cell | line, columns, span, text, borders |
 #'
 #' The first four say how the ARD becomes a table data frame; the last
@@ -500,7 +553,8 @@
 #' prefix names:
 #' \describe{
 #'   \item{`pages_*`}{[rtfreporter::plan_paginate_rows()]: `max_rows`, `split`,
-#'     `min_group_rows`, `cont_label`.}
+#'     `break_before` (row positions to cut before, `20 | 40`, with
+#'     `split = rows`), `min_group_rows`, `cont_label`.}
 #'   \item{`group_*`}{`mode` and `collapse` of [rtfreporter::plan_row_group()].
 #'     `group_page = TRUE` is [rtfreporter::plan_paginate_group()]: one page per
 #'     value of `group_col` (blank: the outermost row key), and
@@ -509,8 +563,26 @@
 #'     `counted`.}
 #'   \item{`stub_*`}{[rtfreporter::plan_stub()]: `vars`, `name`, `indent`, `summary`,
 #'     `before`.}
-#'   \item{`colpages_*`}{[rtfreporter::plan_paginate_cols()]: `every`, `at`, `keep`,
-#'     `order`.}
+#'   \item{`colpages_*`}{[rtfreporter::plan_paginate_cols()]: `every`, `at`,
+#'     `cut_by` (a separator in the column names, `____`: one block per
+#'     key), `keep`, `fit` (`TRUE`: every block on page 1's scale; `FALSE`:
+#'     each column keeps its width), `allow_span_break`, `order`.}
+#' }
+#'
+#' @section `cell_styles`:
+#' One row per [rtfreporter::plan_cell_style()], in order; a report's own
+#' rows replace the default rows whole.
+#' \describe{
+#'   \item{`cols`}{The columns styled, `|` between them (`.values` for every
+#'     value column); blank, every column.}
+#'   \item{`header`}{`TRUE` styles the column header instead of the body.}
+#'   \item{`where`}{An R condition over the table's columns choosing the
+#'     rows (`label == "Any TEAE"`, `is.na(label)`); blank, every row.  A
+#'     plan keeps one conditional rule per look, so two rows with a `where`
+#'     may not set the same look -- join their conditions with `|`.}
+#'   \item{`bold`, `italic`, `align`, `color`, `background`}{The look:
+#'     `TRUE` / `FALSE`, `left` / `center` / `right`, a colour
+#'     (`#CC0000`).}
 #' }
 #'
 #' @section `columns`:
@@ -571,14 +643,14 @@
 #' }
 #'
 #' @section Reserved for the rest of the report:
-#' A later version will read the sheets `titles`, `footnotes`, `page`,
-#' `header`, `footer` and `cell_styles` under the same `output_id` rule,
+#' A later version will read the sheets `listing`, `listing_cols` and
+#' `figures` under the same `output_id` rule,
 #' so the whole RTF deliverable can be defined in one workbook.  They are reported, not refused, when present today.  An
 #' `about` sheet (`key` / `value`) may state `spec_version`; sheets whose
 #' name starts with `_` are ignored.
 #'
-#' @param tables,variables,cells,layout,columns,style,col_header Data
-#'   frames with the columns above; missing columns are added as `NA`.
+#' @param tables,variables,cells,layout,columns,style,col_header,cell_styles
+#'   Data frames with the columns above; missing columns are added as `NA`.
 #' @param report,page,header,footer,titles,footnotes The report sheets, as
 #'   data frames with the columns [tfl_read_report_spec()] describes.  `tables` may instead be a named list of the
 #'   sheets, or an `tfl_table_spec` (returned as it is).
@@ -598,7 +670,7 @@ tfl_table_spec <- function(tables = NULL, variables = NULL, cells = NULL,
                        study = NULL, layout = NULL, columns = NULL,
                        style = NULL, col_header = NULL, report = NULL,
                        page = NULL, header = NULL, footer = NULL,
-                       titles = NULL, footnotes = NULL) {
+                       titles = NULL, footnotes = NULL, cell_styles = NULL) {
   if (inherits(tables, "tfl_table_spec")) return(tables)
   if (is.data.frame(tables) && "template" %in% names(tables) &&
       is.null(variables) && is.null(cells)) {
@@ -606,7 +678,8 @@ tfl_table_spec <- function(tables = NULL, variables = NULL, cells = NULL,
   }
   args <- list(study = study, tables = tables, variables = variables,
                cells = cells, layout = layout, columns = columns,
-               style = style, col_header = col_header, report = report,
+               style = style, cell_styles = cell_styles,
+               col_header = col_header, report = report,
                page = page, header = header, footer = footer,
                titles = titles, footnotes = footnotes)
   if (is.list(tables) && !is.data.frame(tables)) {
@@ -654,6 +727,7 @@ tfl_table_spec <- function(tables = NULL, variables = NULL, cells = NULL,
   if (any(is.na(sp$col_header$line) | is.na(sp$col_header$cols))) {
     .ard_stop("Every `col_header` row needs a `line` and `cols`.")
   }
+  .ard_spec_check_cell_styles(sp$cell_styles)
   for (sh in names(.ard_spec_types)) {
     for (i in seq_len(nrow(sp[[sh]]))) {
       .ard_spec_typed(sp[[sh]][i, , drop = FALSE], sh)
@@ -1586,7 +1660,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   }
   # plan_digits(.rows = ): one statistic's digits in every value column,
   # the `cells` rows with no template
-  rd <- ly$digits$.rows
+  rd <- ly[["digits"]]$.rows
   for (st in names(rd)) {
     v <- as.character(rd[[st]])
     sig <- grepl("s$", v)
@@ -1603,62 +1677,120 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
                   else if (is.character(v) && length(v) == 1L) q(v)
                   else bar(v)
   }
-  st <- ly$stub
+  st <- ly[["stub"]]
   if (length(st)) {
     put("stub_vars", st$vars); put("stub_name", st$name)
     put("stub_indent", st$indent); put("stub_summary", st$group_summary)
     if (isTRUE(st$before)) put("stub_before", TRUE)
   }
-  g <- ly$group
+  g <- ly[["group"]]
   put("group_mode", g$group_by); put("group_collapse", g$collapse_repeats)
   if (isTRUE(g$.page)) {
     put("group_page", TRUE); put("group_col", g$group_col)
     if (identical(g$.keep, FALSE)) put("group_keep", FALSE)
   }
-  b <- ly$blanks
+  b <- ly[["blanks"]]
   if (!is.null(b$blank_rows) && !(is.character(b$blank_rows) &&
                                    length(b$blank_rows) == 1L)) {
     miss("plan_blanks(where = ): only a named rule (\"between_groups\") converts")
   } else put("blank_where", b$blank_rows)
   put("blank_first", b$blank_row_first); put("blank_last", b$blank_row_end)
   put("blank_counted", b$count_blank_rows)
-  pg <- ly$pages
+  pg <- ly[["pages"]]
   put("pages_max_rows", pg$max_rows); put("pages_split", pg$split)
   put("pages_min_group_rows", pg$min_group_rows)
   put("pages_cont_label", pg$cont_label)
-  if (!is.null(pg$split_rows)) miss("plan_paginate_rows(break_before = ) stays in code")
-  cp <- ly$colpages
+  put("pages_break_before", pg$split_rows)
+  cp <- ly[["colpages"]]
   put("colpages_every", cp$every); put("colpages_at", cp$at)
   put("colpages_keep", cp$keep); put("colpages_order", cp$order)
-  for (o in intersect(c("cut_by", "col_header", "fit", "allow_span_break"),
-                      names(cp))) {
-    miss("plan_paginate_cols(%s = ) stays in code", o)
+  put("colpages_fit", cp$fit)
+  put("colpages_allow_span_break", cp$allow_span_break)
+  if (is.character(cp$cut_by) && length(cp$cut_by) == 1L) {
+    put("colpages_cut_by", cp$cut_by)
+  } else if (!is.null(cp$cut_by)) {
+    miss("plan_paginate_cols(cut_by = ): only a separator converts (blocks are `colpages_at`)")
+  }
+  if ("col_header" %in% names(cp)) {
+    miss("plan_paginate_cols(col_header = ) stays in code")
   }
   layout <- if (length(lay) > 1L) as.data.frame(lay, stringsAsFactors = FALSE)
 
   # -- style and columns ------------------------------------------------------
-  sty <- ly$style
+  sty <- ly[["style"]]
   style <- list(output_id = id)
-  sc <- ly$columns
+  sc <- ly[["columns"]]
   for (nm in names(sty)) {
     v <- sty[[nm]]
     if (startsWith(nm, "border_")) {
       sides <- .spec_border_sides(v)
       if (is.null(sides)) miss("plan_style(%s = ): only a plain rtf_border() converts", nm)
       else style[[nm]] <- sides
-    } else if (nm %in% names(.ard_spec_types$style)) {
+    } else if (nm %in% names(.ard_spec_types$style) && is.atomic(v) &&
+               length(v) == 1L) {
       style[[nm]] <- as.character(v)
+    } else if (nm %in% names(.ard_spec_types$style)) {
+      miss("plan_style(%s = ): only a single value converts", nm)
     } else {
       miss("plan_style(%s = ) stays in code", nm)
     }
   }
   if (!is.null(sc$auto_width)) style$auto_width <- as.character(sc$auto_width)
-  # a cell's own look (by column, in the header, or by condition) has no
-  # sheet: it stays in code
-  if ("styles" %in% L$declared || length(ly$restyle)) {
-    miss("plan_cell_style() stays in code")
-  }
   style <- if (length(style) > 1L) as.data.frame(style, stringsAsFactors = FALSE)
+
+  # -- cell styles ------------------------------------------------------------
+  # by column or in the header (a value), and by condition: a look written
+  # `~ ifelse(<condition>, <value>, NA)`, which is what plan_cell_style(where
+  # = ) makes; a look computed row by row otherwise stays in code
+  csr <- list()
+  cs_row <- function(cols = NA, header = NA, where = NA, look) {
+    r <- data.frame(output_id = id, cols = cols, header = header,
+                    where = where, bold = NA_character_,
+                    italic = NA_character_, align = NA_character_,
+                    color = NA_character_, background = NA_character_,
+                    stringsAsFactors = FALSE)
+    for (k in names(look)) r[[k]] <- as.character(look[[k]])
+    csr[[length(csr) + 1L]] <<- r
+  }
+  looks <- c("bold", "italic", "align", "color", "background")
+  for (l in ly[["restyle"]]) {
+    ar <- l$args
+    lk <- ar[intersect(names(ar), looks)]
+    plain <- all(vapply(lk, function(v) is.atomic(v) && length(v) == 1L, NA))
+    if (!is.null(ar$border) || !plain) {
+      miss("plan_cell_style(border = ) and a look that is not one value stay in code")
+      next
+    }
+    cs_row(cols = if (length(ar$cols)) bar(ar$cols) else NA,
+           header = if (identical(l$fun, "style_header")) "TRUE" else NA,
+           look = lk)
+  }
+  for (k in intersect(names(ly[["styles"]]), looks)) {
+    f <- ly[["styles"]][[k]]
+    one <- function(f) {
+      e <- if (inherits(f, "formula") && length(f) == 2L) f[[2L]]
+      if (is.call(e) && identical(e[[1L]], as.name("ifelse")) &&
+          length(e) == 4L && length(e[[4L]]) == 1L && is.na(e[[4L]]) &&
+          is.atomic(e[[3L]]) && length(e[[3L]]) == 1L) {
+        list(where = paste(deparse(e[[2L]]), collapse = " "), value = e[[3L]])
+      }
+    }
+    if (inherits(f, "formula")) {
+      o <- one(f)
+      if (is.null(o)) {
+        miss("plan_cell_style(%s = ~ ...): a look computed row by row stays in code (write it with where = )", k)
+      } else cs_row(where = o$where, look = stats::setNames(list(o$value), k))
+    } else if (is.list(f) && length(f) && !is.null(names(f))) {
+      os <- lapply(f, one)
+      same <- !any(vapply(os, is.null, NA)) &&
+        length(unique(lapply(os, deparse))) == 1L
+      if (!same) {
+        miss("plan_cell_style(%s = ): a look that differs by column stays in code", k)
+      } else cs_row(cols = bar(names(f)), where = os[[1L]]$where,
+                    look = stats::setNames(list(os[[1L]]$value), k))
+    }
+  }
+  cell_styles <- if (length(csr)) do.call(rbind, csr)
 
   colw <- rep(NA_real_, length(pnames)); names(colw) <- pnames
   w <- L$columns$widths
@@ -1678,7 +1810,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
                   if (identical(g$.keep, FALSE))
                     c(g$group_col, L$group_col) else NULL)
   dec <- sc$decimal %||% character()
-  for (l in ly$after) {
+  for (l in ly[["after"]]) {
     for (f in l$steps) {
       if (any(grepl("set_decimal_split", deparse(f), fixed = TRUE))) {
         dec <- c(dec, ".values")
@@ -1751,7 +1883,8 @@ tfl_as_table_spec <- function(x, output_id = NULL, check = TRUE) {
   study <- if (!is.null(s$rounding)) c(rounding = s$rounding)
   sp <- tfl_table_spec(tables, variables, cells, study = study, layout = layout,
                    columns = columns, style = style, col_header = col_header,
-                   titles = titles, footnotes = footnotes)
+                   titles = titles, footnotes = footnotes,
+                   cell_styles = cell_styles)
 
   same <- NA
   if (isTRUE(check)) {

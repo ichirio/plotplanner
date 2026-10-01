@@ -1,10 +1,10 @@
 # The cases of ard_coverage.R: an ARD spec row and the hand-written call
 # (on `data`, the analysis data, and `population`, the analysis set).
 cs <- function(id, group, fun, status, row, hand, keep = NULL, note = NULL,
-               pop_derive = NULL, ds_derive = NULL) {
+               pop_derive = NULL, ds_derive = NULL, source = NULL) {
   list(id = id, group = group, fun = fun, status = status, row = row,
        hand = hand, keep = keep, note = note, pop_derive = pop_derive,
-       ds_derive = ds_derive)
+       ds_derive = ds_derive, source = source)
 }
 r <- function(...) list(population_id = "SAF", ...)
 
@@ -269,5 +269,61 @@ list(
   cs("strata_fun", "strata", "cards::ard_strata", "args",
      r(method = "cards::ard_strata",
        args = ".strata = SEX, .f = \\(df) cards::ard_summary(df, by = TRT01A, variables = AGE)"),
-     "cards::ard_strata(data, .strata = SEX, .f = \\(df) cards::ard_summary(df, by = TRT01A, variables = AGE))")
+     "cards::ard_strata(data, .strata = SEX, .f = \\(df) cards::ard_summary(df, by = TRT01A, variables = AGE))"),
+
+  # ---- args in any order (a keyword's own argument given after another) --
+  cs("order_hier_denominator", "hierarchy", "cards::ard_stack_hierarchical", "args",
+     r(method = "hierarchical", dataset = "ADAE", where = "TRTEMFL == \"Y\"",
+       by = "TRTA", variables = "AESOC | AEDECOD",
+       args = "over_variables = TRUE, denominator = population"),
+     "cards::ard_stack_hierarchical(data, by = TRTA, variables = c(AESOC, AEDECOD),
+        id = USUBJID, over_variables = TRUE, denominator = population)",
+     note = "denominator given second in args: the keyword's default steps aside"),
+  cs("order_continuous_statistic", "summary", "cards::ard_continuous", "args",
+     r(method = "continuous", by = "TRT01A", variables = "AGE",
+       statistics = "N | mean",
+       args = "stat_label = NULL, statistic = ~ list(mean = mean)"),
+     "cards::ard_summary(data, by = TRT01A, variables = AGE, stat_label = NULL,
+        statistic = ~ list(mean = mean))",
+     note = "statistic given second in args wins over the statistics column"),
+  cs("order_car_anova", "model", "cardx::ard_car_anova", "args",
+     r(method = "cardx::ard_car_anova",
+       args = "type = 2, x = lm(AGE ~ TRT01A + SEX, data = data)"),
+     "cardx::ard_car_anova(x = lm(AGE ~ TRT01A + SEX, data = data), type = 2)",
+     note = "the model given second in args: no data first"),
+
+  # ---- the strata and denominator columns ---------------------------------
+  cs("col_strata", "strata", "cards::ard_continuous", "spec",
+     r(method = "continuous", by = "TRT01A", strata = "SEX", variables = "AGE"),
+     "cards::ard_summary(data, by = TRT01A, strata = SEX, variables = AGE)",
+     note = "strata column"),
+  cs("col_den_row", "count", "cards::ard_categorical", "spec",
+     r(method = "categorical", by = "TRT01A", variables = "SEX",
+       denominator = "row"),
+     "cards::ard_tabulate(data, by = TRT01A, variables = SEX, denominator = 'row')",
+     note = "denominator column: percentages within a row"),
+  cs("col_den_population", "count", "cards::ard_categorical", "spec",
+     r(method = "categorical", dataset = "ADAE", where = "TRTEMFL == \"Y\"",
+       by = "TRTA", variables = "AESEV", denominator = "population"),
+     "cards::ard_tabulate(data, by = TRTA, variables = AESEV, denominator = population)",
+     note = "denominator column: the analysis set"),
+  cs("col_den_dataset", "count", "cards::ard_categorical", "spec",
+     r(method = "categorical", dataset = "ADAE", where = "TRTEMFL == \"Y\"",
+       by = "TRTA", variables = "AESEV", denominator = "ADSL"),
+     "cards::ard_tabulate(data, by = TRTA, variables = AESEV, denominator = population)",
+     note = "denominator column: a dataset, its records of the analysis set's subjects"),
+  cs("col_den_hier", "hierarchy", "cards::ard_stack_hierarchical", "spec",
+     r(method = "hierarchical", dataset = "ADAE", where = "TRTEMFL == \"Y\"",
+       by = "TRTA", variables = "AESOC | AEDECOD", denominator = "ADSL"),
+     "cards::ard_stack_hierarchical(data, by = TRTA, variables = c(AESOC, AEDECOD),
+        denominator = population, id = USUBJID)",
+     note = "denominator column replaces the keyword's default"),
+
+  # ---- the study's own function (study key `source`) ---------------------
+  cs("own_riskdiff", "own", "ard_riskdiff_newcombe", "args",
+     r(method = "ard_riskdiff_newcombe", where = "TRT01A != \"Xanomeline Low Dose\"",
+       by = "TRT01A", variables = "SEX", args = "value = \"F\""),
+     "ard_riskdiff_newcombe(data, by = TRT01A, variables = SEX, value = 'F')",
+     source = "ard-own.R",
+     note = "risk difference (Newcombe): no cards / cardx function; the study's own, by `source`")
 )

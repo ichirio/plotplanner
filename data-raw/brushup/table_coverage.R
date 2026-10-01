@@ -61,6 +61,12 @@ cases <- list(
   style = quote(base() |> plan_style(align_count_pct = TRUE, font = "Arial")),
   style_border = quote(base() |> plan_style(border = "tfl")),
   cell_style = quote(base() |> plan_cell_style(bold = ~ TRUE)),
+  cell_style_cols = quote(base() |> plan_cell_style(cols = "label", bold = TRUE)),
+  cell_style_where = quote(base() |> plan_stub(name = "row_label", before = TRUE) |>
+    plan_cell_style(where = ~ row_label == "Sex", bold = TRUE, background = "#EEEEEE")),
+  break_before = quote(base() |> plan_paginate_rows(split = "rows", break_before = 4L)),
+  colpages_fit = quote(base() |> plan_paginate_cols(every = 2, fit = FALSE, allow_span_break = FALSE)),
+  style_border_obj = quote(base() |> plan_style(border = rtf_border(top = TRUE))),
   col_header = quote(base() |> plan_col_header(values = list(n = TRUE),
     rtf_col_header(c("", "{col}"), c("Characteristic", "(N={n})")))),
   titles = quote(base() |> plan_titles("Table 14.1.1", "Demographics")),

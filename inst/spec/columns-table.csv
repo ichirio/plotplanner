@@ -33,11 +33,14 @@ cells,（template 空欄の行）,stats = rows の帳票だけ：統計量ごと
 (全体),（読み方）,ここまでの 4 シートで table data.frame、以下の 4 シート（layout / columns / style / col_header）で列ヘッダー付きの rtftable のページまで。tfl_table_plan(data; tfl_read_table_spec(path; output_id = )) で読む。後に書いた plan_*() が勝つ。,
 layout,,1 行 = 1 帳票。ページ・グループ・空行・スタブ。列名の接頭辞が対応する plan_*() を表す。,
 layout,pages_max_rows / pages_split / pages_min_group_rows / pages_cont_label,plan_paginate_rows() の max_rows / split / min_group_rows / cont_label。先頭・末尾の空白を残すときは引用符で囲む。値ごとの改ページは group_page。,"26 / group_force / "" (Cont.)"""
+layout,pages_break_before,plan_paginate_rows(break_before = )。この行位置の前で改ページ（pages_split = rows と一緒に）。| で区切る。,20 | 40
 layout,group_mode / group_collapse,plan_row_group() の mode / collapse。collapse は TRUE か列（名前・位置）の | 区切り。グループの列は行キーから決まる。,value / 1 | 2
 layout,group_page / group_col / group_keep,group_page = TRUE で group_col（空欄なら一番外の行キー）の値ごとに改ページ（plan_paginate_group の col / keep）。group_keep = FALSE でその列を表示しない。,TRUE / PARAM / FALSE
 layout,blank_where / blank_first / blank_last / blank_counted,plan_blanks() の where / first / last / counted。,between_groups / TRUE
 layout,stub_vars / stub_name / stub_indent / stub_summary / stub_before,plan_stub() の vars / name / indent / group_summary / before。,row_label / TRUE
-layout,colpages_every / colpages_at / colpages_carry / colpages_order,plan_paginate_cols() の every / at / carry / order（列方向のページ分割）。,16 | 29 / 1 | 2
+layout,colpages_every / colpages_at / colpages_keep / colpages_order,plan_paginate_cols() の every / at / keep / order（列方向のページ分割）。,16 | 29 / 1 | 2
+layout,colpages_cut_by,plan_paginate_cols(cut_by = )。列名の中の区切り文字で列のまとまりを決め、まとまりごとにページを分ける。,____
+layout,colpages_fit / colpages_allow_span_break,plan_paginate_cols() の fit（TRUE = どのページも 1 ページ目の幅の比率、FALSE = 列ごとの幅のまま）/ allow_span_break（FALSE = 列見出しのまとまりの途中で分けない）。,TRUE / FALSE
 columns,,1 行 = 印字される列 1 つ。列は名前で指定（畳んだスタブは stub_name の名前、値の列は tables の sep でつないだ名前）。.values = 展開された値の列すべて。,
 columns,column,列名、または .values。,row_label
 columns,width,相対幅。幅を書くなら印字される全列に必要（.values でまとめて指定できる）。,5
@@ -45,6 +48,10 @@ columns,row_title,TRUE で行見出しの列。plan_columns(row_title = )。,TRU
 columns,decimal_split,TRUE で小数点を揃える（set_decimal_split）。,TRUE
 columns,hide,TRUE で処理には使うが印字しない。,TRUE
 style,,1 行 = 1 帳票。border / align_count_pct / row_height_twips / header_row_height_twips / blank_row_height_twips / font / font_size_half_points / table_align / cell_valign（plan_style と同じ引数）。auto_width は plan_columns(auto_width = ) になる。,align_count_pct = TRUE
+cell_styles,,1 行 = 1 つの plan_cell_style()。上から順に効く。帳票名を書いた行があれば、その帳票ではデフォルトの行をすべて置き換える。,
+cell_styles,cols / header,対象の列（| 区切り、.values = 値の列すべて。空欄 = すべての列）。header = TRUE で列見出しを対象にする。,Placebo | .values / TRUE
+cell_styles,where,対象の行を選ぶ R の条件（表の列で書く）。空欄 = すべての行。where のある行どうしで同じ見た目（bold など）は 1 つだけ。条件は | でまとめる。,"label == ""Any TEAE"""
+cell_styles,bold / italic / align / color / background,見た目。TRUE / FALSE、left / center / right、色（#CC0000）。,TRUE
 col_header,,1 行 = 列ヘッダーのセル 1 つ。帳票の行があればデフォルトのヘッダーを丸ごと置き換える。,
 col_header,line,ヘッダーの行番号（1 = 一番上）。,1
 col_header,cols,セルが乗る列。列名 / .values（値の列すべて）/ 位置（3、3:31、3:last）/ KEY = 値（そのキーがその値の列）を | 区切りで。,.values / grp1 | grp2 / variable = n

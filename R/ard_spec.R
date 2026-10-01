@@ -31,16 +31,40 @@
   datasets = c("dataset", "level", "path", "derive"),
   populations = c("population_id", "dataset", "where", "derive"),
   analyses = c("output_id", "analysis_id", "label", "method", "dataset",
-               "population_id", "where", "by", "variables", "statistics",
-               "formats", "args", "code", "purpose", "reason"))
+               "population_id", "where", "by", "strata", "variables",
+               "statistics", "denominator", "formats", "args", "code",
+               "purpose", "reason"))
 
 .split_bar <- function(x) {
   if (is.null(x) || is.na(x) || !nzchar(trimws(x))) return(character())
   trimws(strsplit(x, "|", fixed = TRUE)[[1L]])
 }
 
+# The names of the arguments an analysis's `args` gives: `args` read as the
+# arguments of a call, so neither spacing nor an argument of a nested call
+# (`.f = function(df) ard(df, by = X)`) misleads it.
+.args_given <- function(args) {
+  nm <- names(.args_list(args))
+  if (is.null(nm)) character() else nm[nzchar(nm)]
+}
+
+# `args` as a list of its arguments (unevaluated), named as given
+.args_list <- function(args) {
+  if (is.null(args) || is.na(args) || !nzchar(trimws(args))) return(list())
+  as.list(str2lang(paste0("f(", args, "\n)")))[-1L]
+}
+
+# Why `args` does not read as the arguments of a call, or NULL
+.args_problem <- function(args) {
+  if (is.na(args) || !nzchar(trimws(args))) return(NULL)
+  tryCatch({
+    str2lang(paste0("f(", args, "\n)"))
+    NULL
+  }, error = function(e) conditionMessage(e))
+}
+
 # The call an analysis row stands for, with `data` and `population` bound.
-.analysis_body <- function(r, keys, subj, has) {
+.analysis_body <- function(r, keys, subj, has, den = NULL) {
   m <- r$method
   k <- match(m, keys$method)
   fn <- if (is.na(k)) m else keys$call[k]
@@ -50,6 +74,9 @@
   if (identical(fn, "(code)")) return(r$code)
   by <- .vars(r$by)
   vars <- .vars(r$variables)
+  strata <- .vars(r$strata)
+  own <- c(if (!is.null(strata)) paste("strata =", strata),
+           if (!is.null(den)) paste("denominator =", den))
   if (identical(fn, "(subjects)")) {
     # a subject-level flag: has the subject any record of the data?
     flag <- if (length(.split_bar(r$variables))) .split_bar(r$variables)[1L] else
@@ -58,9 +85,10 @@
     return(paste0(
       sprintf("population$%s <- population$%s %%in%% data$%s\n", flag, subj,
               subj),
-      sprintf("cards::ard_dichotomous(population%s, variables = %s, value = list(%s = TRUE)%s%s)",
+      sprintf("cards::ard_dichotomous(population%s, variables = %s, value = list(%s = TRUE)%s%s%s)",
               if (!is.null(by)) paste0(", by = ", by) else "", flag, flag,
               if (!is.null(st)) paste0(", ", st) else "",
+              if (length(own)) paste0(", ", paste(own, collapse = ", ")) else "",
               if (!is.na(r$args)) paste0(", ", r$args) else "")))
   }
   # the keyword's own arguments, each unless the row's args gives it
@@ -73,6 +101,7 @@
     if (!is.null(by)) paste("by =", by),
     if (!identical(fn, "cards::ard_total_n") && !is.null(vars))
       paste("variables =", vars),
+    own,
     if (!has("statistic")) .stat_arg(kind, stats),
     dflt,
     if (!is.na(r$args)) r$args)
@@ -146,23 +175,25 @@ tfl_write_ard_spec <- function(spec, path, statistics = NULL, methods = NULL,
   data.frame(
     sheet = c("study", "datasets", "datasets", "populations", "populations",
               "analyses", "analyses", "analyses", "analyses", "analyses",
-              "analyses", "analyses"),
+              "analyses", "analyses", "analyses", "analyses"),
     column = c("key / value", "dataset / path", "derive",
                "population_id / dataset / where", "derive",
                "output_id / analysis_id", "method",
                "dataset / population_id / where",
-               "by / variables / statistics", "formats", "args / code",
-               "purpose / reason"),
+               "by / variables / statistics", "strata", "denominator",
+               "formats", "args / code", "purpose / reason"),
     description = c(
-      "id: the subject key (USUBJID); output: where the study ARD goes",
+      "id: the subject key (USUBJID); output: where the study ARD goes; source: R files of your own analysis functions, relative to the study folder (| between them)",
       "a name for the data, and its file relative to the study folder",
       "new columns, NAME = R expression, | between them",
       "an analysis set: the subjects of `dataset` for which `where` (R) holds",
       "columns added to the population (TRTA = TRT01A ...)",
       "the report the analysis serves, and its id; both are ARD columns",
-      "a keyword (tfl_ard_methods()) or any pkg::function (cards::, cardx::)",
+      "a keyword (tfl_ard_methods()), any pkg::function (cards::, cardx::), or a function of your own that the study key `source` loads",
       "the analysis data: `dataset` restricted to the population and `where`",
       "grouping and analysis variables, statistics (tfl_ard_statistics()); | between several",
+      "variables the analysis is repeated within (cards' strata: subgroups, parameter by visit); | between several",
+      "what percentages are of: population (the analysis set; the default of hierarchical and max), row / column / cell (cards), a population, or a dataset (its records of the analysis set's subjects)",
       "stat_fmt formats: statistic=format, | between them (mean=xx.x | p=xx.x% | AGE:sd=xx.xx); blank = the default of the statistic",
       "more arguments as R; `code` for custom (data, population are bound)",
       "for CDISC ARS (tfl_ars()): PRIMARY / SECONDARY / EXPLORATORY OUTCOME MEASURE; SPECIFIED IN PROTOCOL / SPECIFIED IN SAP (default) / DATA DRIVEN / REQUESTED BY REGULATORY AGENCY"),
@@ -227,6 +258,13 @@ tfl_read_ard_spec <- function(path, check = TRUE, statistics = NULL,
 tfl_ard_spec <- function(x, statistics = NULL, methods = NULL) {
   old <- .set_catalogs(statistics, methods)
   on.exit(options(old), add = TRUE)
+  # a column a definition does not have yet (written before it was added)
+  # is blank
+  for (s in intersect(names(.ard_spec_sheets), names(x))) {
+    for (c in setdiff(.ard_spec_sheets[[s]], names(x[[s]]))) {
+      x[[s]][[c]] <- rep(NA_character_, nrow(x[[s]]))
+    }
+  }
   x <- structure(x, class = "tfl_ard_spec")
   a <- x$analyses
   err <- character()
@@ -240,10 +278,51 @@ tfl_ard_spec <- function(x, statistics = NULL, methods = NULL) {
                                       paste(unique(paste(a$output_id, a$analysis_id)[dup]),
                                             collapse = ", ")))
   m <- stats::na.omit(a$method)
-  bad <- m[!m %in% tfl_ard_methods()$method & !grepl("^[A-Za-z.][A-Za-z0-9.]*::[A-Za-z._][A-Za-z0-9._]*$", m)]
+  known <- m %in% tfl_ard_methods()$method
+  pkgfun <- grepl("^[A-Za-z.][A-Za-z0-9.]*::[A-Za-z._][A-Za-z0-9._]*$", m)
+  own <- !known & !pkgfun & grepl("^[A-Za-z.][A-Za-z0-9._]*$", m)
+  bad <- m[!known & !pkgfun & !own]
   if (length(bad)) err <- c(err, sprintf(
-    "unknown method(s): %s (a keyword of tfl_ard_methods(), or pkg::function)",
+    "unknown method(s): %s (a keyword of tfl_ard_methods(), pkg::function, or a function the study key `source` loads)",
     paste(unique(bad), collapse = ", ")))
+  if (any(own) && !length(.split_bar(.study_value(x, "source", NA)))) {
+    warning(sprintf(paste(
+      "method(s) %s: not a keyword of tfl_ard_methods(), so read as your",
+      "own function(s) -- which the study key `source` should load"),
+      paste(unique(m[own]), collapse = ", ")), call. = FALSE)
+  }
+  for (i in which(!is.na(a$args))) {
+    p <- .args_problem(a$args[i])
+    if (!is.null(p)) err <- c(err, sprintf(
+      "%s / %s: `args` does not read as R arguments (%s)", a$output_id[i],
+      a$analysis_id[i], gsub("\\s+", " ", p)))
+  }
+  for (col in c("strata", "denominator")) {
+    for (i in which(!is.na(a[[col]] %||% rep(NA, nrow(a))))) {
+      tag <- paste(a$output_id[i], a$analysis_id[i], sep = " / ")
+      if (identical(a$method[i], "custom")) {
+        err <- c(err, sprintf("%s: a `custom` analysis takes no `%s` (its code says it)",
+                              tag, col))
+        next
+      }
+      if (is.null(.args_problem(a$args[i])) &&
+          col %in% .args_given(a$args[i])) {
+        err <- c(err, sprintf("%s: `%s` is given twice, in its column and in `args`",
+                              tag, col))
+      }
+      f <- .method_fun(a$method[i])
+      if (!is.null(f) && !any(c(col, "...") %in% names(formals(f)))) {
+        err <- c(err, sprintf("%s: %s takes no `%s`", tag, a$method[i], col))
+      }
+    }
+  }
+  den <- a$denominator %||% rep(NA, nrow(a))
+  bad <- unique(stats::na.omit(den[!den %in% c(.den_words,
+                                               x$populations$population_id,
+                                               x$datasets$dataset)]))
+  if (length(bad)) err <- c(err, sprintf(
+    "denominator(s) %s: population, row, column, cell, a population or a dataset",
+    paste(bad, collapse = ", ")))
   miss <- setdiff(stats::na.omit(c(a$dataset, x$populations$dataset)),
                   x$datasets$dataset)
   if (length(miss)) err <- c(err, sprintf("dataset(s) not in `datasets`: %s",
@@ -303,6 +382,35 @@ tfl_ard_spec <- function(x, statistics = NULL, methods = NULL) {
   v <- .split_bar(x)
   if (!length(v)) return(NULL)
   if (length(v) == 1L) v else sprintf("c(%s)", paste(v, collapse = ", "))
+}
+
+# The denominator column's words: the analysis set, or cards' own
+.den_words <- c("population", "row", "column", "cell")
+
+# The denominator column as R: `population` (the analysis set), "row" /
+# "column" / "cell" (cards' percentages within a row, a column, of the
+# whole), a population (its analysis set), or a dataset (its records of the
+# analysis set's subjects)
+.den_code <- function(den, x, pop, subj) {
+  if (is.null(den) || is.na(den)) return(NULL)
+  if (den == "population") return("population")
+  if (den %in% .den_words) return(encodeString(den, quote = "\""))
+  if (den %in% x$populations$population_id) {
+    return(paste0("pop_", .r_name(den)))
+  }
+  obj <- .r_name(den)
+  if (is.null(pop)) obj else
+    sprintf("subset(%s, %s %%in%% population$%s)", obj, subj, subj)
+}
+
+# The function a method calls, when it can be found (else NULL)
+.method_fun <- function(m) {
+  keys <- tfl_ard_methods()
+  k <- match(m, keys$method)
+  fn <- if (is.na(k)) m else keys$call[k]
+  if (startsWith(fn, "(")) return(NULL)
+  f <- tryCatch(eval(str2lang(fn)), error = function(e) NULL)
+  if (is.function(f)) f else NULL
 }
 
 .stat_arg <- function(method, stats) {
@@ -448,7 +556,7 @@ tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
   if (!is.null(output_id)) a <- a[a$output_id %in% output_id, , drop = FALSE]
   if (part == "setup") {
     st <- tfl_ard_statistics("continuous")
-    return(.ard_common_lines(st$statistic[!is.na(st$fun)]))
+    return(.ard_common_lines(st$statistic[!is.na(st$fun)], x))
   }
   if (part == "body") return(.ard_body_lines(x, a))
   out <- .study_value(x, "output", "output/ard/ard.rds")
@@ -457,7 +565,7 @@ tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
     paste0("# Generated by tflspec ", utils::packageVersion("tflspec"),
            ", ", format(Sys.Date())),
     "",
-    .ard_common_lines(unlist(lapply(a$statistics, .split_bar))),
+    .ard_common_lines(unlist(lapply(a$statistics, .split_bar)), x),
     .ard_body_lines(x, a))
   if (save) {
     ids <- unique(a$output_id)
@@ -481,10 +589,14 @@ tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
 }
 
 
-# library(cards), .tag() and the helpers (the computed statistics `used`,
-# stat_fmt)
-.ard_common_lines <- function(used) {
+# library(cards), the study's own functions (its key `source`), .tag() and
+# the helpers (the computed statistics `used`, stat_fmt)
+.ard_common_lines <- function(used, x = NULL) {
+  src <- .split_bar(.study_value(x, "source", NA))
   c("library(cards)",
+    if (length(src)) c(
+      "# the study's own analysis functions (study key `source`)",
+      sprintf("source(%s)", encodeString(src, quote = "\""))),
     "",
     ".tag <- function(ard, output_id, analysis_id, population_id) {",
     "  ard <- as.data.frame(ard)",
@@ -500,8 +612,13 @@ tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
 .ard_body_lines <- function(x, a) {
   subj <- .study_value(x, "id", "USUBJID")
   code <- "# ---- data"
-  used_ds <- unique(stats::na.omit(c(a$dataset, x$populations$dataset[
-    x$populations$population_id %in% a$population_id])))
+  pops <- unique(stats::na.omit(c(a$population_id,
+                                  a$denominator[a$denominator %in%
+                                                  x$populations$population_id])))
+  den_ds <- a$denominator[a$denominator %in% x$datasets$dataset &
+                            !a$denominator %in% .den_words]
+  used_ds <- unique(stats::na.omit(c(a$dataset, den_ds, x$populations$dataset[
+    x$populations$population_id %in% pops])))
   for (ds in used_ds) {
     r <- x$datasets[x$datasets$dataset == ds, ]
     obj <- .r_name(ds)
@@ -509,7 +626,7 @@ tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
               .derive_code(obj, r$derive[1L]))
   }
   code <- c(code, "", "# ---- populations")
-  for (pid in unique(stats::na.omit(a$population_id))) {
+  for (pid in pops) {
     r <- x$populations[x$populations$population_id == pid, ]
     obj <- paste0("pop_", .r_name(pid))
     src <- .r_name(r$dataset[1L])
@@ -533,9 +650,11 @@ tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
                                           is.na(r$dataset)) pop else
       sprintf("subset(%s, %s %%in%% %s$%s)", ds, subj, pop, subj)
     if (!is.na(r$where)) data <- sprintf("subset(%s, %s)", data, r$where)
-    given <- if (is.na(r$args)) "" else r$args
-    has <- function(arg) grepl(paste0("(^|[,(\\s])", arg, "\\s*="), given)
-    body <- .analysis_body(r, keys, subj, has)
+    given <- c(.args_given(r$args), if (!is.na(r$strata)) "strata",
+               if (!is.na(r$denominator)) "denominator")
+    has <- function(arg) arg %in% given
+    den <- .den_code(r$denominator, x, pop, subj)
+    body <- .analysis_body(r, keys, subj, has, den)
     k <- match(r$method, keys$method)
     kind <- if (is.na(k)) "" else keys$kind[k]
     keep <- if (!kind %in% c("continuous", "categorical", "missing") &&

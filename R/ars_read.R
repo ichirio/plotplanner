@@ -490,6 +490,8 @@ tfl_ars_to_specs <- function(ars, table = FALSE) {
       if (length(v)) paste(v, collapse = " | ") else NA_character_
     }, ""),
     statistics = vapply(analyses, `[[`, "", "statistics"),
+    strata = NA_character_,
+    denominator = NA_character_,
     formats = NA_character_,
     args = vapply(analyses, function(r) {
       if (r$method == "hierarchical" && isTRUE(r$over)) {

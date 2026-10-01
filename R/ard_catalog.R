@@ -173,10 +173,19 @@
 #' the analysis data first, `by` and `variables` when the row gives them,
 #' and the row's `args` after them.  A function whose first argument is not
 #' the data (`cardx::ard_survival_survdiff(formula, data)`) takes it the same
-#' way once `args` names the first one (`formula = ...`).
+#' way once `args` names the first one (`formula = ...`).  The row's
+#' `strata` and `denominator` columns are passed as those arguments.
+#'
+#' A function of the study's own is a method too, by its plain name
+#' (`ard_riskdiff_mn`), when the study key `source` names the R file that
+#' defines it (the ARD program sources it first).  It is called the same
+#' way: it takes the analysis data first, `by` and `variables` as bare
+#' column names, and gives a cards ARD (class `card`); `population` is
+#' there to pass in `args` (`denominator = population`).
 #'
 #' In `args` and `code`, `data` is the analysis data and `population` the
-#' population's subjects.
+#' population's subjects.  `args` is read as the arguments of a call, in
+#' any order.
 #'
 #' Each keyword has a `label` -- the name a person reads, for a GUI's choice
 #' or a heading -- and a one-line `note`, and names its function (`(subjects)` and `(code)` are the two
