@@ -1,5 +1,23 @@
 # tflspec (development version)
 
+* **Reading ARS back into specs** (#57, stage 3 of the ARS export).
+  `tfl_read_ars_json()` reads an ARS JSON -- tflspec's or anyone's -- as
+  the model, refusing one whose references name nothing.
+  `tfl_ars_to_specs()` turns it into specs: the ARD spec (analysis sets as
+  populations, WhereClauses as R, analyses with their method, `by`,
+  variables, statistics, purpose and reason) and the report spec (outputs
+  in the list's order, file, titles, footnotes, header, footer, global
+  sections included); with `table = TRUE` a table spec with the
+  groupings' listed groups as `levels`.
+  - tfl_ars()'s own layout comes back as written (several variables in a
+    row, a hierarchy in one row, the added subject counts left out): the
+    ARD of the spec read back is the ARD of the spec.
+  - Anyone's analysis is one row, its method read from what its
+    operations compute; a count of subjects in record-level data is
+    `subjects` (by the arm) or `hierarchical` (SOC / PT).  CDISC's Common
+    Safety Displays reads with only its ANOVA left out, and said.
+  - ARS does not say where the ADaM is: `datasets$path` is blank.
+
 * **ARS siera can run, and the round trip** (#55, stage 2 of the ARS
   export).  `tfl_ars(profile = "siera")` writes the reporting event so
   siera's `readARS()` runs it, still valid CDISC ARS: each method carries

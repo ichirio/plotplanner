@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9006** (the development version,
+**This manual documents tflspec 0.0.24.9007** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -139,6 +139,7 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 | several specs in one workbook; what a column means | `tfl_write_specs(path, ard, table, report, listing)`; `tfl_spec_columns(sheet)` |
 | the specs as CDISC ARS (JSON), and its check | `tfl_ars(ard_spec, table_spec, report_spec)` → `tfl_write_ars_json(ars, path)`; `tfl_check_ars(ars)`; what ARS cannot say: `tfl_ars_unmapped(ars)` |
 | ARS siera can run, and its ARD (round trip) | `tfl_ars(ard_spec, profile = "siera")` → `tfl_ars_ard(ars, adam)` (siera writes and runs one programme per output) |
+| an ARS JSON (anyone's) back as specs | `tfl_read_ars_json(path)` → `tfl_ars_to_specs(ars, table = FALSE)`: `$ard`, `$report` (`$table`: the groupings' levels); fill `datasets$path`; what has no place: `attr(, "unmapped")` |
 | the plan a table spec stands for | `tfl_table_plan(data, spec)` (then any rtfreporter verb: last wins) |
 | the plan as code | `tfl_table_code(spec)` |
 | a plan written in code, back to a workbook | `tfl_as_table_spec(plan)` |
@@ -380,7 +381,7 @@ back): rename the value or choose another separator.
 `tfl_ard_spec_hash` `tfl_ard_methods` `tfl_ard_statistics`
 
 **CDISC ARS:** `tfl_ars` `tfl_write_ars_json` `tfl_check_ars`
-`tfl_ars_unmapped` `tfl_ars_ard`
+`tfl_ars_unmapped` `tfl_ars_ard` `tfl_read_ars_json` `tfl_ars_to_specs`
 
 **Table spec:** `tfl_table_spec` `tfl_read_table_spec` `tfl_write_table_spec`
 `tfl_write_report_spec` `tfl_write_specs` `tfl_spec_columns`
