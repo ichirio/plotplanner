@@ -1,6 +1,6 @@
 Package: tflspec
 Title: Excel Specifications for Clinical Tables, Listings and Figures
-Version: 0.0.24.9004
+Version: 0.0.24.9005
 Authors@R: person("ichirio", role = c("aut", "cre"), email = "ichi.r.pro@gmail.com")
 Description: Reads study specifications written in Excel and produces what a
     clinical TFL report is made of. Tables: 'cards'/'cardx' analysis results
@@ -18,6 +18,7 @@ Depends:
 Imports:
     ggplot2 (>= 3.5.0),
     grDevices,
+    jsonlite,
     openxlsx,
     rlang,
     yaml,
@@ -30,6 +31,7 @@ Suggests:
     dplyr,
     ggsurvfit,
     haven,
+    jsonvalidate,
     magrittr,
     patchwork,
     readxl,

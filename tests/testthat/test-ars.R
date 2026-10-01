@@ -1,0 +1,214 @@
+ars_df <- function(...) {
+  rows <- list(...)
+  cols <- unique(unlist(lapply(rows, names)))
+  as.data.frame(lapply(stats::setNames(cols, cols), function(cn)
+    vapply(rows, function(r) as.character(r[[cn]] %||% NA), "")),
+    stringsAsFactors = FALSE)
+}
+
+ars_spec <- function(analyses, purpose = "SECONDARY OUTCOME MEASURE") {
+  if (!is.null(purpose) && !"purpose" %in% names(analyses)) {
+    analyses$purpose <- purpose
+  }
+  s <- list(
+    study = ars_df(list(key = "id", value = "USUBJID"),
+                   list(key = "study_id", value = "PILOT01")),
+    datasets = ars_df(list(dataset = "ADSL", path = "adsl.rds"),
+                      list(dataset = "ADAE", path = "adae.rds")),
+    populations = ars_df(list(population_id = "SAF", dataset = "ADSL",
+                              where = "SAFFL == \"Y\"")),
+    analyses = analyses)
+  for (n in names(.ard_spec_sheets)) {
+    for (c in .ard_spec_sheets[[n]]) {
+      if (!c %in% names(s[[n]])) s[[n]][[c]] <- NA_character_
+    }
+    s[[n]] <- s[[n]][.ard_spec_sheets[[n]]]
+  }
+  tfl_ard_spec(s)
+}
+
+dm_ae <- function(...) ars_spec(ars_df(
+  list(output_id = "DM", analysis_id = "BIGN", method = "categorical",
+       population_id = "SAF", variables = "TRT01A"),
+  list(output_id = "DM", analysis_id = "AGE", method = "continuous",
+       population_id = "SAF", by = "TRT01A", variables = "AGE"),
+  list(output_id = "DM", analysis_id = "CAT", method = "categorical",
+       population_id = "SAF", by = "TRT01A", variables = "SEX | RACE"),
+  list(output_id = "DM", analysis_id = "PAGE", method = "ttest",
+       population_id = "SAF", by = "TRT01A", variables = "AGE"),
+  list(output_id = "AE", analysis_id = "TEAE", method = "hierarchical",
+       dataset = "ADAE", population_id = "SAF", where = "TRTEMFL == \"Y\"",
+       by = "TRTA", variables = "AEBODSYS | AEDECOD",
+       args = "over_variables = TRUE")), ...)
+
+an_of <- function(ars, id) {
+  Filter(function(a) identical(a$id, id), ars$analyses)[[1L]]
+}
+
+test_that("an R condition becomes a WhereClause, or NULL when it has none", {
+  w <- .ars_where("SAFFL == \"Y\"", "ADSL")
+  expect_identical(w$condition, list(dataset = "ADSL", variable = "SAFFL",
+                                     comparator = "EQ", value = list("Y")))
+  w <- .ars_where("AGE >= 65 & SEX %in% c(\"F\", \"M\") & RACE != \"X\"",
+                  "ADSL")
+  expect_identical(w$compoundExpression$logicalOperator, "AND")
+  expect_length(w$compoundExpression$whereClauses, 3L)
+  cmp <- vapply(w$compoundExpression$whereClauses,
+                function(z) z$condition$comparator, "")
+  expect_identical(cmp, c("GE", "IN", "NE"))
+  expect_identical(w$compoundExpression$whereClauses[[1L]]$condition$value,
+                   list("65"))
+  expect_identical(.ars_where("!(AESEV %in% c(\"MILD\"))", "ADAE")$condition$
+                     comparator, "NOTIN")
+  w <- .ars_where("(A == \"1\" | B == \"2\") & C == \"3\"", "ADSL")
+  expect_identical(w$compoundExpression$whereClauses[[1L]]$
+                     compoundExpression$logicalOperator, "OR")
+  expect_null(.ars_where("is.na(AESEV)", "ADAE"))
+  expect_null(.ars_where("AGE > BMIBL", "ADSL"))
+  expect_identical(.ars_where(NA, "ADSL"), list())
+})
+
+test_that("the specs become the CDISC model, laid out as CDISC's example", {
+  tspec <- list(variables = ars_df(list(
+    variable = "TRT01A", label = "Treatment",
+    levels = "Placebo | Xanomeline Low Dose | Xanomeline High Dose")))
+  ars <- tfl_ars(dm_ae(), tspec)
+  expect_s3_class(ars, "tfl_ars")
+  expect_identical(ars$id, "PILOT01")
+  expect_identical(vapply(ars$outputs, `[[`, "", "id"), c("DM", "AE"))
+  # the population
+  expect_identical(ars$analysisSets[[1L]]$condition$variable, "SAFFL")
+  # a categorical variable: the subject key, grouped by the variable; its
+  # percentage divides by the output's subject count
+  sex <- an_of(ars, "An_DM_CAT_SEX")
+  expect_identical(sex$variable, "USUBJID")
+  expect_identical(vapply(sex$orderedGroupings, `[[`, "", "groupingId"),
+                   c("AG_ADSL_TRT01A", "AG_ADSL_SEX"))
+  expect_identical(vapply(sex$referencedAnalysisOperations, `[[`, "",
+                          "analysisId"), c("An_DM_CAT_SEX", "An_DM_BIGN"))
+  expect_identical(an_of(ars, "An_DM_BIGN")$methodId, "Mth_total_n")
+  # a continuous variable is the analysis variable
+  expect_identical(an_of(ars, "An_DM_AGE")$variable, "AGE")
+  # a test has no result per group
+  expect_false(an_of(ars, "An_DM_PAGE")$orderedGroupings[[1L]]$resultsByGroup)
+  # the levels the table gives list the groups
+  trt <- Filter(function(g) g$id == "AG_ADSL_TRT01A", ars$analysisGroupings)[[1L]]
+  expect_false(trt$dataDriven)
+  expect_identical(trt$name, "Treatment")
+  expect_identical(vapply(trt$groups, `[[`, "", "name"),
+                   c("Placebo", "Xanomeline Low Dose", "Xanomeline High Dose"))
+  sx <- Filter(function(g) g$id == "AG_ADSL_SEX", ars$analysisGroupings)[[1L]]
+  expect_true(sx$dataDriven)
+  # a hierarchy: one analysis per depth, the data subset its where
+  ae <- Filter(function(a) startsWith(a$id, "An_AE_TEAE"), ars$analyses)
+  expect_identical(vapply(ae, `[[`, "", "id"),
+                   c("An_AE_TEAE_ANY", "An_AE_TEAE_L1", "An_AE_TEAE_L2"))
+  expect_length(ae[[3L]]$orderedGroupings, 3L)
+  expect_identical(ae[[1L]]$dataSubsetId, "DS_1")
+  # the AE output had no subject count: one is added, first, and said
+  expect_identical(ars$analyses[[which(vapply(ars$analyses, `[[`, "", "id") ==
+                                         "An_AE_TEAE_ANY") - 1L]]$id,
+                   "An_AE_BIGN_TRTA")
+  un <- tfl_ars_unmapped(ars)
+  expect_true(any(un$item == "denominator" & un$where == "AE"))
+  # the percentage operation names its numerator and denominator
+  cat_m <- Filter(function(m) m$id == "Mth_categorical", ars$methods)[[1L]]
+  rel <- cat_m$operations[[2L]]$referencedOperationRelationships
+  expect_identical(vapply(rel, function(r) r$referencedOperationRole$
+                            controlledTerm, ""), c("NUMERATOR", "DENOMINATOR"))
+  expect_identical(rel[[2L]]$operationId, "Mth_total_n_1_N")
+  # the list of contents: output -> its analyses
+  lc <- ars$mainListOfContents$contentsList$listItems
+  expect_identical(lc[[1L]]$outputId, "DM")
+  expect_identical(lc[[1L]]$sublist$listItems[[1L]]$analysisId, "An_DM_BIGN")
+  # and nothing is wrong with it
+  expect_identical(nrow(tfl_check_ars(ars, schema = FALSE)), 0L)
+})
+
+test_that("the ARS JSON is valid against CDISC's schema, and the same each time", {
+  skip_if_not_installed("jsonvalidate")
+  ars <- tfl_ars(dm_ae())
+  expect_identical(nrow(tfl_check_ars(ars)), 0L)
+  f1 <- withr::local_tempfile(fileext = ".json")
+  f2 <- withr::local_tempfile(fileext = ".json")
+  tfl_write_ars_json(ars, f1)
+  tfl_write_ars_json(tfl_ars(dm_ae()), f2)
+  expect_identical(readLines(f1), readLines(f2))
+  expect_identical(nrow(tfl_check_ars(f1)), 0L)
+  # one value is still a JSON array
+  j <- jsonlite::fromJSON(f1, simplifyVector = FALSE)
+  expect_type(j$analysisSets[[1L]]$condition$value, "list")
+})
+
+test_that("CDISC's own example passes the check", {
+  f <- test_path("fixtures", "ars-csd-demographics.json")
+  expect_identical(nrow(tfl_check_ars(f, schema = FALSE)), 0L)
+  skip_if_not_installed("jsonvalidate")
+  expect_identical(nrow(tfl_check_ars(f)), 0L)
+})
+
+test_that("a purpose is never guessed: blank, it is named", {
+  ars <- tfl_ars(dm_ae(purpose = NULL))
+  un <- tfl_ars_unmapped(ars)
+  expect_true(all(c("DM / AGE", "AE / TEAE") %in% un$where[un$item == "purpose"]))
+  ck <- tfl_check_ars(ars, schema = FALSE)
+  expect_true(all(ck$field == "purpose"))
+  expect_gt(nrow(ck), 0L)
+  # the argument fills the blanks
+  ars <- tfl_ars(dm_ae(purpose = NULL), purpose = "primary outcome measure")
+  expect_identical(an_of(ars, "An_DM_AGE")$purpose$controlledTerm,
+                   "PRIMARY OUTCOME MEASURE")
+  expect_identical(an_of(ars, "An_DM_AGE")$reason$controlledTerm,
+                   "SPECIFIED IN SAP")
+  expect_error(tfl_ars(dm_ae(), purpose = "nonsense"))
+})
+
+test_that("what ARS cannot say is listed with the reason", {
+  sp <- ars_spec(ars_df(
+    list(output_id = "T1", analysis_id = "A", method = "continuous",
+         population_id = "SAF", by = "TRT01A", variables = "AGE",
+         where = "is.na(BMIBL)", formats = "mean=xx.x",
+         args = "na.rm = TRUE"),
+    list(output_id = "T1", analysis_id = "C", method = "custom",
+         population_id = "SAF", variables = "AGE", code = "my_fun(data)")))
+  ars <- tfl_ars(sp, list(cells = ars_df(list(output_id = "T1",
+                                              template = "{mean}"))))
+  un <- tfl_ars_unmapped(ars)
+  expect_true(all(c("analyses$where", "formats", "args", "cells") %in%
+                    un$item))
+  # custom code goes with its method
+  m <- Filter(function(m) m$id == "Mth_custom", ars$methods)[[1L]]
+  expect_identical(m$codeTemplate$code, "my_fun(data)")
+  # the check finds a broken reference
+  ars$analyses[[1L]]$methodId <- "Mth_nope"
+  ck <- tfl_check_ars(ars, schema = FALSE)
+  expect_true(any(ck$field == "methodId"))
+})
+
+test_that("titles, footnotes and the file go to the output's display", {
+  line <- function(o, l, t) list(output_id = o, line = l, center = t)
+  rs <- list(
+    report = ars_df(list(output_id = "DM", file = "t14_1_1.rtf")),
+    titles = ars_df(line("DM", "1", "Table 14.1.1"),
+                    line("DM", "2", "Demographics")),
+    footnotes = ars_df(line("DM", "1", "N: subjects in the population.")))
+  ars <- tfl_ars(dm_ae(), report_spec = rs)
+  o <- ars$outputs[[1L]]
+  expect_identical(o$name, "Table 14.1.1 Demographics")
+  d <- o$displays[[1L]]$display
+  expect_identical(vapply(d$displaySections, `[[`, "", "sectionType"),
+                   c("Title", "Footnote"))
+  expect_identical(o$fileSpecifications[[1L]]$fileType$controlledTerm, "rtf")
+})
+
+test_that("purpose and reason are columns of the ARD spec workbook", {
+  skip_if_not_installed("readxl")
+  sp <- dm_ae()
+  sp$analyses$reason[1L] <- "SPECIFIED IN PROTOCOL"
+  f <- withr::local_tempfile(fileext = ".xlsx")
+  tfl_write_ard_spec(sp, f)
+  back <- tfl_read_ard_spec(f)
+  expect_identical(back$analyses$purpose, sp$analyses$purpose)
+  expect_identical(back$analyses$reason, sp$analyses$reason)
+  expect_true(all(c("purpose / reason") %in% tfl_spec_columns("analyses")$column))
+})
