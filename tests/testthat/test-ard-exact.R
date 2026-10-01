@@ -18,6 +18,7 @@ test_that("each ARD spec row makes what the hand-written call makes", {
     needs <- exact_needs(cs)
     if (!all(vapply(needs, requireNamespace, NA, quietly = TRUE))) next
     res <- exact_run(cs, adam, dir)
+    if (isTRUE(res$skipped)) next     # a package its function needs is not here
     expect_true(isTRUE(res$same), label = paste(cs$id, res$error))
   }
 })
@@ -25,6 +26,7 @@ test_that("each ARD spec row makes what the hand-written call makes", {
 test_that("a method that gives several ARDs keeps which is which", {
   skip_if_not_installed("cards")
   skip_if_not_installed("cardx")
+  skip_if_not_installed("broom")
   skip_if_not_installed("dplyr")
   sp <- exact_spec(list(method = "cards::ard_pairwise", population_id = "SAF",
                         args = paste("variable = TRT01A, .f = function(df)",

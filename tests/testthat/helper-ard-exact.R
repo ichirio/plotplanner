@@ -90,12 +90,19 @@ exact_numbers <- function(a) {
   stats::setNames(val, key)
 }
 
-# one case: list(same, n, error).  A case's own functions (`source`, a
+# A package a cards / cardx function needs only when it runs (cardx's own
+# Suggests: broom, car, emmeans ...): not installed here, the case cannot
+# run -- it is skipped, not failed.
+exact_missing_pkg <- function(msg) {
+  grepl("package.* (is|are) required", msg)
+}
+
+# one case: list(same, n, error, skipped).  A case's own functions (`source`, a
 # file of `fixtures`) go to the study folder's R/, where its spec loads
 # them, and are what the hand-written call runs too.
 exact_run <- function(cs, adam, dir,
                       fixtures = testthat::test_path("fixtures")) {
-  out <- list(same = NA, n = NA_integer_, error = "")
+  out <- list(same = NA, n = NA_integer_, error = "", skipped = FALSE)
   r <- cs$row
   step <- function(what, expr) tryCatch(expr, error = function(e) {
     out$error <<- paste0(what, ": ", conditionMessage(e))
@@ -113,7 +120,10 @@ exact_run <- function(cs, adam, dir,
   if (is.null(sp)) return(out)
   got <- step("build", suppressMessages(suppressWarnings(
     tfl_build_ard(sp, dir = dir, save = FALSE))))
-  if (is.null(got)) return(out)
+  if (is.null(got)) {
+    out$skipped <- exact_missing_pkg(out$error)
+    return(out)
+  }
   env <- list2env(exact_inputs(r, adam, cs$pop_derive, cs$ds_derive),
                   parent = hand_env)
   want <- step("hand", suppressMessages(suppressWarnings(
