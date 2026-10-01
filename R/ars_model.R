@@ -579,9 +579,17 @@ tfl_ars <- function(ard_spec, table_spec = NULL, report_spec = NULL,
       r$analysis_id <- "BIGN"
       mz <- method("total_n", character(), tag = p$out)
       gv <- vapply(p$by, grouping, "", ds = p$ds, out = p$out)
-      id <- add_analysis(r, paste(c("An", p$out, "BIGN",
-                                    p$by),
-                                  collapse = "_"),
+      # An_<output>_BIGN_<by> (_ALL without a grouping), never an id the
+      # output already has
+      id <- paste(c("An", p$out, "BIGN",
+                    if (length(p$by)) p$by else "ALL"), collapse = "_")
+      taken <- vapply(analyses, function(z) z$model$id, "")
+      if (id %in% taken) {
+        k <- 2L
+        while (paste0(id, "_", k) %in% taken) k <- k + 1L
+        id <- paste0(id, "_", k)
+      }
+      id <- add_analysis(r, id,
                          "Number of subjects", p$ds, subj, mz, gv,
                          pur = p$pur, rea = p$rea, role = "bign",
                          m = "total_n")

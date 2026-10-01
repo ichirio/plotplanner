@@ -315,7 +315,8 @@ tfl_ars_to_specs <- function(ars, table = FALSE) {
       tfl_made <- !identical(own, aid)
       # the subject count tfl_ars() added for a percentage's denominator
       if (tfl_made && grepl("^BIGN_", own) &&
-          identical(sub("^BIGN_", "", own), paste(gv, collapse = "_"))) {
+          sub("_[0-9]+$", "", sub("^BIGN_", "", own)) %in%
+          c(if (length(gv)) paste(gv, collapse = "_") else "ALL")) {
         next
       }
       if (is.na(mm$method)) {

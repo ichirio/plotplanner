@@ -212,3 +212,31 @@ test_that("purpose and reason are columns of the ARD spec workbook", {
   expect_identical(back$analyses$reason, sp$analyses$reason)
   expect_true(all(c("purpose / reason") %in% tfl_spec_columns("analyses")$column))
 })
+
+test_that("an added subject count never takes an id the output has", {
+  # an output whose BIGN is a categorical without a grouping and whose
+  # other analysis has no `by`: its percentage needs the count without a
+  # grouping, which tfl_ars() adds
+  sp <- ars_spec(ars_df(
+    list(output_id = "T-1", analysis_id = "BIGN", method = "categorical",
+         population_id = "SAF", variables = "TRT01A"),
+    list(output_id = "T-1", analysis_id = "KM", method = "custom",
+         population_id = "SAF", code = "km(data)")))
+  ars <- tfl_ars(sp)
+  ids <- vapply(ars$analyses, `[[`, "", "id")
+  expect_false(anyDuplicated(ids) > 0L)
+  expect_true("An_T-1_BIGN_ALL" %in% ids)
+  expect_identical(nrow(tfl_check_ars(ars, schema = FALSE)), 0L)
+  # and reading it back leaves the added count out
+  f <- withr::local_tempfile(fileext = ".json")
+  tfl_write_ars_json(ars, f)
+  back <- tfl_ars_to_specs(tfl_read_ars_json(f))$ard$analyses
+  expect_identical(back$analysis_id, c("BIGN", "KM"))
+})
+
+test_that("a blank purpose is named once, not again by the schema", {
+  skip_if_not_installed("jsonvalidate")
+  ck <- tfl_check_ars(tfl_ars(dm_ae(purpose = NULL)))
+  expect_true(all(ck$field == "purpose"))
+  expect_false(any(startsWith(ck$part, "schema")))
+})
