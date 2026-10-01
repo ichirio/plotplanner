@@ -108,3 +108,60 @@
   }
   x
 }
+
+# ---- what a function was given ---------------------------------------------
+
+# A file that is not there, said one way everywhere:
+#   tfl_read_table_spec(): no file 'nope.xlsx'.
+.stop_no_file <- function(path, fn) {
+  .ard_stop(sprintf("%s(): no file %s.", fn, encodeString(path, quote = "'")))
+}
+
+# What a value is, for a message: "a data.frame (3 x 2)", "a list", "NULL".
+.what <- function(x) {
+  if (is.null(x)) return("NULL")
+  cl <- class(x)[1L]
+  if (is.data.frame(x)) return(sprintf("a %s (%d x %d)", cl, nrow(x), ncol(x)))
+  if (is.character(x)) return(sprintf("text (%s)", paste(
+    encodeString(utils::head(x, 2L), quote = "'"), collapse = ", ")))
+  paste0(if (grepl("^[aeiou]", cl)) "an " else "a ", cl)
+}
+
+# The spec a function was given, as the spec it needs: a spec object as it
+# is, the path of its workbook read, the sheets of one as a list made the
+# spec.  Anything else -- an ARD, a data frame, a number -- is refused
+# naming what the function wants and what it got.
+.as_spec <- function(x, kind = c("ard", "table", "listing"), fn,
+                     arg = "spec", output_id = NULL) {
+  kind <- match.arg(kind)
+  want <- switch(kind,
+    ard = "an ARD spec (tfl_ard_spec(), tfl_read_ard_spec())",
+    table = "a table / report spec (tfl_read_table_spec(), tfl_read_report_spec())",
+    listing = "a listing spec (tfl_listing_spec(), tfl_read_listing_spec())")
+  refuse <- function() {
+    .ard_stop(sprintf("%s(): `%s` must be %s or the path of its workbook; got %s.",
+                      fn, arg, want, .what(x)))
+  }
+  if (is.character(x) && !is.object(x)) {
+    if (!length(x) || anyNA(x)) refuse()
+    return(switch(kind,
+      ard = tfl_read_ard_spec(x),
+      table = tfl_read_report_spec(x, output_id),
+      listing = tfl_read_listing_spec(x, output_id = output_id)))
+  }
+  if (!is.list(x) || is.data.frame(x)) refuse()
+  switch(kind,
+    ard = {
+      if (inherits(x, "tfl_ard_spec")) x
+      else if ("analyses" %in% names(x)) structure(x, class = "tfl_ard_spec")
+      else refuse()
+    },
+    table = {
+      sheets <- c("study", names(.ard_spec_schema()))
+      if (inherits(x, "tfl_table_spec")) x
+      else if (length(names(x)) && all(names(x) %in% sheets)) tfl_table_spec(x)
+      else refuse()
+    },
+    listing = if (inherits(x, "tfl_listing_spec")) x else refuse())
+}
+

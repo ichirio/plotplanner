@@ -4,17 +4,17 @@
 \alias{tfl_report}
 \title{Build a report's RTF document from its definition}
 \usage{
-tfl_report(spec, content, output_id = NULL)
+tfl_report(spec, output_id = NULL, content)
 }
 \arguments{
 \item{spec}{A report definition (\code{\link[=tfl_read_report_spec]{tfl_read_report_spec()}}) narrowed to one
 report, or the path(s) to read it from.}
 
-\item{content}{The report's content: an \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}} or \code{rtftable}
-pages for a table or listing, figures for a \code{type = figure} report.}
-
 \item{output_id}{The report, when \code{spec} is a path or still defines
 several.}
+
+\item{content}{The report's content: an \code{\link[rtfreporter:table_plan]{rtfreporter::table_plan()}} or \code{rtftable}
+pages for a table or listing, figures for a \code{type = figure} report.}
 }
 \value{
 An \code{\link[rtfreporter:rtf_document]{rtfreporter::rtf_document()}}.
@@ -29,7 +29,7 @@ carries its program, so \code{{PROGRAM}} needs nothing more.
 \details{
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{spec <- tfl_read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = id)
 plan <- ard |> normalize_ard() |> tfl_table_plan(spec)
-generate_rtfreport(tfl_report(spec, plan), tfl_report_path(spec),
+generate_rtfreport(tfl_report(spec, content = plan), tfl_report_path(spec),
                    overwrite = TRUE)
 }\if{html}{\out{</div>}}
 }

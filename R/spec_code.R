@@ -334,9 +334,8 @@
 #' @export
 tfl_table_code <- function(spec, output_id = NULL, data = "data",
                            plan = "plan", pipe = NULL) {
-  sp <- .ard_spec_scope(if (is.character(spec))
-                          tfl_read_table_spec(spec, output_id)
-                        else tfl_table_spec(spec), output_id)
+  sp <- .ard_spec_scope(.as_spec(spec, "table", "tfl_table_code",
+                                 output_id = output_id), output_id)
   roles <- .plan_spec_roles(sp)
   op <- .ard_pipe_op(pipe)
   head <- do.call(.spec_call, c(list("table_plan", .spec_sym(data)), roles))
@@ -376,9 +375,8 @@ tfl_table_code <- function(spec, output_id = NULL, data = "data",
 #' @export
 tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
   .spec_need_rtfreporter()
-  sp <- .ard_spec_scope(if (is.character(spec))
-                          tfl_read_table_spec(spec, output_id)
-                        else tfl_table_spec(spec), output_id)
+  sp <- .ard_spec_scope(.as_spec(spec, "table", "tfl_table_plan",
+                                 output_id = output_id), output_id)
   roles <- .plan_spec_roles(sp)
   dots <- list(...)
   other <- setdiff(names(dots) %||% rep("", length(dots)), .plan_role_names)
@@ -488,9 +486,8 @@ tfl_table_plan <- function(data, spec, output_id = NULL, ...) {
 #' @export
 tfl_report_code <- function(spec, output_id = NULL, content = "content",
                             doc = "doc") {
-  sp <- .ard_spec_scope(if (is.character(spec))
-                          tfl_read_report_spec(spec, output_id)
-                        else tfl_table_spec(spec), output_id)
+  sp <- .ard_spec_scope(.as_spec(spec, "table", "tfl_report_code",
+                                 output_id = output_id), output_id)
   steps <- .report_spec_steps(sp, content)
   out <- vapply(steps, function(s) {
     if (length(s$args) && inherits(s$args[[1L]], "tfl_spec_sym") &&

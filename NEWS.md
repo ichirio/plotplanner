@@ -1,5 +1,21 @@
 # tflspec (development version)
 
+* **Functions say what they want and what they got** (#64, brush-up).
+  - A function that takes a spec (`tfl_ard_code()`, `tfl_build_ard()`,
+    `tfl_table_code()`, `tfl_table_plan()`, `tfl_report()`,
+    `tfl_report_code()`, `tfl_report_path()`, `tfl_listing_code()`,
+    `tfl_listing()`) refuses anything else with "`spec` must be ...; got a
+    data.frame (2 x 1)" -- a list or a data frame gave R's own warnings.
+  - `tfl_ard_for()` refuses an output the ARD has not, naming those it has
+    (it gave 0 rows).
+  - A file that is not there is said one way: `<function>(): no file
+    '<path>'`.
+  - Argument order: `tfl_report(spec, output_id, content)` (output_id
+    second, as in every other function; a content given second is told
+    to be named) and `tfl_fig_list_template(adam, path)` (the material
+    first, as the other templates).  No alias.
+  - The AI manual says how the functions are named (12.1).
+
 * **Column names and their help** (#64, brush-up before CRAN).
   - Renamed, as the names said no unit: the table spec's `columns$width`
     is `rel_width` (a relative width), and the report's

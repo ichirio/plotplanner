@@ -181,6 +181,11 @@ tfl_write_ard_spec <- function(spec, path, statistics = NULL, methods = NULL,
 #' @export
 tfl_read_ard_spec <- function(path, check = TRUE, statistics = NULL,
                           methods = NULL) {
+  if (!is.character(path) || length(path) != 1L || is.na(path)) {
+    .ard_stop(sprintf("tfl_read_ard_spec(): `path` must be the path of an ARD spec workbook; got %s.",
+                      .what(path)))
+  }
+  if (!file.exists(path)) .stop_no_file(path, "tfl_read_ard_spec")
   sheets <- readxl::excel_sheets(path)
   out <- lapply(names(.ard_spec_sheets), function(s) {
     cols <- .ard_spec_sheets[[s]]
@@ -537,7 +542,7 @@ tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
   part <- match.arg(part)
   old <- .set_catalogs(statistics, methods)
   on.exit(options(old), add = TRUE)
-  x <- if (is.character(spec)) tfl_read_ard_spec(spec) else spec
+  x <- .as_spec(spec, "ard", "tfl_ard_code")
   a <- x$analyses
   if (!is.null(output_id)) a <- a[a$output_id %in% output_id, , drop = FALSE]
   if (part == "setup") {
@@ -748,6 +753,19 @@ tfl_build_ard <- function(spec, dir = ".", output_id = NULL, save = TRUE,
 #'   takes.
 #' @export
 tfl_ard_for <- function(ard, output_id) {
-  d <- ard[ard$output_id == output_id, , drop = FALSE]
+  if (!is.data.frame(ard) || !"output_id" %in% names(ard)) {
+    .ard_stop(sprintf(
+      "tfl_ard_for(): `ard` must be a study ARD (tfl_build_ard()), with an output_id column; got %s.",
+      .what(ard)))
+  }
+  have <- unique(stats::na.omit(ard$output_id))
+  miss <- setdiff(output_id, have)
+  if (length(miss)) {
+    .ard_stop(sprintf(
+      "tfl_ard_for(): the ARD has no output %s.\n  It has: %s.",
+      paste(encodeString(miss, quote = "'"), collapse = ", "),
+      if (length(have)) paste(have, collapse = ", ") else "(none)"))
+  }
+  d <- ard[ard$output_id %in% output_id, , drop = FALSE]
   d[setdiff(names(d), c("output_id", "analysis_id", "population_id"))]
 }

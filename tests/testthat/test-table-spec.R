@@ -462,7 +462,7 @@ test_that("tfl_report() is the document the same code would build", {
   on.exit(options(old), add = TRUE)
   pages <- as_rtftables(data.frame(A = "a", B = "b"))
   sp <- tflspec:::.ard_spec_scope(rep_spec(), "T1")
-  by_spec <- tfl_report(sp, pages)
+  by_spec <- tfl_report(sp, content = pages)
   by_code <- rtf_document(program = "C:\\tfl\\T1") |>
     rtf_section(secinfo = list(
       header = rtf_header(list(c("SPONSOR"), c("PROTOCOL", "Page {PAGE} of {TOTAL_PAGES}"),
@@ -480,7 +480,7 @@ test_that("tfl_report() is the document the same code would build", {
 test_that("a report can drop the running footer and use the page sheet", {
   pages <- as_rtftables(data.frame(A = "a"))
   sp <- suppressMessages(tflspec:::.ard_spec_scope(rep_spec(), "T2"))
-  doc <- tfl_report(sp, pages)
+  doc <- tfl_report(sp, content = pages)
   expect_null(doc$sections[[1L]]$footer)
   expect_identical(doc$document$page$orientation, "portrait")
   expect_identical(doc$document$page$margin_left_in, 0.5)
@@ -514,4 +514,10 @@ test_that("the line is the key: a report's line replaces the default one", {
                    c("house", "mine"))
   expect_error(tfl_table_spec(header = data.frame(line = c(1, 1), left = "x")),
                "two rows")
+})
+
+test_that("tfl_report() takes the output before the content", {
+  skip_if_not_installed("rtfreporter")
+  expect_error(tfl_report(tfl_table_spec(), list(1)),
+               "tfl_report(spec, content = plan)", fixed = TRUE)
 })

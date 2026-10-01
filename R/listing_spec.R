@@ -213,7 +213,7 @@ tfl_listing_spec <- function(listings = NULL, listing_cols = NULL,
 #' @export
 tfl_read_listing_spec <- function(path, output_id = NULL, check = TRUE) {
   .ard_need("readxl", "tfl_read_listing_spec()")
-  if (!file.exists(path)) .ard_stop(sprintf("No such file: %s", path))
+  if (!file.exists(path)) .stop_no_file(path, "tfl_read_listing_spec")
   sheets <- readxl::excel_sheets(path)
   if (!"listings" %in% sheets) {
     .ard_stop(sprintf("%s has no `listings` sheet.", path))
@@ -272,13 +272,8 @@ print.tfl_listing_spec <- function(x, ...) {
 }
 
 # one listing of a definition (or of the workbook at `spec`)
-.listing_one <- function(spec, output_id) {
-  if (is.character(spec) && length(spec) == 1L && !is.data.frame(spec)) {
-    spec <- tfl_read_listing_spec(spec, output_id = output_id)
-  } else if (!inherits(spec, "tfl_listing_spec")) {
-    .ard_stop("`spec` must be a tfl_listing_spec (tfl_listing_spec(), ",
-              "tfl_read_listing_spec()) or the path of its workbook.")
-  }
+.listing_one <- function(spec, output_id, fn = "tfl_listing") {
+  spec <- .as_spec(spec, "listing", fn, output_id = output_id)
   ids <- spec$listings$output_id
   if (is.null(output_id)) {
     if (length(ids) != 1L) {
@@ -318,7 +313,7 @@ print.tfl_listing_spec <- function(x, ...) {
 #' @export
 tfl_listing_code <- function(spec, output_id = NULL, datasets,
                              rework = NULL, type = "multiline") {
-  x <- .listing_one(spec, output_id)
+  x <- .listing_one(spec, output_id, "tfl_listing_code")
   l <- x$listing
   cols <- x$cols
   if (is.na(l$dataset)) return(NULL)
@@ -380,7 +375,7 @@ tfl_listing_code <- function(spec, output_id = NULL, datasets,
 #' @export
 tfl_listing <- function(spec, data, output_id = NULL, type = "multiline") {
   .spec_need_rtfreporter()
-  x <- .listing_one(spec, output_id)
+  x <- .listing_one(spec, output_id, "tfl_listing")
   l <- x$listing
   cols <- x$cols
   data <- as.data.frame(data, stringsAsFactors = FALSE)

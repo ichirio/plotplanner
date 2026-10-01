@@ -141,7 +141,7 @@ test_that("tfl_report_code() writes the document tfl_report() makes", {
     env <- new.env(parent = asNamespace("tflspec"))
     env$pages <- pages
     eval(parse(text = code), env)
-    expect_identical(sc_render(env$doc), sc_render(tfl_report(sp, pages)),
+    expect_identical(sc_render(env$doc), sc_render(tfl_report(sp, content = pages)),
                      label = id)
   }
   sp <- suppressMessages(tflspec:::.ard_spec_scope(sc_rep_spec(), "T2"))
@@ -172,7 +172,7 @@ test_that("a table and its report, written out, make the report the objects make
   env <- new.env(parent = asNamespace("tflspec"))
   env$data <- d
   suppressMessages(eval(parse(text = code), env))
-  by_objects <- tfl_report(rsp, tfl_table_plan(d, tsp) |>
+  by_objects <- tfl_report(rsp, content = tfl_table_plan(d, tsp) |>
                                   plan_cells(notes = FALSE))
   expect_identical(sc_render(env$doc), sc_render(by_objects))
 })

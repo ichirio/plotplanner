@@ -1120,7 +1120,7 @@ tfl_read_table_spec <- function(path, output_id = NULL) {
   sheets <- list()
   from <- character()
   for (f in path) {
-    if (!file.exists(f)) .ard_stop(sprintf("No such file: %s", f))
+    if (!file.exists(f)) .stop_no_file(f, "tfl_read_table_spec")
     nms <- readxl::excel_sheets(f)
     for (sh in nms) {
       low <- tolower(sh)
@@ -1397,16 +1397,16 @@ tfl_read_report_spec <- function(path, output_id = NULL) {
 #' ```r
 #' spec <- tfl_read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = id)
 #' plan <- ard |> normalize_ard() |> tfl_table_plan(spec)
-#' generate_rtfreport(tfl_report(spec, plan), tfl_report_path(spec),
+#' generate_rtfreport(tfl_report(spec, content = plan), tfl_report_path(spec),
 #'                    overwrite = TRUE)
 #' ```
 #'
 #' @param spec A report definition ([tfl_read_report_spec()]) narrowed to one
 #'   report, or the path(s) to read it from.
-#' @param content The report's content: an [rtfreporter::table_plan()] or `rtftable`
-#'   pages for a table or listing, figures for a `type = figure` report.
 #' @param output_id The report, when `spec` is a path or still defines
 #'   several.
+#' @param content The report's content: an [rtfreporter::table_plan()] or `rtftable`
+#'   pages for a table or listing, figures for a `type = figure` report.
 #'
 #' @return An [rtfreporter::rtf_document()].
 #'
@@ -1416,11 +1416,20 @@ tfl_read_report_spec <- function(path, output_id = NULL) {
 #'
 #' @seealso [tfl_read_report_spec()], [tfl_report_path()]
 #' @export
-tfl_report <- function(spec, content, output_id = NULL) {
+tfl_report <- function(spec, output_id = NULL, content) {
   .spec_need_rtfreporter()
-  sp <- .ard_spec_scope(if (is.character(spec))
-                          tfl_read_report_spec(spec, output_id)
-                        else tfl_table_spec(spec), output_id)
+  if (!is.null(output_id) && !(is.character(output_id) &&
+                               length(output_id) == 1L)) {
+    .ard_stop(paste0(
+      "tfl_report(): `output_id` must be a single string; got ",
+      .what(output_id), ".\n  The arguments are tfl_report(spec, output_id, ",
+      "content): name the content -- tfl_report(spec, content = plan)."))
+  }
+  if (missing(content)) {
+    .ard_stop("tfl_report(): give the report's `content` (a plan, pages or figures).")
+  }
+  sp <- .ard_spec_scope(.as_spec(spec, "table", "tfl_report",
+                                 output_id = output_id), output_id)
   # the rtfreporter calls the definition stands for (R/spec_code.R): run
   # here, written out by tfl_report_code() -- one list, so the two agree
   env <- new.env(parent = emptyenv())
@@ -1446,9 +1455,8 @@ tfl_report <- function(spec, content, output_id = NULL) {
 #' @seealso [tfl_report()]
 #' @export
 tfl_report_path <- function(spec, output_id = NULL) {
-  sp <- .ard_spec_scope(if (is.character(spec))
-                          tfl_read_report_spec(spec, output_id)
-                        else tfl_table_spec(spec), output_id)
+  sp <- .ard_spec_scope(.as_spec(spec, "table", "tfl_report_path",
+                                 output_id = output_id), output_id)
   r <- .ard_spec_report_row(sp)
   out <- .ard_spec_study_value(sp, "output_path")
   if (is.na(out)) r$file else file.path(out, r$file)

@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9011** (the development version,
+**This manual documents tflspec 0.0.24.9012** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -94,7 +94,7 @@ cat(tfl_report_code(sp, content = "plan"), sep = "\n")
 
 # or run it: `data` is a normalized ARD (rtfreporter::normalize_ard())
 # plan <- tfl_table_plan(data, sp)
-# generate_rtfreport(tfl_report(sp, plan), tfl_report_path(sp), overwrite = TRUE)
+# generate_rtfreport(tfl_report(sp, content = plan), tfl_report_path(sp), overwrite = TRUE)
 ```
 
 `tfl_table_code()` writes `plan <- table_plan(data, ...) |> plan_*(...)`;
@@ -143,7 +143,7 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 | the plan a table spec stands for | `tfl_table_plan(data, spec)` (then any rtfreporter verb: last wins) |
 | the plan as code | `tfl_table_code(spec)` |
 | a plan written in code, back to a workbook | `tfl_as_table_spec(plan)` |
-| the document / its code / its file | `tfl_report(spec, plan)` / `tfl_report_code(spec)` / `tfl_report_path(spec)` |
+| the document / its code / its file | `tfl_report(spec, output_id, content = plan)` / `tfl_report_code(spec)` / `tfl_report_path(spec)` |
 | a listing's program / its pages | `tfl_listing_code(spec)` / `tfl_listing(spec, data)` |
 | a figure: start / check / write the script | `tfl_fig_template()` / `tfl_check_fig_design()` / `tfl_fig_design_code()` |
 | attach this manual to a chat session | `tflspec_ai_manual(file = )` |
@@ -435,6 +435,26 @@ With `sep = "_"`, a key value may not contain `_` (it could not be split
 back): rename the value or choose another separator.
 
 ---
+
+### 12.1 How the functions are named and take their arguments
+
+- Every function starts with `tfl_`, except `tflspec_ai_manual()` (the
+  same form as rtfreporter's `rtfreporter_ai_manual()`).
+- A spec is read with `tfl_read_<kind>_spec(path)` and written with
+  `tfl_write_<kind>_spec(spec, path)`; what a spec makes is named after
+  what it makes: `tfl_build_ard()` (builds and saves the ARD),
+  `tfl_table_plan()`, `tfl_listing()`, `tfl_report()`; its program is
+  `tfl_<kind>_code()`.
+- The spec (or the data, for a plan) comes first, then `output_id`, then
+  the rest: `tfl_ard_code(spec, output_id)`, `tfl_table_code(spec,
+  output_id)`, `tfl_report(spec, output_id, content)`. A template takes
+  its material first and the path second: `tfl_table_spec_template(ard,
+  path)`, `tfl_fig_list_template(adam, path)`.
+- `tfl_plot_*()` draw one part (`tfl_plot_sankey()`); `tfl_fig_*()` make a
+  figure from ADaM (`tfl_fig_km()`).
+- A function given something other than what it takes says what it
+  wants and what it got; a file that is not there is
+  `<function>(): no file '<path>'`.
 
 ## 13. Complete public API (nothing outside this list exists)
 

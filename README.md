@@ -63,7 +63,7 @@ The same table from an Excel definition, as an object or as code:
 spec <- tfl_read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = "DM")
 
 plan <- tfl_table_plan(data, spec)        # the plan, read from the workbook
-doc  <- tfl_report(spec, plan)             # the document around it
+doc  <- tfl_report(spec, content = plan)   # the document around it
 
 tfl_table_code(spec)                       # or the program: table_plan() + plan_*()
 tfl_report_code(spec, content = "plan")    #   and rtf_document() + rtf_*()
@@ -281,7 +281,7 @@ options(
 One row per figure, columns = the arguments above.
 
 ```r
-tfl_fig_list_template("plot_list.xlsx", adam)   # drop-downs for type, style, legend, PARAMCD, group, pop
+tfl_fig_list_template(adam, "plot_list.xlsx")   # drop-downs for type, style, legend, PARAMCD, group, pop
 tfl_fig_list_code("plot_list.xlsx", adam, dir = "programs/figures")
 ```
 

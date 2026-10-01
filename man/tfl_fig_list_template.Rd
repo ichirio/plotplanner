@@ -4,13 +4,13 @@
 \alias{tfl_fig_list_template}
 \title{Write an Excel plot list template}
 \usage{
-tfl_fig_list_template(path, adam = NULL, rows = NULL, n_rows = 300)
+tfl_fig_list_template(adam = NULL, path, rows = NULL, n_rows = 300)
 }
 \arguments{
-\item{path}{Output \code{.xlsx} path.}
-
 \item{adam}{Optional ADaM data; offers PARAMCD values, grouping variables
 and population flags from the data in drop-downs.}
+
+\item{path}{Output \code{.xlsx} path.}
 
 \item{rows}{Optional data frame of rows to pre-fill (default: one example
 per type).}

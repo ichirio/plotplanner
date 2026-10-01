@@ -721,7 +721,7 @@ for (id in names(code_plans)) {
   p <- plan_cells(tfl_table_plan(pages_n[[id]], sp), notes = FALSE)
   a <- file.path(tmp, "code.rtf"); b <- file.path(tmp, "spec.rtf")
   generate_rtfreport(code_doc(id, code_plans[[id]]), a, overwrite = TRUE)
-  generate_rtfreport(tfl_report(sp, p), b, overwrite = TRUE)
+  generate_rtfreport(tfl_report(sp, content = p), b, overwrite = TRUE)
   same <- identical(readLines(a, warn = FALSE), readLines(b, warn = FALSE))
   # and the program the definition writes: tfl_table_code() +
   # tfl_report_code(), run, gives the same RTF again
