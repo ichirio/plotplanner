@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9007** (the development version,
+**This manual documents tflspec 0.0.24.9008** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -137,7 +137,7 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 | scaffold a table spec from an ARD | `tfl_table_spec_template(ard)` |
 | read / write a table (+ report) spec | `tfl_read_table_spec()` / `tfl_read_report_spec()` / `tfl_write_table_spec()` / `tfl_write_report_spec()` |
 | several specs in one workbook; what a column means | `tfl_write_specs(path, ard, table, report, listing)`; `tfl_spec_columns(sheet)` |
-| the specs as CDISC ARS (JSON), and its check | `tfl_ars(ard_spec, table_spec, report_spec)` → `tfl_write_ars_json(ars, path)`; `tfl_check_ars(ars)`; what ARS cannot say: `tfl_ars_unmapped(ars)` |
+| the specs as CDISC ARS (JSON), and its check | `tfl_ars(ard_spec, table_spec, report_spec)` → `tfl_write_ars_json(ars, path)`; `tfl_check_ars(ars)`; what ARS cannot say: `tfl_ars_unmapped(ars)`; CDISC's Excel template to read: `tfl_write_ars_xlsx(ars, path)` (§5.1) |
 | ARS siera can run, and its ARD (round trip) | `tfl_ars(ard_spec, profile = "siera")` → `tfl_ars_ard(ars, adam)` (siera writes and runs one programme per output) |
 | an ARS JSON (anyone's) back as specs | `tfl_read_ars_json(path)` → `tfl_ars_to_specs(ars, table = FALSE)`: `$ard`, `$report` (`$table`: the groupings' levels); fill `datasets$path`; what has no place: `attr(, "unmapped")` |
 | the plan a table spec stands for | `tfl_table_plan(data, spec)` (then any rtfreporter verb: last wins) |
@@ -174,6 +174,42 @@ writes the cards code; `tfl_build_ard()` runs it and saves one study ARD;
 - `formats`: `mean=xx.x | p=xx.x% | AGE:sd=xx.xx` — the `xx` part says the
   decimals only.
 - `custom` takes R in `code`; `args` passes arguments to the method.
+
+### 5.1 CDISC ARS — writing and reading the analyses as the standard
+
+The specs stay the source; ARS (CDISC Analysis Results Standard v1.0) is
+written from them, and read back into them.  The JSON is the form to
+exchange.
+
+```r
+ars <- tfl_ars(ard_spec, table_spec, report_spec)   # profile = "cdisc"
+tfl_check_ars(ars)                 # 0 rows = valid (jsonvalidate: CDISC's schema too)
+tfl_ars_unmapped(ars)              # what ARS cannot say, with the reason
+tfl_write_ars_json(ars, "ars/study_ars.json")
+tfl_write_ars_xlsx(ars, "ars/study_ars.xlsx")       # CDISC's Excel template, to read
+
+# siera runs it: the same analyses, made runnable, and their ARD
+ars_s <- tfl_ars(ard_spec, profile = "siera")
+ard   <- tfl_ars_ard(ars_s, adam)  # adam: named list or folder
+
+# anyone's ARS back into specs
+sp <- tfl_ars_to_specs(tfl_read_ars_json("their_ars.json"), table = TRUE)
+sp$ard; sp$report; sp$table       # fill sp$ard$datasets$path before running
+```
+
+- `purpose` (PRIMARY / SECONDARY / EXPLORATORY OUTCOME MEASURE) is the
+  SAP's decision: fill the analyses' `purpose` column (or
+  `tfl_ars(purpose = )`); it is never guessed, and `tfl_check_ars()` names
+  a blank one.  `reason` defaults to SPECIFIED IN SAP.
+- The layout is CDISC's own example's: a categorical variable is a count
+  of the subject key grouped by the variable; its percentage names the
+  output's subject count (added when the output has none).
+- `profile = "siera"` leaves out what siera has no template for (t test,
+  Wilcoxon, Fisher, mean CI, missing, custom ...) and lists it; a hierarchy
+  keeps its nesting (two levels below the arm at most).
+- Reading: an analysis whose method tflspec has no keyword for (an ANOVA,
+  SAS code only) is not made a row and is listed in
+  `attr(sp, "unmapped")`.  ARS has no ADaM path.
 
 ---
 
@@ -382,6 +418,7 @@ back): rename the value or choose another separator.
 
 **CDISC ARS:** `tfl_ars` `tfl_write_ars_json` `tfl_check_ars`
 `tfl_ars_unmapped` `tfl_ars_ard` `tfl_read_ars_json` `tfl_ars_to_specs`
+`tfl_write_ars_xlsx`
 
 **Table spec:** `tfl_table_spec` `tfl_read_table_spec` `tfl_write_table_spec`
 `tfl_write_report_spec` `tfl_write_specs` `tfl_spec_columns`

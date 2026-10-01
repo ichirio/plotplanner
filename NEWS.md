@@ -1,5 +1,16 @@
 # tflspec (development version)
 
+* **CDISC's Excel template for ARS** (#59, stage 4 of the ARS export).
+  `tfl_write_ars_xlsx()` writes a reporting event as the Excel template of
+  CDISC's ARS repository: its 25 sheets in their order with their columns
+  (one row per list item, group, operation, display sub-section; a
+  WhereClause as `level` / `order` rows; document references and nested
+  categories kept).  CDISC's converter (`excel2ars.py`) reads it back to
+  the same JSON: checked on tflspec's own events and on CDISC's Common
+  Safety Displays.  Written with writexl, so any reader opens it.
+  - The AI manual gains §5.1: writing ARS, running it with siera, reading
+    anyone's ARS back into specs.
+
 * **Reading ARS back into specs** (#57, stage 3 of the ARS export).
   `tfl_read_ars_json()` reads an ARS JSON -- tflspec's or anyone's -- as
   the model, refusing one whose references name nothing.
