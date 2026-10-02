@@ -675,6 +675,8 @@ tfl_ard_code <- function(spec, output_id = NULL, save = TRUE,
       if (!is.null(whr)) cond <- sprintf("%s & (%s)", cond, whr)
       sprintf("subset(%s, %s)", ds, cond)
     }
+    # no dataset and no population: no data (as before, `data` is NULL)
+    if (is.null(expr)) return("NULL")
     if (expr %in% taken) return(expr)            # a dataset or a population
     if (!is.na(data_of[expr])) return(data_of[[expr]])
     base <- paste(c(if (!is.na(r$dataset)) .r_name(r$dataset) else

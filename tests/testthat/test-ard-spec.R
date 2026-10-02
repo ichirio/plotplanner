@@ -208,3 +208,11 @@ test_that("a catalog without labels reads its method names as labels", {
   m <- tfl_ard_methods()
   expect_identical(m$label, m$method)
 })
+
+test_that("an analysis with no dataset and no population still writes its code", {
+  x <- toy_spec(spec_df(list(output_id = "T1", analysis_id = "A",
+                             method = "custom", code = "cards::ard_total_n(adsl)")))
+  code <- tfl_ard_code(x)
+  expect_silent(parse(text = code))
+  expect_true(any(code == "  data <- NULL"))
+})
