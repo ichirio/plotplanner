@@ -1,5 +1,10 @@
 # tflspec (development version)
 
+* `tfl_ard_code()` writes the code of an analysis with no dataset and no
+  population again (#76): #74 left its data unnamed and stopped with
+  "argument is of length zero", before tflplanner could say what the
+  definition lacks.  Its data is `NULL`, as before #74.
+
 * **The ARD program reads like code written by hand** (#74).  Each
   analysis's data -- the dataset, restricted to the population's subjects
   and to the analysis's `where` -- is made once, under a name
