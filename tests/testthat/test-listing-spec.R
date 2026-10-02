@@ -160,3 +160,18 @@ test_that("a dataset the catalog has not stops the program, saying so", {
                "tflspec: dataset ADAE is not in the data catalog.", fixed = TRUE)
   expect_true("adsl <- readRDS(\"data/adsl.rds\")" %in% tfl_read_data_code(cat, "ADSL"))
 })
+
+test_that("an .rda (or .RData) file holding one dataset is read, in the code and by tfl_read_adam()", {
+  d <- withr::local_tempdir()
+  adsl <- data.frame(USUBJID = c("A", "B"), AGE = c(30, 40))
+  save(adsl, file = file.path(d, "adsl.rda"))
+  cat <- data.frame(dataset = "ADSL", path = file.path(d, "adsl.rda"), derive = NA)
+  code <- tfl_read_data_code(cat, "ADSL")
+  e <- new.env()
+  eval(parse(text = code), envir = e)
+  expect_identical(e$adsl, adsl)
+  file.copy(file.path(d, "adsl.rda"), file.path(d, "adae.RData"))
+  got <- tfl_read_adam(d)
+  expect_identical(names(got), c("ADAE", "ADSL"))
+  expect_identical(got$ADSL, adsl)
+})

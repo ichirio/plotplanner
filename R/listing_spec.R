@@ -18,7 +18,8 @@
 #' The code that reads one dataset of a data catalog
 #'
 #' Writes `adsl <- haven::read_xpt("data/adam/adsl.xpt")` (the reader follows
-#' the file's extension: `.rds`, `.xpt`, `.sas7bdat`, `.csv`, `.parquet`)
+#' the file's extension: `.rds`, `.xpt`, `.sas7bdat`, `.csv`, `.parquet`, and `.rda` /
+#' `.RData` holding one dataset)
 #' into an object named after the dataset, and its derived columns.
 #'
 #' @param datasets The data catalog: a data frame with `dataset`, `path`

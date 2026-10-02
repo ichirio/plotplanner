@@ -360,6 +360,11 @@ tfl_ard_spec <- function(x, statistics = NULL, methods = NULL) {
 
 .reader <- function(path) {
   ext <- tolower(tools::file_ext(path))
+  # an .rda / .RData file holds one dataset: the object it has
+  if (ext %in% c("rda", "rdata")) {
+    return(sprintf("local({ e <- new.env(); load(%s, envir = e); e[[ls(e)[1L]]] })",
+                   encodeString(path, quote = "\"")))
+  }
   f <- switch(ext, rds = "readRDS", xpt = "haven::read_xpt",
               sas7bdat = "haven::read_sas", csv = "utils::read.csv",
               parquet = "arrow::read_parquet",

@@ -1,5 +1,9 @@
 # tflspec (development version)
 
+* **`.rda` / `.RData` data files** (one dataset a file) are read: the
+  written programs (`tfl_ard_code()`, `tfl_read_data_code()`) load them,
+  and `tfl_read_adam()` takes them from a folder.
+
 * **`tfl_listing(data, spec)`**: the data comes first, as in
   `tfl_table_plan(data, spec)`, so a listing can be piped from its data
   (#68).  No alias: a call in the old order (`tfl_listing(spec, data)`)
