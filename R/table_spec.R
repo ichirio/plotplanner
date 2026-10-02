@@ -46,6 +46,7 @@
     pages_max_rows = "int", pages_split = "text",
     pages_break_before = "ids",
     pages_min_group_rows = "int", pages_cont_label = "text",
+    pages_page_by = "list",
     group_col = "text", group_mode = "text", group_collapse = "flex",
     group_page = "bool", group_keep = "bool",
     blank_where = "text", blank_first = "bool", blank_last = "bool",
@@ -64,12 +65,20 @@
     cell_valign = "text", markup = "text", blank_row_normalize = "text",
     border_header = "sides", border_spanning = "sides",
     border_body = "sides", border_first_row = "sides",
-    border_last_row = "sides"),
+    border_last_row = "sides",
+    # the table's default look (rtf_table_style()'s fields) and width
+    header_align = "text", header_bold = "bool", header_italic = "bool",
+    align = "text", bold = "bool", italic = "bool", underline = "bool",
+    table_width_twips = "int", table_width_pct = "num",
+    table_width_pct_of_writable = "num",
+    # plan_col_header()'s: how the header text sits
+    col_header_align = "text"),
   # one row per plan_cell_style(): the cells chosen by `cols`, `header`
   # and `where` (an R condition over the table's columns), and their look
   cell_styles = c(
     cols = "list", header = "bool", where = "text", bold = "bool",
-    italic = "bool", align = "text", color = "text", background = "text"),
+    italic = "bool", align = "text", color = "text", background = "text",
+    underline = "bool", indent_twips = "int"),
   columns = c(
     column = "text", rel_width = "num", row_title = "bool",
     decimal_split = "bool", hide = "bool"),
@@ -338,13 +347,14 @@
 # -- as rtfreporter keeps one conditional rule per look -- one `where` row
 # per look and report.
 .ard_spec_check_cell_styles <- function(d) {
-  looks <- c("bold", "italic", "align", "color", "background")
+  looks <- c("bold", "italic", "align", "color", "background", "underline",
+             "indent_twips")
   for (i in seq_len(nrow(d))) {
     r <- d[i, , drop = FALSE]
     at <- sprintf("`cell_styles` row %d", i)
-    if (all(is.na(unlist(r[looks])))) {
-      .ard_stop(paste0(at, " styles nothing: give bold, italic, align, ",
-                       "color or background."))
+    if (all(is.na(unlist(r[intersect(looks, names(r))])))) {
+      .ard_stop(paste0(at, " styles nothing: give bold, italic, underline, ",
+                       "align, indent_twips, color or background."))
     }
     if (!is.na(r$where)) {
       ok <- tryCatch(is.call(str2lang(r$where)) || is.name(str2lang(r$where)),
@@ -567,7 +577,9 @@
 #' \describe{
 #'   \item{`pages_*`}{[rtfreporter::plan_paginate_rows()]: `max_rows`, `split`,
 #'     `break_before` (row positions to cut before, `20 | 40`, with
-#'     `split = rows`), `min_group_rows`, `cont_label`.}
+#'     `split = rows`), `min_group_rows`, `cont_label`, `page_by` (BY
+#'     pages: the column(s) partitioning the body first, the row budget
+#'     inside each).}
 #'   \item{`group_*`}{`mode` and `collapse` of [rtfreporter::plan_row_group()].
 #'     `group_page = TRUE` is [rtfreporter::plan_paginate_group()]: one page per
 #'     value of `group_col` (blank: the outermost row key), and
@@ -593,9 +605,10 @@
 #'     rows (`label == "Any TEAE"`, `is.na(label)`); blank, every row.  A
 #'     plan keeps one conditional rule per look, so two rows with a `where`
 #'     may not set the same look -- join their conditions with `|`.}
-#'   \item{`bold`, `italic`, `align`, `color`, `background`}{The look:
-#'     `TRUE` / `FALSE`, `left` / `center` / `right`, a colour
-#'     (`#CC0000`).}
+#'   \item{`bold`, `italic`, `underline`, `align`, `color`, `background`,
+#'     `indent_twips`}{The look: `TRUE` / `FALSE`, `left` / `center` /
+#'     `right`, a colour (`#CC0000`), a left indent in twips (not on the
+#'     header).}
 #' }
 #'
 #' @section `columns`:
@@ -623,8 +636,13 @@
 #' kind of row, `border_header`, `border_spanning`, `border_body`,
 #' `border_first_row`, `border_last_row`: the sides drawn (`top | bottom`)
 #' or `none`, as [rtfreporter::rtf_border()] takes them.  `border` and the
-#' `border_*` columns are one or the other.  `auto_width` is
-#' [rtfreporter::plan_columns()]'s.
+#' `border_*` columns are one or the other.  The table's default look,
+#' `header_align`, `header_bold`, `header_italic`, `align`, `bold`,
+#' `italic`, `underline` ([rtfreporter::rtf_table_style()]'s fields, made
+#' into one style with the `border_*` columns), and its width,
+#' `table_width_twips`, `table_width_pct`, `table_width_pct_of_writable`.
+#' `auto_width` is [rtfreporter::plan_columns()]'s and `col_header_align`
+#' [rtfreporter::plan_col_header()]'s.
 #'
 #' Values are checked where they are written: a number, `TRUE` / `FALSE`
 #' or a `|`-list, as the column needs.  Quote a text value (`" (Cont.)"`)
@@ -1762,6 +1780,7 @@ tfl_as_table_spec <- function(x, output_id = NULL, compare = TRUE) {
   put("pages_min_group_rows", pg$min_group_rows)
   put("pages_cont_label", pg$cont_label)
   put("pages_break_before", pg$split_rows)
+  put("pages_page_by", pg$page_by)
   cp <- ly[["colpages"]]
   put("colpages_every", cp$every); put("colpages_at", cp$at)
   put("colpages_keep", cp$keep); put("colpages_order", cp$order)
@@ -1781,6 +1800,8 @@ tfl_as_table_spec <- function(x, output_id = NULL, compare = TRUE) {
   sty <- ly[["style"]]
   style <- list(output_id = id)
   sc <- ly[["columns"]]
+  # the default look is kept as `.style_<field>` in the plan
+  if (length(sty)) names(sty) <- sub("^[.]style_", "", names(sty))
   for (nm in names(sty)) {
     v <- sty[[nm]]
     if (startsWith(nm, "border_")) {
@@ -1797,6 +1818,19 @@ tfl_as_table_spec <- function(x, output_id = NULL, compare = TRUE) {
     }
   }
   if (!is.null(sc$auto_width)) style$auto_width <- as.character(sc$auto_width)
+  if (!is.null(sc$cell_format)) {
+    miss("plan_columns(cell_format = ): a function stays in code")
+  }
+  if (!is.null(sc$column_widths_twips)) {
+    miss("plan_columns(column_widths_twips = ) stays in code (rel_width with table_width_twips sets the same widths)")
+  }
+  hl <- ly[["header"]]
+  ha <- hl[["text_align"]]
+  if (is.character(ha) && length(ha) == 1L) style$col_header_align <- ha
+  else if (!is.null(ha)) miss("plan_col_header(col_header_align = ): only a single value converts")
+  if (!is.null(hl[["names_sep"]])) {
+    miss("plan_col_header(header_sep = ) stays in code (a definition's column names are joined by tables$sep)")
+  }
   style <- if (length(style) > 1L) as.data.frame(style, stringsAsFactors = FALSE)
 
   # -- cell styles ------------------------------------------------------------
@@ -1809,11 +1843,13 @@ tfl_as_table_spec <- function(x, output_id = NULL, compare = TRUE) {
                     where = where, bold = NA_character_,
                     italic = NA_character_, align = NA_character_,
                     color = NA_character_, background = NA_character_,
+                    underline = NA_character_, indent_twips = NA_character_,
                     stringsAsFactors = FALSE)
     for (k in names(look)) r[[k]] <- as.character(look[[k]])
     csr[[length(csr) + 1L]] <<- r
   }
-  looks <- c("bold", "italic", "align", "color", "background")
+  looks <- c("bold", "italic", "align", "color", "background", "underline",
+             "indent_twips")
   for (l in ly[["restyle"]]) {
     ar <- l$args
     lk <- ar[intersect(names(ar), looks)]

@@ -28,7 +28,8 @@ test_that("a plan through its spec and a workbook gives the same RTF", {
   skip_if_not_installed("readxl")
   env <- new.env(parent = globalenv())
   cases <- source(test_path("fixtures", "table-cases.R"), local = env)$value
-  said <- c("cell_style", "style_border_obj", "titles_pages")
+  said <- c("cell_style", "style_border_obj", "titles_pages",
+            "columns_twips", "columns_cell_format", "header_sep")
   report <- c("titles", "footnotes")
   for (nm in names(cases)) {
     p <- eval(cases[[nm]], env)

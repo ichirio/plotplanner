@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9020** (the development version,
+**This manual documents tflspec 0.0.24.9021** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -314,7 +314,7 @@ cells  <- data.frame(output_id = "T-14-3-1", template = "{n} ({p:.1f%})")
 
 | Columns | Verb |
 |---|---|
-| `pages_max_rows`, `pages_split`, `pages_break_before`, `pages_min_group_rows`, `pages_cont_label` | `plan_paginate_rows()` |
+| `pages_max_rows`, `pages_split`, `pages_break_before`, `pages_min_group_rows`, `pages_cont_label`, `pages_page_by` | `plan_paginate_rows()` (`page_by`: BY pages, the row budget inside each) |
 | `group_mode`, `group_collapse` | `plan_row_group()` |
 | `group_page`, `group_col`, `group_keep` | `plan_paginate_group(col, keep)` — one page per value |
 | `blank_where`, `blank_first`, `blank_last`, `blank_counted` | `plan_blanks()` |
@@ -331,13 +331,23 @@ column): `column`, `rel_width`, `row_title`, `decimal_split`, `hide` →
 `cell_padding_left_twips`, `cell_padding_right_twips`, `cell_valign`,
 `table_align`, `markup`, `blank_row_normalize`, and one kind of row's rules
 `border_header` … `border_last_row` written as sides (`top | bottom`) or
-`none`; plus `auto_width` (→ `plan_columns()`).
+`none`; the default look `header_align`, `header_bold`, `header_italic`,
+`align`, `bold`, `italic`, `underline` (one `rtf_table_style()` with the
+`border_*` columns; any of them makes the body `align` default `left`) and
+the width `table_width_twips`, `table_width_pct`,
+`table_width_pct_of_writable`; plus `auto_width` (→ `plan_columns()`) and
+`col_header_align` (→ `plan_col_header()`). Not in a sheet (they stay in
+code): `plan_columns(cell_format =)` (a function), `column_widths_twips`
+(`rel_width` with `table_width_twips` sets the same widths), and
+`plan_col_header(header_sep =)` (the column names are joined by
+`tables$sep`).
 
 **cell_styles** (one row a `plan_cell_style()`, in order; a report's own
 rows replace the defaults whole): `cols` (`.values` = every value column),
 `header` (`TRUE`: the column header), `where` (an R condition over the
 table's columns: `label == "Any TEAE"`), `bold`, `italic`, `align`,
-`color`, `background`. Two rows with a `where` may not set the same look.
+`color`, `background`, `underline`, `indent_twips` (not on the header).
+Two rows with a `where` may not set the same look.
 
 **col_header** (one row a header cell): `line`, `cols` (a name, `.values`,
 a position or range `3:last`, or `KEY = value`), `span` (blank: one cell;

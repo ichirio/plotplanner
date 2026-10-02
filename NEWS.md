@@ -1,5 +1,19 @@
 # tflspec (development version)
 
+* **The table definition says what the plan learned in rtfreporter
+  0.8.2.9006** (#81; rtfreporter #517 / #519).  New columns, blank = as before:
+  `layout$pages_page_by` (BY pages with a row budget inside,
+  `plan_paginate_rows(page_by = )`); `style$header_align`, `header_bold`,
+  `header_italic`, `align`, `bold`, `italic`, `underline` (the table's
+  default look, one `rtf_table_style()` with the `border_*` columns),
+  `table_width_twips`, `table_width_pct`, `table_width_pct_of_writable`,
+  and `col_header_align` (`plan_col_header()`); `cell_styles$underline` and
+  `indent_twips`.  `tfl_table_plan()`, `tfl_table_code()` and
+  `tfl_as_table_spec()` carry them both ways, byte for byte.  What a sheet
+  cannot hold is listed by `tfl_as_table_spec()` (`not_converted`) instead
+  of being dropped: `plan_columns(cell_format = )`, `column_widths_twips`,
+  `plan_col_header(header_sep = )`.  Needs rtfreporter >= 0.8.2.9006.
+
 * **`tfl_read_toc()`: a company's TOC as report specs** (#78).  A study's
   list of outputs in the company's own workbook or `.csv` is read through a
   map of its columns (`output_id`, `type`, `title` -- one column or several
