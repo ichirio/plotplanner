@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9019** (the development version,
+**This manual documents tflspec 0.0.24.9020** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -367,6 +367,35 @@ file.
 Page tokens in the running header / footer: `{PAGE}`, `{TOTAL_PAGES}`,
 `{PROGRAM}`, `{DATETIME}`.
 
+### 7.1 A company's TOC as report specs
+
+A study's list of outputs in the company's own workbook (or `.csv`) is
+read through a map of its columns into the `report`, `titles` and
+`footnotes` sheets -- the reports exist, titled, before any table:
+
+```r
+sp <- tfl_read_toc("TOC.xlsx", sheet = "TOC", skip = 0,
+                   map = list(output_id = "Output No.", type = "Type",
+                              title = c("Title 1", "Title 2"),
+                              population = "Analysis Set",
+                              footnote = "Footnotes", program = "Program"))
+attr(sp, "guessed")   # reports whose kind came from the id / title
+tfl_write_specs("spec/report.xlsx", report = sp)
+```
+
+- `map` names are the fields (`output_id` required; `type`, `title`,
+  `population`, `footnote`, `program`, `file`, `note`); values are the
+  TOC's column names, matched ignoring case. A missing column names the
+  closest ones.
+- `title` / `footnote`: one column or several; a cell's line breaks or
+  `" | "` make lines. `population` is the last title line.
+- The kind: `Table` / `tbl` / `Figure` / `Fig` / `Listing` ... read
+  loosely; else from the id or first title (`T-14-1-1`, `Table 14.1.1`,
+  `F14.2`); else `table`.
+- A row without an output id that says one thing at most (a section
+  heading) is skipped (`attr(, "skipped")`); one that says more, and an id
+  given twice, are errors.
+
 ---
 
 ## 8. Listing spec
@@ -525,7 +554,7 @@ back): rename the value or choose another separator.
 `tfl_table_spec_template` `tfl_table_plan` `tfl_table_code`
 `tfl_as_table_spec`
 
-**Report spec:** `tfl_read_report_spec` `tfl_report` `tfl_report_code`
+**Report spec:** `tfl_read_report_spec` `tfl_read_toc` `tfl_report` `tfl_report_code`
 `tfl_report_path`
 
 **Listing spec:** `tfl_listing_spec` `tfl_read_listing_spec`
