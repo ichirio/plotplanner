@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9021** (the development version,
+**This manual documents tflspec 0.0.24.9022** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -333,7 +333,7 @@ column): `column`, `rel_width`, `row_title`, `decimal_split`, `hide` →
 `border_header` … `border_last_row` written as sides (`top | bottom`) or
 `none`; the default look `header_align`, `header_bold`, `header_italic`,
 `align`, `bold`, `italic`, `underline` (one `rtf_table_style()` with the
-`border_*` columns; any of them makes the body `align` default `left`) and
+`border_*` columns; a blank `align` keeps each column's default) and
 the width `table_width_twips`, `table_width_pct`,
 `table_width_pct_of_writable`; plus `auto_width` (→ `plan_columns()`) and
 `col_header_align` (→ `plan_col_header()`). Not in a sheet (they stay in

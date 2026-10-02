@@ -124,7 +124,7 @@ style,border_last_row,"The last body row's rules: sides, or none; blank: border'
 style,header_align,"The whole column header's alignment: left / center / right (rtf_table_style()); blank: each column's.",center
 style,header_bold,"TRUE / FALSE: the whole column header bold; blank: FALSE.",TRUE
 style,header_italic,"TRUE / FALSE: the whole column header italic; blank: FALSE.",TRUE
-style,align,"The body's default alignment: left / center / right (rtf_table_style()); blank: left when any border_* or look column (header_align ... underline) of this sheet is given, as rtf_table_style() defaults; otherwise row-title columns left, the others center.",left
+style,align,"The body's default alignment: left / center / right (rtf_table_style()); blank: row-title columns left, the others center.",left
 style,bold,"TRUE / FALSE: the body bold by default; blank: FALSE.",TRUE
 style,italic,"TRUE / FALSE: the body italic by default; blank: FALSE.",TRUE
 style,underline,"TRUE / FALSE: the body underlined by default; blank: FALSE.",TRUE
