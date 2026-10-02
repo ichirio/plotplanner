@@ -9,8 +9,8 @@ test_that("a table spec is written with its sheets only, a report spec with its"
   tfl_write_report_spec(sp, rf)
   # both halves hold rows here: each writer still writes its own half (and
   # the other's sheets only when they hold rows -- so nothing is dropped)
-  expect_identical(readxl::excel_sheets(tf)[1:9],
-                   c("study", "tables", "variables", "cells", "layout",
+  expect_identical(readxl::excel_sheets(tf)[1:10],
+                   c("study", "tables", "variables", "codelists", "cells", "layout",
                      "columns", "style", "cell_styles", "col_header"))
   expect_identical(readxl::excel_sheets(rf)[1:7],
                    c("study", "report", "page", "header", "footer",
@@ -19,7 +19,7 @@ test_that("a table spec is written with its sheets only, a report spec with its"
   t_only <- tfl_read_table_spec(ex("DM.xlsx"))
   tfl_write_table_spec(t_only, tf)
   expect_identical(readxl::excel_sheets(tf),
-                   c("study", "tables", "variables", "cells", "layout",
+                   c("study", "tables", "variables", "codelists", "cells", "layout",
                      "columns", "style", "cell_styles", "col_header",
                      "about"))
   expect_false(any(startsWith(readxl::excel_sheets(tf), "_")))
@@ -65,7 +65,7 @@ test_that("the column help is a comment on each header cell", {
   help <- tfl_spec_columns("tables")
   expect_true(all(c("sheet", "column", "description", "example") %in% names(help)))
   expect_gt(nrow(tfl_spec_columns("analyses")), 0L)
-  expect_true(all(c("tables", "variables", "cells") %in%
+  expect_true(all(c("tables", "variables", "codelists", "cells") %in%
                     unlist(strsplit(tfl_spec_columns()$sheet, " / "))))
 })
 
