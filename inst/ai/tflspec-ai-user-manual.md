@@ -1,6 +1,6 @@
 # tflspec — AI user manual
 
-**This manual documents tflspec 0.0.24.9016** (the development version,
+**This manual documents tflspec 0.0.24.9017** (the development version,
 after release 0.0.24; with rtfreporter 0.8.2).
 Check it matches what you have — `packageVersion("tflspec")`. If they
 differ, trust the package, not this file, and fetch the matching copy with
@@ -291,6 +291,8 @@ once. The `study` sheet has `key` / `value` (`rounding`: `sas` / `iec` /
 
 **variables**: `variable`, `label`, `order`, `levels` (`Grade 0 | Grade 1`)
 → `plan_labels()`, `plan_levels()`.
+
+**codelists** (the study's code list, one row a value): `variable`, `value`, `label`, `order` → `plan_labels(SEX = c(SEX = "Sex", F = "Female"))` and `plan_levels(SEX = c("M", "F"))`. A report's own rows replace the defaults of the same variable / value; a variable's `levels` on the `variables` sheet, when given, is the order instead.
 
 **cells**: `variable`, `context`, `row`, `when`, `template`, `digits`,
 `signif` → `plan_cells()`. A row with `variable` blank is the table's

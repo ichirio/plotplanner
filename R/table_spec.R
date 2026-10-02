@@ -176,6 +176,8 @@
     tables    = c("output_id", "cols", "rows", "label", "stats", "value",
                   "sep", "sort", "sort_stat", "na", "header_n"),
     variables = c("output_id", "variable", "label", "order", "levels"),
+    # the study's code list: a value's text and place
+    codelists = c("output_id", "variable", "value", "label", "order"),
     cells     = c("output_id", "variable", "context", "row", "when",
                   "template", "digits", "signif"),
     # the table half: what as_rtftables() / rtftable() are told, read by
@@ -205,6 +207,7 @@
 # per report, so its key is the report itself.
 .ard_spec_keys <- list(tables    = character(),
                        variables = "variable",
+                       codelists = c("variable", "value"),
                        cells     = c("variable", "context", "row"),
                        layout    = character(),
                        columns   = "column",
@@ -311,18 +314,20 @@
         ".\n  One row per report; merge them."))
     }
   }
-  for (sh in c("variables", "columns", "header", "footer", "titles",
-                "footnotes")) {
+  for (sh in c("variables", "codelists", "columns", "header", "footer",
+                "titles", "footnotes")) {
     v <- sp[[sh]]
+    if (is.null(v)) next
     key <- .ard_spec_keys[[sh]]
-    k <- paste(v$output_id, v[[key]], sep = "\r")
+    kv <- do.call(paste, c(lapply(key, function(k) v[[k]]), sep = " / "))
+    k <- paste(v$output_id, kv, sep = "\r")
     if (any(duplicated(k))) {
       i <- which(duplicated(k))[1L]
       .ard_stop(paste0(
-        "The `", sh, "` sheet has two rows for ", sQuote(v[[key]][i]),
+        "The `", sh, "` sheet has two rows for ", sQuote(kv[i]),
         if (!is.na(v$output_id[i])) paste0(" in ", sQuote(v$output_id[i]))
         else " among the defaults",
-        ".\n  One row per ", key, "; merge them."))
+        ".\n  One row per ", paste(key, collapse = " / "), "; merge them."))
     }
   }
   invisible(NULL)
@@ -935,17 +940,50 @@ print.tfl_table_spec <- function(x, ...) {
   v
 }
 
+# The code list's rows of each variable, in their order: numbered first,
+# then the rest as written.
+.ard_spec_codelists <- function(sp) {
+  cl <- sp$codelists
+  if (is.null(cl) || !nrow(cl)) return(list())
+  cl <- cl[!is.na(cl$variable) & !is.na(cl$value), , drop = FALSE]
+  o <- suppressWarnings(as.numeric(cl$order))
+  cl <- cl[order(is.na(o), o, seq_len(nrow(cl))), , drop = FALSE]
+  split(cl, factor(cl$variable, levels = unique(cl$variable)))
+}
+
+# plan_labels(): a variable's label (variables$label) and, from the code
+# list, its values' text -- one entry a variable, since one key cannot hold
+# both: SEX = c(SEX = "Sex", F = "Female"), the variable's own name its
+# label (rtfreporter#514).
 .ard_spec_labels <- function(sp) {
   v <- .ard_spec_variables(sp)
   v <- v[!is.na(v$label), , drop = FALSE]
-  if (!nrow(v)) return(NULL)
-  stats::setNames(v$label, v$variable)
+  out <- if (nrow(v)) as.list(stats::setNames(v$label, v$variable)) else list()
+  for (cl in .ard_spec_codelists(sp)) {
+    cl <- cl[!is.na(cl$label), , drop = FALSE]
+    if (!nrow(cl)) next
+    var <- cl$variable[1L]
+    out[[var]] <- c(if (!is.null(out[[var]])) stats::setNames(out[[var]], var),
+                    stats::setNames(cl$label, cl$value))
+  }
+  if (!length(out)) return(NULL)
+  if (all(lengths(out) == 1L) && all(vapply(out, function(x) is.null(names(x)), NA))) {
+    return(unlist(out))
+  }
+  out
 }
 
+# plan_levels(): a variable's own `levels` (variables sheet), else the code
+# list's order of its values.
 .ard_spec_levels <- function(sp) {
   v <- sp$variables[!is.na(sp$variables$levels), , drop = FALSE]
-  if (!nrow(v)) return(NULL)
-  stats::setNames(lapply(v$levels, .ard_spec_split), v$variable)
+  out <- stats::setNames(lapply(v$levels, .ard_spec_split), v$variable)
+  for (cl in .ard_spec_codelists(sp)) {
+    var <- cl$variable[1L]
+    if (is.null(out[[var]])) out[[var]] <- cl$value
+  }
+  if (!length(out)) return(NULL)
+  out
 }
 
 # Rewrite "{mean} ({sd})" + digits "1,2" into "{mean:.1f} ({sd:.2f})", so what

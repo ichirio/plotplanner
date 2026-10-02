@@ -53,6 +53,11 @@ variables,variable,"The variable's name.",AGEGR1
 variables,label,"What prints for its name (plan_labels()); blank: the name.",Age (years)
 variables,order,"Its place among the variables (a number); blank: the data's order.",1
 variables,levels,"Its values in print order, | between them (plan_levels()); blank: the data's order.",Grade 0 | Grade 1 | Total
+codelists,,"Table: the study's code list, one row a value of a variable -- the text it prints as and its place (plan_labels(), plan_levels()). A report's own rows replace the defaults of the same variable and value. A variable's `levels` on the variables sheet, when given, is the order instead.",
+codelists,variable,"The variable (an analysis variable or a column key).",SEX
+codelists,value,"A value as the data have it.",F
+codelists,label,"What prints for the value; blank: the value.",Female
+codelists,order,"Its place among the variable's values (a number); blank: after the numbered ones, in the sheet's order.",2
 cells,,"Table: one row a line of a cell (plan_cells()). Rows with the same variable / context / row are one chain, tried top down. With stats = rows, a row with no template is one statistic's digits (plan_digits(.rows = )): row = the statistic as the label column prints it.",
 cells,variable,"What the template is for: a variable, continuous / categorical (every variable of that kind); blank: every variable.",continuous
 cells,context,"Only the ARD rows of this context (one variable summarised two ways); blank: any.",summary
