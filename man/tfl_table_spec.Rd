@@ -161,7 +161,9 @@ prefix names:
 \describe{
 \item{\verb{pages_*}}{\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_rows()}}: \code{max_rows}, \code{split},
 \code{break_before} (row positions to cut before, \code{20 | 40}, with
-\code{split = rows}), \code{min_group_rows}, \code{cont_label}.}
+\code{split = rows}), \code{min_group_rows}, \code{cont_label}, \code{page_by} (BY
+pages: the column(s) partitioning the body first, the row budget
+inside each).}
 \item{\verb{group_*}}{\code{mode} and \code{collapse} of \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_row_group()}}.
 \code{group_page = TRUE} is \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_paginate_group()}}: one page per
 value of \code{group_col} (blank: the outermost row key), and
@@ -189,9 +191,10 @@ value column); blank, every column.}
 rows (\code{label == "Any TEAE"}, \code{is.na(label)}); blank, every row.  A
 plan keeps one conditional rule per look, so two rows with a \code{where}
 may not set the same look -- join their conditions with \code{|}.}
-\item{\code{bold}, \code{italic}, \code{align}, \code{color}, \code{background}}{The look:
-\code{TRUE} / \code{FALSE}, \code{left} / \code{center} / \code{right}, a colour
-(\verb{#CC0000}).}
+\item{\code{bold}, \code{italic}, \code{underline}, \code{align}, \code{color}, \code{background},
+\code{indent_twips}}{The look: \code{TRUE} / \code{FALSE}, \code{left} / \code{center} /
+\code{right}, a colour (\verb{#CC0000}), a left indent in twips (not on the
+header).}
 }
 }
 
@@ -223,8 +226,13 @@ One row per report, each column an argument of
 kind of row, \code{border_header}, \code{border_spanning}, \code{border_body},
 \code{border_first_row}, \code{border_last_row}: the sides drawn (\code{top | bottom})
 or \code{none}, as \code{\link[rtfreporter:rtf_border]{rtfreporter::rtf_border()}} takes them.  \code{border} and the
-\verb{border_*} columns are one or the other.  \code{auto_width} is
-\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_columns()}}'s.
+\verb{border_*} columns are one or the other.  The table's default look,
+\code{header_align}, \code{header_bold}, \code{header_italic}, \code{align}, \code{bold},
+\code{italic}, \code{underline} (\code{\link[rtfreporter:rtf_table_style]{rtfreporter::rtf_table_style()}}'s fields, made
+into one style with the \verb{border_*} columns), and its width,
+\code{table_width_twips}, \code{table_width_pct}, \code{table_width_pct_of_writable}.
+\code{auto_width} is \code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_columns()}}'s and \code{col_header_align}
+\code{\link[rtfreporter:plan_verbs]{rtfreporter::plan_col_header()}}'s.
 
 Values are checked where they are written: a number, \code{TRUE} / \code{FALSE}
 or a \code{|}-list, as the column needs.  Quote a text value (\code{" (Cont.)"})

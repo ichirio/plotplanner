@@ -248,7 +248,7 @@
   a <- pick("pages_", c(max_rows = "max_rows", split = "split",
                         break_before = "break_before",
                         min_group_rows = "min_group_rows",
-                        cont_label = "cont_label"))
+                        cont_label = "cont_label", page_by = "page_by"))
   if (length(a)) do.call(add, c(list("plan_paginate_rows"), a))
   a <- pick("colpages_", c(at = "at", cut_by = "cut_by", every = "every",
                            keep = "keep", fit = "fit",
@@ -266,6 +266,9 @@
   # question about the columns, so it goes to plan_columns() below
   auto_width <- sty[["auto_width"]]
   sty[["auto_width"]] <- NULL
+  # and col_header_align is the header's, plan_col_header()
+  hd_align <- sty[["col_header_align"]]
+  sty[["col_header_align"]] <- NULL
   # a kind of row's rules, `top | bottom`, as the rtf_border() they stand for
   for (z in grep("^border_", names(sty), value = TRUE)) {
     sty[[z]] <- do.call(.spec_call, c(list("rtf_border"), as.list(
@@ -279,7 +282,7 @@
     cs[["where"]] <- if (!is.null(w)) .spec_formula(w)
     if (isTRUE(cs[["header"]])) cs[["header"]] <- TRUE else cs[["header"]] <- NULL
     cs <- cs[c("cols", "header", "where", "bold", "italic", "align", "color",
-               "background")]
+               "background", "underline", "indent_twips")]
     cs <- cs[!vapply(cs, is.null, NA)]
     do.call(add, c(list("plan_cell_style"), cs))
   }
@@ -293,7 +296,10 @@
     hn <- sa[["header_n"]]
     add("plan_col_header", header = cells,
         values = if (!is.null(hn))
-          if (is.null(names(hn))) list(n = hn) else as.list(hn))
+          if (is.null(names(hn))) list(n = hn) else as.list(hn),
+        col_header_align = hd_align)
+  } else if (!is.null(hd_align)) {
+    add("plan_col_header", col_header_align = hd_align)
   }
   w <- vapply(ct, function(r) r[["rel_width"]] %||% NA_real_, NA_real_)
   if (any(!is.na(w)) || any(flag("decimal_split")) || any(flag("row_title")) ||

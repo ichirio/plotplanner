@@ -72,6 +72,7 @@ layout,pages_split,"How a page break may cut: group_safe / group_force / rows / 
 layout,pages_break_before,"Row positions to cut before, | between them, with pages_split = rows (plan_paginate_rows(break_before = )); blank: none.",20 | 40
 layout,pages_min_group_rows,"Rows of a group kept together at the foot of a page, a whole number (plan_paginate_rows(min_group_rows = )); blank: the default.",2
 layout,pages_cont_label,"Appended to a group label continued on the next page (plan_paginate_rows(cont_label = )); quote it to keep leading spaces; blank: none.",""" (Cont.)"""
+layout,pages_page_by,"BY pages: the column(s) whose value partitions the body first, each value a page, the row budget then applying within one (plan_paginate_rows(page_by = )); | between them; print it or hide it (columns$hide); blank: none.",APERIODC
 layout,group_col,"With group_page = TRUE: the column whose values each start a page (plan_paginate_group(col = )); blank: the outermost row key.",PARAM
 layout,group_mode,"How groups print (plan_row_group(mode = )): value / indent / ...; blank: the default.",indent
 layout,group_collapse,"TRUE, or the columns (names or positions, | between them) whose repeated values print once (plan_row_group(collapse = )); blank: none.",1 | 2
@@ -120,6 +121,17 @@ style,border_spanning,"The spanning header cells' rules: sides, or none; blank: 
 style,border_body,"The body rows' rules: sides, or none; blank: border's.",none
 style,border_first_row,"The first body row's rules: sides, or none; blank: border's.",top
 style,border_last_row,"The last body row's rules: sides, or none; blank: border's.",bottom
+style,header_align,"The whole column header's alignment: left / center / right (rtf_table_style()); blank: each column's.",center
+style,header_bold,"TRUE / FALSE: the whole column header bold; blank: FALSE.",TRUE
+style,header_italic,"TRUE / FALSE: the whole column header italic; blank: FALSE.",TRUE
+style,align,"The body's default alignment: left / center / right (rtf_table_style()); blank: left when any border_* or look column (header_align ... underline) of this sheet is given, as rtf_table_style() defaults; otherwise row-title columns left, the others center.",left
+style,bold,"TRUE / FALSE: the body bold by default; blank: FALSE.",TRUE
+style,italic,"TRUE / FALSE: the body italic by default; blank: FALSE.",TRUE
+style,underline,"TRUE / FALSE: the body underlined by default; blank: FALSE.",TRUE
+style,table_width_twips,"The table's width in twips (1/1440 inch); blank: the page's writable width.",12960
+style,table_width_pct,"The table's width as a percentage of the page width; blank: the page's writable width.",80
+style,table_width_pct_of_writable,"The table's width as a percentage of the writable width (inside the margins); blank: 100.",90
+style,col_header_align,"The column header text's alignment, every header row: left / center / right (plan_col_header(col_header_align = )); blank: each column's data alignment.",center
 cell_styles,,"Table: one row a plan_cell_style(), applied in order; a report's own rows replace the default rows whole.",
 cell_styles,cols,"The columns styled, | between them (.values = every value column); blank: every column.",Placebo | .values
 cell_styles,header,"TRUE / FALSE: TRUE styles the column header instead of the body; blank: FALSE.",TRUE
@@ -129,6 +141,8 @@ cell_styles,italic,"TRUE / FALSE; blank: unchanged.",TRUE
 cell_styles,align,"left / center / right; blank: unchanged.",center
 cell_styles,color,"Text colour, #RRGGBB; blank: unchanged.",#CC0000
 cell_styles,background,"Cell shading, #RRGGBB; blank: unchanged.",#EEEEEE
+cell_styles,underline,"TRUE / FALSE; blank: unchanged.",TRUE
+cell_styles,indent_twips,"Left indent of the cell text in twips (not on the header); blank: unchanged.",200
 col_header,,"Table: one row a header cell (plan_col_header(header = )). A report's own cells replace the default header whole.",
 col_header,line,"The header row, a whole number (1 = the top).",1
 col_header,cols,"The columns the cell sits on: a name, .values (every value column), a position or range (3, 3:31, 3:last), or KEY = value (the columns whose key has that value); | between them.",.values
