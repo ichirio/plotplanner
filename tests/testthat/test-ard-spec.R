@@ -64,7 +64,11 @@ test_that("the definition becomes code and the code the study ARD", {
   code <- tfl_ard_code(x)
   expect_silent(parse(text = code))
   expect_true(any(grepl("cards::ard_stack_hierarchical", code, fixed = TRUE)))
-  expect_true(any(grepl("denominator = population", code, fixed = TRUE)))
+  expect_true(any(grepl("denominator = pop_saf", code, fixed = TRUE)))
+  # the analysis data is made once, by name; a custom row binds `data`
+  expect_true(any(code ==
+    "adae_saf <- subset(adae, USUBJID %in% pop_saf$USUBJID & (TRTEMFL == \"Y\"))"))
+  expect_true(any(code == "  data <- pop_saf"))
 
   a <- tfl_build_ard(x, dir = dir)
   expect_true(file.exists(file.path(dir, "output", "ard", "ard.rds")))

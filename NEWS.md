@@ -1,5 +1,17 @@
 # tflspec (development version)
 
+* **The ARD program reads like code written by hand** (#74).  Each
+  analysis's data -- the dataset, restricted to the population's subjects
+  and to the analysis's `where` -- is made once, under a name
+  (`adae_saf <- subset(adae, USUBJID %in% pop_saf$USUBJID & (TRTEMFL == "Y"))`),
+  and each analysis is one call on it (`ard <- cards::ard_stack_hierarchical(adae_saf,
+  ..., denominator = pop_saf, ...)`) instead of a `local({ data <- ...;
+  population <- ... })` block.  A row whose own R (`args`, `custom` code)
+  names `data` or `population`, and a subject flag, still bind the two
+  names locally.  The ARD spec is unchanged and the ARD made is the same:
+  the 64 exact-test cases are identical, and the sample study's ARD and
+  RTFs (tflplanner's SAMPLE-01) are unchanged.
+
 * **A code list in the table spec** (#72): an optional `codelists` sheet
   (`variable`, `value`, `label`, `order`) gives a value's printed text and
   its place.  It becomes `plan_labels(SEX = c(SEX = "Sex", F = "Female"))`
