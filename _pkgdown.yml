@@ -70,6 +70,7 @@ reference:
     desc: The page, the running header and footer, the titles and footnotes.
     contents:
       - tfl_read_report_spec
+      - tfl_read_toc
       - tfl_report
       - tfl_report_code
       - tfl_report_path

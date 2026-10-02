@@ -1,5 +1,16 @@
 # tflspec (development version)
 
+* **`tfl_read_toc()`: a company's TOC as report specs** (#78).  A study's
+  list of outputs in the company's own workbook or `.csv` is read through a
+  map of its columns (`output_id`, `type`, `title` -- one column or several
+  --, `population`, `footnote`, `program`, `file`, `note`) into the
+  `report`, `titles` and `footnotes` sheets.  Kinds are read loosely, or
+  guessed from the id or the first title (`attr(, "guessed")`); a cell's
+  line breaks or `" | "` make lines; section headings are skipped
+  (`attr(, "skipped")`).  A column the map names and the TOC has not, a row
+  with no id but content, and an id given twice stop with what to do.  The
+  spec is unchanged.
+
 * `tfl_ard_code()` writes the code of an analysis with no dataset and no
   population again (#76): #74 left its data unnamed and stopped with
   "argument is of length zero", before tflplanner could say what the
