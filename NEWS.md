@@ -12,6 +12,17 @@
   the 64 exact-test cases are identical, and the sample study's ARD and
   RTFs (tflplanner's SAMPLE-01) are unchanged.
 
+* **A code list in the table spec** (#72): an optional `codelists` sheet
+  (`variable`, `value`, `label`, `order`) gives a value's printed text and
+  its place.  It becomes `plan_labels(SEX = c(SEX = "Sex", F = "Female"))`
+  (the variable's label from `variables$label` under its own name) and
+  `plan_levels(SEX = c("M", "F"))`.  A report's own rows replace the
+  defaults of the same variable and value.  **Precedence:** a variable's
+  `levels` on the `variables` sheet, when given, is its order; the code
+  list's order applies otherwise; its labels apply either way.  Needs
+  rtfreporter 0.8.2.9004 (rtfreporter#514) for the text of an analysis
+  variable's levels.
+
 * **`.rda` / `.RData` data files** (one dataset a file) are read: the
   written programs (`tfl_ard_code()`, `tfl_read_data_code()`) load them,
   and `tfl_read_adam()` takes them from a folder.

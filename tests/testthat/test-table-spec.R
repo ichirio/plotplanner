@@ -150,7 +150,7 @@ test_that("a three-sheet spec supplies the roles as well as the cells", {
   skip_if_no_cards()
   sp <- dm_spec()
   expect_s3_class(sp, "tfl_table_spec")
-  expect_identical(names(sp), c("study", "tables", "variables", "cells",
+  expect_identical(names(sp), c("study", "tables", "variables", "codelists", "cells",
                                 "layout", "columns", "style", "cell_styles",
                                 "col_header", "report", "page", "header", "footer",
                                 "titles", "footnotes"))

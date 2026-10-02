@@ -796,3 +796,43 @@ test_that("cell styles convert in a plan with no plan_style()", {
   expect_true(attr(sp, "same_pages"))
   expect_identical(nrow(sp$style), 0L)
 })
+
+test_that("the codelists sheet: a value's text and place (plan_labels / plan_levels)", {
+  skip_if_not_installed("cards")
+  skip_if(utils::packageVersion("rtfreporter") < "0.8.2.9004")
+  adsl <- cards::ADSL
+  adsl$TRT <- as.character(adsl$ARM)
+  adsl$SEX <- as.character(adsl$SEX)
+  ard <- cards::ard_stack(adsl, .by = TRT,
+    cards::ard_categorical(variables = c(SEX, AGEGR1), statistic = ~ c("n", "p")))
+  d <- suppressMessages(rtfreporter::normalize_ard(ard))
+  sp <- tfl_table_spec(list(
+    tables = data.frame(output_id = "T1", cols = "TRT", rows = "group = variable"),
+    variables = data.frame(output_id = NA, variable = c("SEX", "AGEGR1"),
+                           label = c("Sex", "Age group"), order = c("1", "2"),
+                           levels = c(NA, "<65 | 65-80 | >80")),
+    codelists = data.frame(output_id = NA, variable = c("SEX", "SEX", "AGEGR1"),
+                           value = c("F", "M", "<65"),
+                           label = c("Female", "Male", "Under 65"),
+                           order = c("2", "1", NA)),
+    cells = data.frame(output_id = NA, template = "{n:d} ({p:.1f%})")))
+  page <- function(p) {
+    x <- suppressMessages(rtfreporter::plan_apply(p))
+    if (is.data.frame(x)) x else if (inherits(x, "rtftable")) x$data else x[[1L]]$data
+  }
+  x <- page(suppressMessages(tfl_table_plan(d, sp, output_id = "T1")))
+  # the code list's text, in its order; the variables sheet's levels win
+  expect_identical(as.character(x$label),
+                   c("Male", "Female", "Under 65", "65-80", ">80"))
+  expect_identical(unique(as.character(x$group)), c("Sex", "Age group"))
+  code <- tfl_table_code(sp, output_id = "T1")
+  expect_true(any(grepl('SEX = c(SEX = "Sex", M = "Male", F = "Female")', code, fixed = TRUE)))
+  e <- new.env()
+  e$data <- d
+  suppressMessages(eval(parse(text = code), envir = e))
+  expect_identical(page(e$plan), x)
+  # one value said twice for a report is refused
+  bad <- sp
+  bad$codelists <- rbind(bad$codelists, bad$codelists[1L, ])
+  expect_error(tfl_table_spec(unclass(bad)), "two rows for 'SEX / F'")
+})
