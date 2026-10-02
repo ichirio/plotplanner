@@ -53,7 +53,7 @@ test_that("a fitted model given as the first argument takes no data", {
   sp <- exact_spec(list(method = "cardx::ard_stats_aov", population_id = "SAF",
                         args = "formula = AGE ~ TRT01A"))
   code <- paste(tfl_ard_code(sp, save = FALSE), collapse = "\n")
-  expect_match(code, "cardx::ard_stats_aov(data,", fixed = TRUE)
+  expect_match(code, "cardx::ard_stats_aov(pop_saf,", fixed = TRUE)
 })
 
 test_that("args are read as R arguments: their order and spacing do not matter", {
@@ -68,7 +68,7 @@ test_that("args are read as R arguments: their order and spacing do not matter",
   sp <- exact_spec(list(method = "cards::ard_strata", population_id = "SAF",
                         args = ".strata = SEX, .f = function(df) cards::ard_summary(df, by = TRT01A, variables = AGE)"))
   code <- paste(tfl_ard_code(sp, save = FALSE), collapse = "\n")
-  expect_match(code, "cards::ard_strata(data,", fixed = TRUE)
+  expect_match(code, "cards::ard_strata(pop_saf,", fixed = TRUE)
   # args that are not R are refused before any code is made
   expect_error(exact_spec(list(method = "categorical", population_id = "SAF",
                                variables = "SEX", args = "denominator = population)")),
@@ -84,7 +84,7 @@ test_that("a study's own function is a method, loaded by the study key `source`"
   expect_true("source(\"R/ard-own.R\")" %in%
                 tfl_ard_code(sp, part = "setup"))
   expect_match(paste(code, collapse = "\n"),
-               "ard_riskdiff_newcombe(data,", fixed = TRUE)
+               "ard_riskdiff_newcombe(pop_saf,", fixed = TRUE)
   # without `source` it still reads, with a warning
   expect_warning(exact_spec(list(method = "ard_riskdiff_newcombe",
                                  population_id = "SAF")),
