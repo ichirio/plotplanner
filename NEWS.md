@@ -1,5 +1,10 @@
 # tflspec (development version)
 
+* The `style` sheet's `align` help no longer warns that any `border_*` or
+  look column left-aligns every column: from rtfreporter 0.8.2.9008
+  (rtfreporter #522) a blank `align` keeps each column's default.  Needs
+  rtfreporter >= 0.8.2.9008.
+
 * **The table definition says what the plan learned in rtfreporter
   0.8.2.9006** (#81; rtfreporter #517 / #519).  New columns, blank = as before:
   `layout$pages_page_by` (BY pages with a row budget inside,
