@@ -7,8 +7,8 @@
 tfl_read_adam(x)
 }
 \arguments{
-\item{x}{A folder containing \code{.xpt}, \code{.sas7bdat} or \code{.rds} files, or a
-named list of data frames.}
+\item{x}{A folder containing \code{.xpt}, \code{.sas7bdat}, \code{.rds} or \code{.rda}
+(\code{.RData}, one dataset a file) files, or a named list of data frames.}
 }
 \value{
 A named list of data frames; names are upper-case dataset names.

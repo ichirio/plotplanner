@@ -13,8 +13,8 @@ pp_sheet_cols <- list(
 
 #' Read ADaM datasets
 #'
-#' @param x A folder containing `.xpt`, `.sas7bdat` or `.rds` files, or a
-#'   named list of data frames.
+#' @param x A folder containing `.xpt`, `.sas7bdat`, `.rds` or `.rda`
+#'   (`.RData`, one dataset a file) files, or a named list of data frames.
 #' @return A named list of data frames; names are upper-case dataset names.
 #' @export
 tfl_read_adam <- function(x) {
@@ -27,14 +27,19 @@ tfl_read_adam <- function(x) {
   if (!is.character(x) || length(x) != 1 || !dir.exists(x)) {
     stop("`x` must be a folder or a named list of data frames.", call. = FALSE)
   }
-  files <- list.files(x, pattern = "\\.(xpt|sas7bdat|rds)$", full.names = TRUE, ignore.case = TRUE)
-  if (!length(files)) stop("No .xpt / .sas7bdat / .rds files in ", x, call. = FALSE)
+  files <- list.files(x, pattern = "\\.(xpt|sas7bdat|rds|rda|rdata)$", full.names = TRUE, ignore.case = TRUE)
+  if (!length(files)) stop("No .xpt / .sas7bdat / .rds / .rda files in ", x, call. = FALSE)
   out <- lapply(files, function(f) {
     ext <- tolower(tools::file_ext(f))
     switch(ext,
       rds = readRDS(f),
       xpt = haven::read_xpt(f),
-      sas7bdat = haven::read_sas(f)
+      sas7bdat = haven::read_sas(f),
+      rda = , rdata = local({
+        e <- new.env()
+        load(f, envir = e)
+        e[[ls(e)[1L]]]
+      })
     )
   })
   names(out) <- toupper(tools::file_path_sans_ext(basename(files)))

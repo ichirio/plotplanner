@@ -19,6 +19,7 @@ have gives a \code{stop()} line, so the program says so when it runs.
 }
 \description{
 Writes \code{adsl <- haven::read_xpt("data/adam/adsl.xpt")} (the reader follows
-the file's extension: \code{.rds}, \code{.xpt}, \code{.sas7bdat}, \code{.csv}, \code{.parquet})
+the file's extension: \code{.rds}, \code{.xpt}, \code{.sas7bdat}, \code{.csv}, \code{.parquet}, and \code{.rda} /
+\code{.RData} holding one dataset)
 into an object named after the dataset, and its derived columns.
 }
