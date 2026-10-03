@@ -1,0 +1,158 @@
+# tflspec
+
+Specifications for clinical **tables, listings and figures**, as Excel
+workbooks (and YAML for figures): what is analysed, how it is laid out,
+how the report is dressed. tflspec turns a spec into the object it
+stands for and into the R program that makes it;
+[rtfreporter](https://github.com/ichirio/rtfreporter) renders the RTF,
+and [tflplanner](https://github.com/ichirio/tflplanner) is the GUI on
+top.
+
+    tflplanner   the GUI; installing it installs the other two
+        |
+    tflspec      specs -> objects and code (needs rtfreporter, cards at run time)
+        |
+    rtfreporter  the RTF renderer; usable on its own
+
+Working with an AI assistant? Attach
+[`tflspec_ai_manual()`](https://ichirio.github.io/tflspec/reference/tflspec_ai_manual.md)
+(the manual of the version you have installed) to the chat session.
+
+Status: early development (0.0.x). Discussion and sample code:
+[Discussions](https://github.com/ichirio/tflspec/discussions).
+
+## The one workflow
+
+``` text
+ADaM ──(ARD spec)──> ARD ──(table spec)──> plan ──(report spec)──> RTF
+          tfl_ard_code()      tfl_table_code()       tfl_report_code()
+          tfl_build_ard()     tfl_table_plan()       tfl_report()
+```
+
+Each spec can be **run** or **written out as a program** from the same
+list of steps, so the object and the program cannot disagree. The
+written program is what a study keeps: it needs rtfreporter and cards,
+not tflspec. What a spec makes is checked against the same thing written
+by hand: the ARD value by value, a table’s RTF byte by byte.
+
+## ARD spec
+
+A workbook of four sheets: `study` (the subject key, where the ARD
+goes), `datasets` (the data and its derived columns), `populations` (the
+analysis sets) and `analyses`, one cards / cardx call a row:
+
+| output_id | analysis_id | method | dataset | population_id | by | variables | args |
+|----|----|----|----|----|----|----|----|
+| T-14-1-1 | AGE | continuous |  | SAF | TRT01A | AGE |  |
+| T-14-3-1 | TEAE | hierarchical | ADAE | SAF | TRTA | AESOC \| AEDECOD | over_variables = TRUE |
+| T-14-2-2 | KM | cardx::ard_survival_survfit | ADTTE | SAF |  | TRTA | y = “survival::Surv(AVAL, 1 - CNSR)”, times = c(30, 90) |
+
+``` r
+
+spec <- tfl_read_ard_spec("spec/ard_spec.xlsx")
+cat(tfl_ard_code(spec), sep = "\n")     # the cards / cardx program
+ard  <- tfl_build_ard(spec)             # or run it: one study ARD
+```
+
+`method` is a keyword
+([`tfl_ard_methods()`](https://ichirio.github.io/tflspec/reference/tfl_ard_methods.md)),
+any `pkg::function`, or a function of the study’s own (study key
+`source`) – for what cards and cardx have no function for. `strata` and
+`denominator` are columns; anything else goes in `args`, as R.
+
+## Table spec
+
+The table’s roles and the rtfreporter plan verbs, one sheet a grain:
+`tables`, `variables`, `cells`, `layout`, `columns`, `style`,
+`cell_styles`, `col_header`.
+
+``` r
+
+spec <- tfl_read_report_spec(c("report.xlsx", "tables.xlsx"), output_id = "DM")
+plan <- tfl_table_plan(normalize_ard(tfl_ard_for(ard, "DM")), spec)
+tfl_table_code(spec)                     # or the program: table_plan() |> plan_*()
+```
+
+A plan written in code goes back to a workbook with
+[`tfl_as_table_spec()`](https://ichirio.github.io/tflspec/reference/tfl_as_table_spec.md),
+which names what a sheet cannot carry and compares the RTF.
+
+## Report spec
+
+The page, the running header and footer, the titles and footnotes, a
+watermark: sheets `report`, `page`, `header`, `footer`, `titles`,
+`footnotes`.
+
+``` r
+
+doc <- tfl_report(spec, content = plan)
+generate_rtfreport(doc, tfl_report_path(spec), overwrite = TRUE)
+tfl_report_code(spec, content = "plan")  # or the program
+```
+
+## Listing spec
+
+Two sheets keyed by `output_id`: `listings` (the dataset, `where`,
+`sort`, rows a page) and `listing_cols` (one row a printed column).
+
+``` r
+
+spec  <- tfl_read_listing_spec("spec/listing_figure_spec.xlsx")
+tfl_listing_code(spec, "L-16-2-7", datasets = catalog)   # the program
+pages <- tfl_listing(adae, spec, "L-16-2-7")             # or the pages
+```
+
+[`tfl_as_listing_spec()`](https://ichirio.github.io/tflspec/reference/tfl_as_listing_spec.md)
+writes a listing coded with rtfreporter back as a spec.
+
+## Figure design
+
+A figure is a YAML design – its data steps, statistics and layers – that
+[`tfl_fig_design_code()`](https://ichirio.github.io/tflspec/reference/tfl_fig_design.md)
+writes as a ggplot2 script depending only on dplyr and ggplot2 (+
+ggsurvfit / patchwork). Start from one of 38 templates:
+
+``` r
+
+d <- tfl_fig_template("km_risk_table", param = "OS", group = "TRT01P")
+tfl_check_fig_design(d, adam)
+cat(tfl_fig_design_code(d), sep = "\n")
+```
+
+| KM with the number at risk | forest plot | mean by visit |
+|----|----|----|
+| ![](reference/figures/quick_km_risk.png) | ![](reference/figures/type_forest_hr.png) | ![](reference/figures/type_mean_se_n.png) |
+
+[`tfl_fig_style()`](https://ichirio.github.io/tflspec/reference/tfl_fig_style.md)
+holds every look-and-feel value of a study’s figures. The older
+sheet-based figure spec and its quick figures
+([`tfl_fig_km()`](https://ichirio.github.io/tflspec/reference/tfl_fig_km.md),
+[`tfl_fig_waterfall()`](https://ichirio.github.io/tflspec/reference/tfl_fig_waterfall.md),
+…
+[`tfl_fig_catalog()`](https://ichirio.github.io/tflspec/reference/tfl_fig_catalog.md))
+remain while the development team decides between the two ([Discussion
+\#63](https://github.com/ichirio/tflspec/discussions/63)).
+
+## CDISC ARS
+
+The ARD spec as CDISC’s Analysis Results Standard, and back:
+
+``` r
+
+ars <- tfl_ars(ard_spec, table_spec, report_spec)
+tfl_write_ars_json(ars, "ars.json"); tfl_check_ars(ars)
+tfl_ars_to_specs(tfl_read_ars_json("theirs.json"))   # anyone's ARS as specs
+```
+
+## Column names
+
+Table, listing and report columns are rtfreporter’s argument names (a
+`layout` column is the verb’s prefix and its argument: `pages_max_rows`
+is `plan_paginate_rows(max_rows = )`); ARD columns are cards’ (`by`,
+`variables`, `strata`, `denominator`), with two exceptions: `statistics`
+(cards’ `statistic`) and `formats` (tflspec’s own). A column whose value
+has a unit says it (`_twips`, `_in`, `_half_points`; `rel_width` is a
+relative width). One argument is written in one place: a column, or
+`args`, never both. Every column is described on its header cell’s
+comment and by
+[`tfl_spec_columns()`](https://ichirio.github.io/tflspec/reference/tfl_spec_columns.md).
