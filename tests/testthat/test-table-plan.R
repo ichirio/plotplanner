@@ -712,7 +712,10 @@ test_that("cell styles are a sheet, both ways, and give the same pages", {
     plan_cell_style(header = TRUE, italic = TRUE) |>
     plan_cell_style(where = ~ row_label == "Sex", background = "#EEEEEE",
                     bold = TRUE)
-  sp <- tfl_as_table_spec(p, output_id = "T1")
+  # `plan_cell_style(header = TRUE)` on a header of several label rows makes
+  # rtfreporter say that the look is shared by all of them; that is its
+  # message, not what this test is about
+  sp <- suppressWarnings(tfl_as_table_spec(p, output_id = "T1"))
   expect_true(attr(sp, "same_pages"))
   expect_length(attr(sp, "not_converted"), 0L)
   cs <- sp$cell_styles
@@ -727,10 +730,10 @@ test_that("cell styles are a sheet, both ways, and give the same pages", {
   skip_if_not_installed("writexl"); skip_if_not_installed("readxl")
   f <- tempfile(fileext = ".xlsx"); on.exit(unlink(f), add = TRUE)
   tfl_write_table_spec(sp, f)
-  back <- plan_apply(
+  back <- suppressWarnings(plan_apply(
     tfl_table_plan(p$data, tfl_read_table_spec(f, output_id = "T1")) |>
-      plan_cells(notes = FALSE), "pages")
-  expect_equal(back, plan_apply(p, "pages"))
+      plan_cells(notes = FALSE), "pages"))
+  expect_equal(back, suppressWarnings(plan_apply(p, "pages")))
 })
 
 test_that("a look computed row by row is said, not dropped", {

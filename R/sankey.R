@@ -32,7 +32,7 @@ if (getRversion() >= "2.15.1") {
 #'   ribbons follow it: with `"top"` they stack from the node top downward
 #'   (the ribbon toward the top-most counterpart node attaches at the top),
 #'   with `"bottom"` from the node bottom upward.
-#' @param scale_mode Scale behavior: `"auto"`, `"shared"`, or `"adaptive"`.
+#' @param scale_mode Scale behaviour: `"auto"`, `"shared"`, or `"adaptive"`.
 #' @param shared_scale_max Shared maximum span used in `"shared"` mode and as
 #'   reference in `"adaptive"` mode.
 #' @param adaptive_max_multiplier Maximum magnification in `"adaptive"` mode.
