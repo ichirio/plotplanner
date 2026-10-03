@@ -1,5 +1,13 @@
 # tflspec (development version)
 
+* **A follow-up `R CMD check --as-cran` on R 4.6.1 with every Suggests**
+  (#84).  The check is clean but for the CRAN-incoming NOTE.  `Language:
+  en-GB` is declared (the text is British) and `inst/WORDLIST` lists the
+  technical words, so `spelling::spell_check_package()` finds nothing; the one
+  American `behavior` in the `scale_mode` help is `behaviour`.  The
+  "cell styles are a sheet" test no longer prints sixteen
+  `style_header()` warnings that are rtfreporter's, not its subject.
+
 * The `style` sheet's `align` help no longer warns that any `border_*` or
   look column left-aligns every column: from rtfreporter 0.8.2.9008
   (rtfreporter #522) a blank `align` keeps each column's default.  Needs

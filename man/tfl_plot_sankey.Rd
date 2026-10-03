@@ -71,7 +71,7 @@ ribbons follow it: with \code{"top"} they stack from the node top downward
 (the ribbon toward the top-most counterpart node attaches at the top),
 with \code{"bottom"} from the node bottom upward.}
 
-\item{scale_mode}{Scale behavior: \code{"auto"}, \code{"shared"}, or \code{"adaptive"}.}
+\item{scale_mode}{Scale behaviour: \code{"auto"}, \code{"shared"}, or \code{"adaptive"}.}
 
 \item{shared_scale_max}{Shared maximum span used in \code{"shared"} mode and as
 reference in \code{"adaptive"} mode.}
